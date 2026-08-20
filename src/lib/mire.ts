@@ -22,7 +22,24 @@ export function blockifyImage(
   off.height = rows;
   const c = off.getContext("2d", { willReadFrequently: true })!;
   c.imageSmoothingEnabled = true;
-  c.drawImage(img, 0, 0, cols, rows);
+  // recadrage "cover" : jamais de deformation
+  const ar = img.naturalWidth / img.naturalHeight;
+  const target = cols / rows;
+  let sw = img.naturalWidth;
+  let sh = img.naturalHeight;
+  if (ar > target) sw = img.naturalHeight * target;
+  else sh = img.naturalWidth / target;
+  c.drawImage(
+    img,
+    (img.naturalWidth - sw) / 2,
+    (img.naturalHeight - sh) / 2,
+    sw,
+    sh,
+    0,
+    0,
+    cols,
+    rows,
+  );
   const px = c.getImageData(0, 0, cols, rows).data;
   const data = new Uint8Array(cols * rows);
   for (let i = 0; i < cols * rows; i++) {
