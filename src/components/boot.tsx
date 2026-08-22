@@ -169,8 +169,8 @@ export function NegativeSwitch() {
     <button
       type="button"
       onClick={() => setNeg((v) => !v)}
-      className="u-mono fixed bottom-cell right-cell z-[160] border-[3px] border-current px-cell py-[6px] mix-blend-difference"
-      style={{ color: "#FFFFFF" }}
+      className="u-mono fixed right-0 top-1/2 z-[160] hidden -translate-y-1/2 border-[3px] border-current px-[6px] py-cell mix-blend-difference md:block"
+      style={{ color: "#FFFFFF", writingMode: "vertical-rl" }}
     >
       {neg ? "POSITIF [N]" : "NEGATIF [N]"}
     </button>
