@@ -132,7 +132,7 @@ function Index() {
 
       {/* ATELIER — bloc noir plein */}
       <section className="border-t-[10px] border-black bg-black px-cell py-cell6 text-white">
-        <div className="u-display text-[13vw] leading-[0.82] md:text-[7vw]">
+        <div className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
           LE SITE NE
           <br />
           DECORE PAS.
