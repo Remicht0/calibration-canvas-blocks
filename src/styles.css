@@ -183,3 +183,31 @@
     line-height: var(--cell);
   }
 }
+
+/* ---- Mire : curseur, inversion du signal, bandeau ---- */
+.mire-nocursor,
+.mire-nocursor * {
+  cursor: none !important;
+}
+
+.mire-negative body {
+  filter: invert(1);
+}
+
+/* double inversion : le repere rouge reste rouge */
+.mire-negative .mire-keep {
+  filter: invert(1);
+}
+
+@keyframes mire-slide {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+.mire-ticker {
+  animation: mire-slide 26s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mire-ticker { animation: none; }
+}
