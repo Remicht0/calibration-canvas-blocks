@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { BlockBackdrop, BlockType, ScanLine } from "@/components/mire";
+import { BlockBackdrop, BlockType } from "@/components/mire";
 import { projects } from "@/lib/projects";
 
 export const Route = createFileRoute("/")({
@@ -30,8 +30,6 @@ function Index() {
 
   return (
     <main className="min-h-screen bg-white text-black">
-      <ScanLine />
-
       {/* ENTREE */}
       <section className="flex min-h-screen flex-col justify-between px-cell py-cell2">
         <div className="u-mono flex justify-between">

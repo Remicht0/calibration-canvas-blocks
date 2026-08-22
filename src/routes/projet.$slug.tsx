@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { BlockImage, BlockType, ScanLine } from "@/components/mire";
+import { BlockImage, BlockType } from "@/components/mire";
 import { bySlug, projects } from "@/lib/projects";
 import { Colophon } from "./index";
 
@@ -34,8 +34,6 @@ function ProjectPage() {
 
   return (
     <main className="min-h-screen bg-white text-black">
-      <ScanLine />
-
       <div className="u-mono flex justify-between px-cell py-cell2">
         <Link to="/">RETOUR / INDEX</Link>
         <span>
