@@ -9,6 +9,9 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { BootSequence, GridCursor, NegativeSwitch } from "@/components/boot";
+import { ScanLine } from "@/components/mire";
+
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -114,7 +117,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <head>
         <HeadContent />
       </head>
@@ -131,6 +134,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ScanLine />
+      <GridCursor />
+      <NegativeSwitch />
+      <BootSequence />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>

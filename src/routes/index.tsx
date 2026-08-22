@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { BlockBackdrop, BlockType, ScanLine } from "@/components/mire";
+import { BlockBackdrop, BlockType } from "@/components/mire";
+import { CalibrationBand, Ticker } from "@/components/bars";
 import { projects } from "@/lib/projects";
 
 export const Route = createFileRoute("/")({
@@ -30,8 +31,6 @@ function Index() {
 
   return (
     <main className="min-h-screen bg-white text-black">
-      <ScanLine />
-
       {/* ENTREE */}
       <section className="flex min-h-screen flex-col justify-between px-cell py-cell2">
         <div className="u-mono flex justify-between">
@@ -53,6 +52,21 @@ function Index() {
           <span>{projects.length} PROJETS / INDEX CI-DESSOUS</span>
         </div>
       </section>
+
+      <CalibrationBand height={6} seed={2} className="border-y-[10px] border-black" />
+
+      <Ticker
+        items={[
+          "SEUIL 0.45",
+          "NOIR 000000",
+          "BLANC FFFFFF",
+          "REPERE FF0000",
+          "PAS 16 / 20 PX",
+          "AUCUN DEGRADE",
+          "AUCUNE OMBRE",
+          "TOUCHE [N] — INVERSER LE SIGNAL",
+        ]}
+      />
 
       {/* INDEX */}
       <section className="relative border-t-[10px] border-black">
@@ -87,6 +101,56 @@ function Index() {
             ))}
           </ul>
           <div className="h-cell4" />
+        </div>
+      </section>
+
+      {/* PROCEDE — trois planches de mesure */}
+      <section className="border-t-[10px] border-black bg-white px-cell py-cell4">
+        <div className="u-mono mb-cell2 flex justify-between">
+          <span>PROCEDE</span>
+          <span>PLANCHES 01 — 03</span>
+        </div>
+        <div className="grid gap-cell md:grid-cols-3">
+          {[
+            { n: "01", t: "SEUIL", d: "DEUX VALEURS. RIEN ENTRE LES DEUX." },
+            { n: "02", t: "PAS", d: "UN BLOC. AUCUN DEMI-BLOC." },
+            { n: "03", t: "CHUTE", d: "LE SEUL MOUVEMENT AUTORISE." },
+          ].map((c) => (
+            <article key={c.n} className="border-[3px] border-black">
+              <CalibrationBand height={7} seed={Number(c.n) * 5} />
+              <div className="u-mono border-t-[3px] border-black p-cell">
+                <div className="flex justify-between">
+                  <span>{c.n}</span>
+                  <span>{c.t}</span>
+                </div>
+                <p className="mt-cell">{c.d}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* ATELIER — bloc noir plein */}
+      <section className="border-t-[10px] border-black bg-black px-cell py-cell6 text-white">
+        <div className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
+          LE SITE NE
+          <br />
+          DECORE PAS.
+          <br />
+          IL CALIBRE.
+        </div>
+        <div className="u-mono mt-cell4 grid gap-y-cell2 md:grid-cols-3 md:gap-x-cell">
+          <p className="max-w-[38ch]">
+            ATELIER FONDE EN 2019. IDENTITE, EDITION, SIGNALETIQUE, HABILLAGE
+            D&apos;ANTENNE.
+          </p>
+          <p className="max-w-[38ch]">
+            CHAQUE PROJET COMMENCE PAR UNE MESURE : PAS DE GRILLE, TAUX
+            D&apos;ENCRAGE, DISTANCE DE LECTURE.
+          </p>
+          <p className="max-w-[38ch]">
+            AUCUNE IMAGE N&apos;EST RETOUCHEE. ELLE EST SEUILLEE.
+          </p>
         </div>
       </section>
 

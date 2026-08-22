@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { BlockImage, BlockType, ScanLine } from "@/components/mire";
+import { BlockImage, BlockType } from "@/components/mire";
+import { CalibrationBand } from "@/components/bars";
 import { bySlug, projects } from "@/lib/projects";
 import { Colophon } from "./index";
 
@@ -34,8 +35,6 @@ function ProjectPage() {
 
   return (
     <main className="min-h-screen bg-white text-black">
-      <ScanLine />
-
       <div className="u-mono flex justify-between px-cell py-cell2">
         <Link to="/">RETOUR / INDEX</Link>
         <span>
@@ -46,6 +45,8 @@ function ProjectPage() {
       <section className="px-cell pb-cell4">
         <BlockType text={p.title} loop={false} />
       </section>
+
+      <CalibrationBand height={5} seed={7} className="border-y-[10px] border-black" />
 
       {/* BLOC NOIR */}
       <section className="bg-black px-cell py-cell4 text-white">
