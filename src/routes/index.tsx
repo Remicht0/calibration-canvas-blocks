@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { BlockBackdrop, BlockType } from "@/components/mire";
+import { CalibrationBand, Ticker } from "@/components/bars";
 import { projects } from "@/lib/projects";
 
 export const Route = createFileRoute("/")({

@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { BlockImage, BlockType } from "@/components/mire";
+import { CalibrationBand } from "@/components/bars";
 import { bySlug, projects } from "@/lib/projects";
 import { Colophon } from "./index";
 
@@ -44,6 +45,8 @@ function ProjectPage() {
       <section className="px-cell pb-cell4">
         <BlockType text={p.title} loop={false} />
       </section>
+
+      <CalibrationBand height={5} seed={7} className="border-y-[10px] border-black" />
 
       {/* BLOC NOIR */}
       <section className="bg-black px-cell py-cell4 text-white">
