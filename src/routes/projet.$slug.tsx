@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { BlockImage, BlockType } from "@/components/mire";
+import { BlockType } from "@/components/mire";
+import { HybridMedia } from "@/components/media";
 import { CalibrationBand } from "@/components/bars";
 import { bySlug, projects } from "@/lib/projects";
 import { Colophon } from "./index";
@@ -70,9 +71,13 @@ function ProjectPage() {
         </div>
       </section>
 
-      {/* IMAGE PLEINE LARGEUR */}
+      {/* PLANCHE PRINCIPALE — media hybride, lecture au choix */}
       <section className="bg-white px-cell py-cell4">
-        <BlockImage src={p.image} alt={p.title} ratio={0.62} threshold={0.45} />
+        <div className="u-mono mb-cell flex justify-between">
+          <span>PLANCHE 01 — MATIERE</span>
+          <span className="hidden md:inline">SURVOL = LOUPE / MATIERE BRUTE</span>
+        </div>
+        <HybridMedia src={p.image} alt={p.title} ratio={0.56} mode="gris" gamma={0.78} />
       </section>
 
       {/* TEXTE COLONNE ETROITE */}
@@ -86,10 +91,23 @@ function ProjectPage() {
 
       <section className="bg-white px-cell py-cell4">
         <div className="grid gap-cell md:grid-cols-2">
-          <BlockImage src={p.image} alt={`${p.title} — detail`} ratio={1.1} threshold={0.34} />
-          <BlockImage src={p.image} alt={`${p.title} — detail`} ratio={1.1} threshold={0.58} />
+          <HybridMedia
+            src={p.image}
+            alt={`${p.title} — detail seuil`}
+            ratio={1.05}
+            mode="bin"
+            threshold={0.42}
+          />
+          <HybridMedia
+            src={p.image}
+            alt={`${p.title} — detail mosaique`}
+            ratio={1.05}
+            mode="brut"
+            lensRadius={4.5}
+          />
         </div>
       </section>
+
 
       <section className="border-t-[10px] border-black px-cell py-cell2">
         <div className="u-mono mb-cell2">SUITE</div>
