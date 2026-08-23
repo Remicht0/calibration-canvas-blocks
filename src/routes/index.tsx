@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { BlockBackdrop, BlockType } from "@/components/mire";
 import { CalibrationBand, Ticker } from "@/components/bars";
+import { HybridMedia } from "@/components/media";
 import { projects } from "@/lib/projects";
 
 export const Route = createFileRoute("/")({
@@ -104,7 +105,26 @@ function Index() {
         </div>
       </section>
 
+      {/* BANC D'ESSAI — la meme source lue en trois profondeurs */}
+      <section className="border-t-[10px] border-black bg-white px-cell py-cell4">
+        <div className="u-mono mb-cell2 flex justify-between">
+          <span>BANC D&apos;ESSAI</span>
+          <span>UNE SOURCE / TROIS LECTURES</span>
+        </div>
+        <div className="grid gap-cell md:grid-cols-3">
+          <HybridMedia src={projects[0]!.image} alt="LECTURE BIN" ratio={1} mode="bin" />
+          <HybridMedia src={projects[1]!.image} alt="LECTURE GRIS" ratio={1} mode="gris" />
+          <HybridMedia src={projects[2]!.image} alt="LECTURE BRUT" ratio={1} mode="brut" />
+        </div>
+        <p className="u-mono mt-cell2 max-w-[60ch]">
+          LES PHOTOS ET VIDEOS NE SONT PAS COLLEES SUR LA MIRE : ELLES SONT
+          ECHANTILLONNEES DANS SA GRILLE. UN BLOC = UN PIXEL. LE SURVOL OUVRE
+          UNE LOUPE DE MATIERE BRUTE.
+        </p>
+      </section>
+
       {/* PROCEDE — trois planches de mesure */}
+
       <section className="border-t-[10px] border-black bg-white px-cell py-cell4">
         <div className="u-mono mb-cell2 flex justify-between">
           <span>PROCEDE</span>
