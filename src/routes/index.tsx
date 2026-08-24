@@ -36,7 +36,10 @@ function Index() {
       <section className="flex min-h-screen flex-col justify-between px-cell py-cell2">
         <div className="u-mono flex justify-between">
           <span>MIRE</span>
-          <span>STUDIO DE DESIGN GRAPHIQUE</span>
+          <nav className="flex gap-cell2">
+            <span className="hidden md:inline">STUDIO DE DESIGN GRAPHIQUE</span>
+            <Link to="/atelier">ATELIER</Link>
+          </nav>
         </div>
 
         <div>
