@@ -3,6 +3,7 @@ import { useState } from "react";
 import { BlockBackdrop, BlockType } from "@/components/mire";
 import { CalibrationBand, Ticker } from "@/components/bars";
 import { HybridMedia } from "@/components/media";
+import { BitmapClock } from "@/components/bitmap-extras";
 import { projects } from "@/lib/projects";
 
 export const Route = createFileRoute("/")({
