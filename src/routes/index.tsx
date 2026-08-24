@@ -3,6 +3,7 @@ import { useState } from "react";
 import { BlockBackdrop, BlockType } from "@/components/mire";
 import { CalibrationBand, Ticker } from "@/components/bars";
 import { HybridMedia } from "@/components/media";
+import { BitmapClock } from "@/components/bitmap-extras";
 import { projects } from "@/lib/projects";
 
 export const Route = createFileRoute("/")({
@@ -36,7 +37,10 @@ function Index() {
       <section className="flex min-h-screen flex-col justify-between px-cell py-cell2">
         <div className="u-mono flex justify-between">
           <span>MIRE</span>
-          <span>STUDIO DE DESIGN GRAPHIQUE</span>
+          <nav className="flex gap-cell2">
+            <span className="hidden md:inline">STUDIO DE DESIGN GRAPHIQUE</span>
+            <Link to="/atelier">ATELIER</Link>
+          </nav>
         </div>
 
         <div>
@@ -203,8 +207,10 @@ export function Colophon() {
           <div>REPERE ROUGE FF0000</div>
         </div>
       </div>
-      <div className="u-mono mt-cell4 flex justify-between">
+      <div className="u-mono mt-cell4 flex flex-wrap items-center justify-between gap-cell">
         <span>2026</span>
+        <BitmapClock label="HEURE" />
+        <Link to="/atelier">ATELIER / BANC</Link>
         <span>FIN DE MIRE</span>
       </div>
     </footer>

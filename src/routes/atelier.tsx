@@ -1,0 +1,112 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { BitmapBoard, BitmapClock, NoiseField } from "@/components/bitmap-extras";
+import { CalibrationBand, Ticker } from "@/components/bars";
+import { BlockType } from "@/components/mire";
+import { Colophon } from "./index";
+
+export const Route = createFileRoute("/atelier")({
+  head: () => ({
+    meta: [
+      { title: "Atelier — MIRE, banc de calibration" },
+      {
+        name: "description",
+        content:
+          "L'atelier de MIRE : horloge 1-bit, table de composition en blocs, planche de bruit. Le protocole de calibration du studio, manipulable directement.",
+      },
+      { property: "og:title", content: "Atelier — MIRE, banc de calibration" },
+      {
+        property: "og:description",
+        content:
+          "Horloge en blocs, automate cellulaire, planche de bruit : les outils du studio MIRE en libre manipulation.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: Atelier,
+});
+
+function Atelier() {
+  return (
+    <main className="min-h-screen bg-white text-black">
+      <div className="u-mono flex justify-between px-cell py-cell2">
+        <Link to="/">RETOUR / INDEX</Link>
+        <BitmapClock label="ATELIER" />
+      </div>
+
+      <section className="px-cell pb-cell4">
+        <BlockType text="ATELIER" loop={false} />
+        <p className="u-mono mt-cell2 max-w-[56ch]">
+          TROIS INSTRUMENTS. AUCUNE DECORATION. CHACUN NE SAIT FAIRE QU&apos;UNE
+          CHOSE : POSER UN BLOC, OU NE PAS LE POSER.
+        </p>
+      </section>
+
+      <CalibrationBand height={5} seed={11} className="border-y-[10px] border-black" />
+
+      {/* INSTRUMENT 01 — table de composition */}
+      <section className="bg-white px-cell py-cell4">
+        <div className="u-mono mb-cell2 flex justify-between">
+          <span>INSTRUMENT 01 — TABLE DE COMPOSITION</span>
+          <span className="hidden md:inline">DESSINER PUIS PROPAGER</span>
+        </div>
+        <BitmapBoard rows={14} />
+        <p className="u-mono mt-cell2 max-w-[56ch]">
+          UN BLOC POSE A LA MAIN SURVIT S&apos;IL A DEUX OU TROIS VOISINS. IL
+          NAIT S&apos;IL EN A EXACTEMENT TROIS. LA SURFACE EST UN TORE : LE BORD
+          DROIT TOUCHE LE BORD GAUCHE.
+        </p>
+      </section>
+
+      {/* INSTRUMENT 02 — planche de bruit */}
+      <section className="border-t-[10px] border-black bg-black px-cell py-cell4 text-white">
+        <div className="u-mono mb-cell2 flex justify-between">
+          <span>INSTRUMENT 02 — PLANCHE DE BRUIT</span>
+          <span className="hidden md:inline">CENTRE ECRAN = SIGNAL NET</span>
+        </div>
+        <div className="border-[3px] border-white">
+          <NoiseField rows={10} seed={3} />
+        </div>
+        <p className="u-mono mt-cell2 max-w-[56ch]">
+          LE BRUIT SE RESORBE A MESURE QUE LA PLANCHE ATTEINT LE CENTRE DU
+          CADRE. C&apos;EST LE REGLAGE, PAS UN EFFET.
+        </p>
+      </section>
+
+      <Ticker
+        items={[
+          "AUTOMATE 23/3",
+          "HORLOGE 3x5",
+          "BRUIT DETERMINISTE",
+          "PAS 16 / 20 PX",
+          "TOUCHE [N] — INVERSER LE SIGNAL",
+          "AUCUN DEGRADE",
+        ]}
+      />
+
+      {/* INSTRUMENT 03 — horloge */}
+      <section className="border-t-[10px] border-black bg-white px-cell py-cell4">
+        <div className="u-mono mb-cell2 flex justify-between">
+          <span>INSTRUMENT 03 — HORLOGE</span>
+          <span className="hidden md:inline">FONTE INTERNE 3 x 5 BLOCS</span>
+        </div>
+        <div className="border-[3px] border-black p-cell2">
+          <BitmapClock label="HEURE ATELIER" scale={2.4} />
+        </div>
+      </section>
+
+      <section className="border-t-[10px] border-black bg-white px-cell py-cell4">
+        <div className="u-display text-[12vw] leading-[0.95] md:text-[6vw]">
+          UN BLOC
+          <br />
+          OU RIEN.
+        </div>
+        <div className="u-mono mt-cell2">
+          <Link to="/">INDEX DES PROJETS</Link>
+        </div>
+      </section>
+
+      <Colophon />
+    </main>
+  );
+}
