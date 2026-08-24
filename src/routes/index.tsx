@@ -206,8 +206,10 @@ export function Colophon() {
           <div>REPERE ROUGE FF0000</div>
         </div>
       </div>
-      <div className="u-mono mt-cell4 flex justify-between">
+      <div className="u-mono mt-cell4 flex flex-wrap items-center justify-between gap-cell">
         <span>2026</span>
+        <BitmapClock label="HEURE" />
+        <Link to="/atelier">ATELIER / BANC</Link>
         <span>FIN DE MIRE</span>
       </div>
     </footer>
