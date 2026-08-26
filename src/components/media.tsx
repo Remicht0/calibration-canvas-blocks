@@ -189,14 +189,14 @@ export function HybridMedia({
   }, [src, ratio, levels, gamma, threshold, lensRadius, video]);
 
   return (
-    <figure className={className}>
-      <div ref={wrap} role="img" aria-label={alt}>
-        <canvas ref={canvas} className="block" />
+    <figure className={`min-w-0 max-w-full ${className}`}>
+      <div ref={wrap} role="img" aria-label={alt} className="max-w-full">
+        <canvas ref={canvas} className="block max-w-full" />
       </div>
       {controls && (
-        <figcaption className="u-mono mt-[3px] flex flex-wrap items-center justify-between gap-x-cell border-[3px] border-black px-[6px] py-[3px]">
-          <span className="truncate">{alt}</span>
-          <span className="flex items-center gap-[6px]">
+        <figcaption className="u-mono mt-[3px] flex flex-wrap items-center justify-between gap-x-cell gap-y-[3px] border-[3px] border-black px-[6px] py-[3px]">
+          <span className="min-w-0 truncate">{alt}</span>
+          <span className="flex flex-1 items-center justify-end gap-[6px] sm:flex-none">
             <span className="hidden sm:inline">{video ? "VIDEO" : "PHOTO"}</span>
             {CYCLE.map((m) => (
               <button

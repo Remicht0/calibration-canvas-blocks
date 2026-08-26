@@ -93,11 +93,16 @@ function Index() {
                   params={{ slug: p.slug }}
                   onMouseEnter={() => setHover(p.image)}
                   onFocus={() => setHover(p.image)}
-                  className="u-mono grid grid-cols-[4ch_1fr] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_1fr_8ch_24ch]"
+                  className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_8ch_24ch]"
                 >
                   <span>{p.num}</span>
-                  <span className="u-display text-[8vw] leading-[0.9] tracking-[-0.02em] md:text-[3.2vw]">
-                    {p.title}
+                  <span className="min-w-0">
+                    <span className="u-display block text-[11vw] leading-[0.9] tracking-[-0.02em] md:text-[3.2vw]">
+                      {p.title}
+                    </span>
+                    <span className="mt-[3px] block md:hidden">
+                      {p.year} / {p.nature}
+                    </span>
                   </span>
                   <span className="hidden md:block">{p.year}</span>
                   <span className="hidden md:block">{p.nature}</span>
