@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AtelierRouteImport } from './routes/atelier'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ProjetSlugRouteImport } from './routes/projet.$slug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const AtelierRoute = AtelierRouteImport.update({
   path: '/atelier',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjetSlugRoute = ProjetSlugRouteImport.update({
   id: '/projet/$slug',
   path: '/projet/$slug',
@@ -32,30 +38,34 @@ const ProjetSlugRoute = ProjetSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/atelier': typeof AtelierRoute
+  '/contact': typeof ContactRoute
   '/projet/$slug': typeof ProjetSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/atelier': typeof AtelierRoute
+  '/contact': typeof ContactRoute
   '/projet/$slug': typeof ProjetSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/atelier': typeof AtelierRoute
+  '/contact': typeof ContactRoute
   '/projet/$slug': typeof ProjetSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/atelier' | '/projet/$slug'
+  fullPaths: '/' | '/atelier' | '/contact' | '/projet/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/atelier' | '/projet/$slug'
-  id: '__root__' | '/' | '/atelier' | '/projet/$slug'
+  to: '/' | '/atelier' | '/contact' | '/projet/$slug'
+  id: '__root__' | '/' | '/atelier' | '/contact' | '/projet/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AtelierRoute: typeof AtelierRoute
+  ContactRoute: typeof ContactRoute
   ProjetSlugRoute: typeof ProjetSlugRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AtelierRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projet/$slug': {
       id: '/projet/$slug'
       path: '/projet/$slug'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AtelierRoute: AtelierRoute,
+  ContactRoute: ContactRoute,
   ProjetSlugRoute: ProjetSlugRoute,
 }
 export const routeTree = rootRouteImport

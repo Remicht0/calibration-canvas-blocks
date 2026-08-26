@@ -84,6 +84,7 @@ src/
                        (manifeste) + Colophon (exporté et réutilisé)
     projet.$slug.tsx   page projet
     atelier.tsx        instruments manipulables
+    contact.tsx        fiche de calibration (coordonnees, horaires, mentions)
 ```
 
 ### Modes de lecture d'un média (`BitMode`)
@@ -135,28 +136,54 @@ Loupe : au survol, un disque de cellules passe en `brut`, avec un anneau en
 
 ---
 
-## 6. À FAIRE d'ici la version finale
+## 6. Responsive
 
-- [ ] Remplacer les 4 images de démonstration par les vrais projets.
-- [ ] Page `/contact` (fiche de calibration : mail, téléphone, adresse,
-      mentions) avec `head()` dédié.
-- [ ] Transition de page en chute de blocs (masque plein écran entre routes).
-- [ ] Vidéo réelle sur au moins une page projet, testée en `gris` et `brut`.
-- [ ] `og:image` par projet : export PNG 1-bit généré depuis la planche.
-- [ ] Version imprimée : feuille `@media print` en noir seul, sans repère.
-- [ ] Audit accessibilité : focus visible en bloc, `prefers-reduced-motion`
-      couvrant chute de blocs et boot, textes alternatifs réels.
+- Pas de grille : 16 px < 768 px, 20 px au-dela. Les blocs restent gros : on ne
+  reduit jamais la cellule pour faire tenir plus de contenu, on reduit le
+  nombre de colonnes.
+- Tout canvas se dimensionne en `floor(largeurDisponible / cell)` colonnes, en
+  retirant les bordures (`- 6` pour un cadre `border-[3px]`). Jamais de
+  `scrollWidth` superieur a `innerWidth` : verifie en 393 / 820 / 1440 px.
+- Lignes mixtes (texte + widget) : `grid-cols-[minmax(0,1fr)_auto]` en mobile,
+  `flex` a partir de `sm:`, `min-w-0` sur les conteneurs de texte,
+  `shrink-0` sur les blocs de taille fixe.
+- Index des projets : annee et nature sont empilees sous le titre en mobile,
+  en colonnes a partir de `md:`.
+- `GridCursor` et `cursor: none` sont desactives sur `pointer: coarse`.
+- `HybridMedia` : barre de controle repliable, boutons alignes a droite en
+  pleine largeur sous 640 px.
+
+## 7. Etat d'avancement
+
+Fait :
+- [x] Noyau 1-bit (`mire.ts`) : seuillage, chute de blocs, texte en blocs.
+- [x] Noyau hybride (`bitmap.ts`) : modes BIN / GRIS / BRUT, loupe, video.
+- [x] Chrome global : boot, curseur bloc, inversion `N`, ligne rouge.
+- [x] Accueil : entree, index en negatif au survol, banc d'essai, procede,
+      manifeste, colophon.
+- [x] Pages projet avec planches hybrides et bloc « SUITE ».
+- [x] `/atelier` : automate 23/3, planche de bruit, horloge en blocs.
+- [x] `/contact` : fiche de calibration + `head()` dedie.
+- [x] 404 et page d'erreur redessinees en mire (aucun style shadcn residuel).
+- [x] Passe responsive 393 / 820 / 1440 px, aucun debordement horizontal.
+
+Reste a faire :
+- [ ] Remplacer les 4 images de demonstration par les vrais projets.
+- [ ] Transition de page en chute de blocs (masque plein ecran entre routes).
+- [ ] Video reelle sur au moins une page projet, testee en `gris` et `brut`.
+- [ ] `og:image` par projet : export PNG 1-bit genere depuis la planche.
+- [ ] Feuille `@media print` en noir seul, sans repere rouge.
+- [ ] Audit accessibilite : focus visible en bloc, `prefers-reduced-motion`
+      couvrant chute de blocs et boot, textes alternatifs reels.
 - [ ] Budget performance : 60 fps sur les pages projet, canvas en pause hors
-      viewport (`IntersectionObserver` déjà en place — vérifier la vidéo).
-- [ ] Passer le contenu FR en accents typographiques corrects si la fonte
-      mono le permet, sinon documenter le choix.
+      viewport (verifier le cas video).
+- [ ] Decider du traitement des accents FR (fonte mono) et le documenter.
 
----
-
-## 7. Contrôles avant livraison
+## 8. Contrôles avant livraison
 
 1. Une seule ligne rouge visible à l'écran, alignée sur le pas de grille.
 2. Zoom 400 % : aucun bloc coupé, aucun demi-pixel.
 3. Mobile 393 px : les blocs restent gros, la grille ne devient jamais fine.
 4. Touche `N` (négatif) : tout s'inverse, le repère rouge reste rouge.
 5. Console vide, build sans erreur, aucun `border-radius` dans le rendu.
+6. 393 / 820 / 1440 px : `document.documentElement.scrollWidth === innerWidth`.

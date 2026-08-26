@@ -40,6 +40,7 @@ function Index() {
           <nav className="flex gap-cell2">
             <span className="hidden md:inline">STUDIO DE DESIGN GRAPHIQUE</span>
             <Link to="/atelier">ATELIER</Link>
+            <Link to="/contact">CONTACT</Link>
           </nav>
         </div>
 
@@ -93,11 +94,16 @@ function Index() {
                   params={{ slug: p.slug }}
                   onMouseEnter={() => setHover(p.image)}
                   onFocus={() => setHover(p.image)}
-                  className="u-mono grid grid-cols-[4ch_1fr] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_1fr_8ch_24ch]"
+                  className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_8ch_24ch]"
                 >
                   <span>{p.num}</span>
-                  <span className="u-display text-[8vw] leading-[0.9] tracking-[-0.02em] md:text-[3.2vw]">
-                    {p.title}
+                  <span className="min-w-0">
+                    <span className="u-display block text-[11vw] leading-[0.9] tracking-[-0.02em] md:text-[3.2vw]">
+                      {p.title}
+                    </span>
+                    <span className="mt-[3px] block md:hidden">
+                      {p.year} / {p.nature}
+                    </span>
                   </span>
                   <span className="hidden md:block">{p.year}</span>
                   <span className="hidden md:block">{p.nature}</span>
@@ -192,7 +198,7 @@ export function Colophon() {
           <div>MIRE — STUDIO</div>
         </div>
         <div>
-          <div>CONTACT</div>
+          <Link to="/contact">CONTACT</Link>
           <div>STUDIO@MIRE.FR</div>
           <div>+33 1 00 00 00 00</div>
         </div>
@@ -211,6 +217,7 @@ export function Colophon() {
         <span>2026</span>
         <BitmapClock label="HEURE" />
         <Link to="/atelier">ATELIER / BANC</Link>
+        <Link to="/contact">CONTACT</Link>
         <span>FIN DE MIRE</span>
       </div>
     </footer>

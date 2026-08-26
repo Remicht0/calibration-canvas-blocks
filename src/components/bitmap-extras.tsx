@@ -44,10 +44,21 @@ export function BitmapClock({
   useEffect(() => {
     const cv = canvas.current;
     if (!cv) return;
-    const unit = Math.max(3, Math.round((cellSizeFor(window.innerWidth) / 3) * scale));
     const chars = [...txt];
     const cols = chars.length * 4 - 1;
     const rows = 5;
+    // le cadran ne depasse jamais la largeur disponible
+    const avail = Math.max(
+      120,
+      (cv.parentElement?.parentElement?.clientWidth ?? window.innerWidth) - 120,
+    );
+    const unit = Math.max(
+      2,
+      Math.min(
+        Math.round((cellSizeFor(window.innerWidth) / 3) * scale),
+        Math.floor(avail / cols),
+      ),
+    );
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     cv.style.width = `${cols * unit}px`;
     cv.style.height = `${rows * unit}px`;
@@ -69,9 +80,9 @@ export function BitmapClock({
   }, [txt, scale]);
 
   return (
-    <div className="u-mono flex items-center gap-cell">
-      <span>{label}</span>
-      <canvas ref={canvas} className="block" aria-hidden="true" />
+    <div className="u-mono flex min-w-0 max-w-full flex-wrap items-center gap-cell">
+      <span className="shrink-0">{label}</span>
+      <canvas ref={canvas} className="block max-w-full" aria-hidden="true" />
       <span className="sr-only">{txt}</span>
     </div>
   );
@@ -123,7 +134,7 @@ export function BitmapBoard({ rows = 14 }: { rows?: number }) {
 
     const size = () => {
       const cell = cellSizeFor(window.innerWidth);
-      const cols = Math.max(8, Math.floor(el.clientWidth / cell));
+      const cols = Math.max(6, Math.floor((el.clientWidth - 6) / cell));
       const old = grid.current;
       const oldCols = dims.current.cols;
       dims.current = { cols, rows, cell };
@@ -191,7 +202,7 @@ export function BitmapBoard({ rows = 14 }: { rows?: number }) {
     "u-mono border-[3px] border-black bg-white px-[8px] py-[2px] text-black";
 
   return (
-    <div ref={wrap}>
+    <div ref={wrap} className="max-w-full">
       <canvas
         ref={canvas}
         className="block border-[3px] border-black touch-none"
