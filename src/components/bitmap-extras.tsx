@@ -44,10 +44,21 @@ export function BitmapClock({
   useEffect(() => {
     const cv = canvas.current;
     if (!cv) return;
-    const unit = Math.max(3, Math.round((cellSizeFor(window.innerWidth) / 3) * scale));
     const chars = [...txt];
     const cols = chars.length * 4 - 1;
     const rows = 5;
+    // le cadran ne depasse jamais la largeur disponible
+    const avail = Math.max(
+      120,
+      (cv.parentElement?.parentElement?.clientWidth ?? window.innerWidth) - 120,
+    );
+    const unit = Math.max(
+      2,
+      Math.min(
+        Math.round((cellSizeFor(window.innerWidth) / 3) * scale),
+        Math.floor(avail / cols),
+      ),
+    );
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     cv.style.width = `${cols * unit}px`;
     cv.style.height = `${rows * unit}px`;
@@ -69,9 +80,9 @@ export function BitmapClock({
   }, [txt, scale]);
 
   return (
-    <div className="u-mono flex items-center gap-cell">
-      <span>{label}</span>
-      <canvas ref={canvas} className="block" aria-hidden="true" />
+    <div className="u-mono flex min-w-0 max-w-full flex-wrap items-center gap-cell">
+      <span className="shrink-0">{label}</span>
+      <canvas ref={canvas} className="block max-w-full" aria-hidden="true" />
       <span className="sr-only">{txt}</span>
     </div>
   );
