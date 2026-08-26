@@ -134,7 +134,7 @@ export function BitmapBoard({ rows = 14 }: { rows?: number }) {
 
     const size = () => {
       const cell = cellSizeFor(window.innerWidth);
-      const cols = Math.max(8, Math.floor(el.clientWidth / cell));
+      const cols = Math.max(6, Math.floor((el.clientWidth - 6) / cell));
       const old = grid.current;
       const oldCols = dims.current.cols;
       dims.current = { cols, rows, cell };
@@ -202,7 +202,7 @@ export function BitmapBoard({ rows = 14 }: { rows?: number }) {
     "u-mono border-[3px] border-black bg-white px-[8px] py-[2px] text-black";
 
   return (
-    <div ref={wrap}>
+    <div ref={wrap} className="max-w-full">
       <canvas
         ref={canvas}
         className="block border-[3px] border-black touch-none"
