@@ -17,23 +17,31 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
-        </div>
+    <main className="flex min-h-screen flex-col justify-between bg-white px-cell py-cell2 text-black">
+      <div className="u-mono flex justify-between">
+        <span>MIRE / SIGNAL ABSENT</span>
+        <span>404</span>
       </div>
-    </div>
+      <div>
+        <div className="u-display text-[26vw] leading-[0.82] md:text-[16vw]">
+          PAS DE
+          <br />
+          SIGNAL
+        </div>
+        <p className="u-mono mt-cell2 max-w-[48ch]">
+          CETTE ADRESSE NE RENVOIE AUCUNE MIRE. LA PAGE A ETE DEPLACEE OU
+          N&apos;A JAMAIS ETE CALIBREE.
+        </p>
+      </div>
+      <div className="u-mono flex flex-wrap gap-cell2">
+        <Link to="/" className="border-[3px] border-black px-cell py-[3px]">
+          INDEX
+        </Link>
+        <Link to="/atelier" className="border-[3px] border-black px-cell py-[3px]">
+          ATELIER
+        </Link>
+      </div>
+    </main>
   );
 }
 
@@ -45,33 +53,38 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
-        </div>
+    <main className="flex min-h-screen flex-col justify-between bg-black px-cell py-cell2 text-white">
+      <div className="u-mono flex justify-between">
+        <span>MIRE / DEFAUT DE LECTURE</span>
+        <span>ERR</span>
       </div>
-    </div>
+      <div>
+        <div className="u-display text-[22vw] leading-[0.82] md:text-[13vw]">
+          SIGNAL
+          <br />
+          CORROMPU
+        </div>
+        <p className="u-mono mt-cell2 max-w-[48ch]">
+          LA PAGE N&apos;A PAS PU ETRE COMPOSEE. RELANCER LA CALIBRATION OU
+          REVENIR A L&apos;INDEX.
+        </p>
+      </div>
+      <div className="u-mono flex flex-wrap gap-cell2">
+        <button
+          type="button"
+          onClick={() => {
+            router.invalidate();
+            reset();
+          }}
+          className="border-[3px] border-white px-cell py-[3px]"
+        >
+          RELANCER
+        </button>
+        <a href="/" className="border-[3px] border-white px-cell py-[3px]">
+          INDEX
+        </a>
+      </div>
+    </main>
   );
 }
 
