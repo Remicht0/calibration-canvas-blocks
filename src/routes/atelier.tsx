@@ -29,9 +29,11 @@ export const Route = createFileRoute("/atelier")({
 function Atelier() {
   return (
     <main className="min-h-screen bg-white text-black">
-      <div className="u-mono flex justify-between px-cell py-cell2">
+      <div className="u-mono grid gap-cell px-cell py-cell2 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
         <Link to="/">RETOUR / INDEX</Link>
-        <BitmapClock label="ATELIER" />
+        <div className="min-w-0 sm:justify-self-end">
+          <BitmapClock label="ATELIER" />
+        </div>
       </div>
 
       <section className="px-cell pb-cell4">
@@ -91,7 +93,7 @@ function Atelier() {
           <span className="hidden md:inline">FONTE INTERNE 3 x 5 BLOCS</span>
         </div>
         <div className="border-[3px] border-black p-cell2">
-          <BitmapClock label="HEURE ATELIER" scale={2.4} />
+          <BitmapClock label="HEURE ATELIER" scale={2.2} />
         </div>
       </section>
 
@@ -103,6 +105,7 @@ function Atelier() {
         </div>
         <div className="u-mono mt-cell2">
           <Link to="/">INDEX DES PROJETS</Link>
+          <Link to="/contact" className="ml-cell2">CONTACT</Link>
         </div>
       </section>
 

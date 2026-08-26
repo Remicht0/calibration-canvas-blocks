@@ -40,6 +40,7 @@ function Index() {
           <nav className="flex gap-cell2">
             <span className="hidden md:inline">STUDIO DE DESIGN GRAPHIQUE</span>
             <Link to="/atelier">ATELIER</Link>
+            <Link to="/contact">CONTACT</Link>
           </nav>
         </div>
 
@@ -197,7 +198,7 @@ export function Colophon() {
           <div>MIRE — STUDIO</div>
         </div>
         <div>
-          <div>CONTACT</div>
+          <Link to="/contact">CONTACT</Link>
           <div>STUDIO@MIRE.FR</div>
           <div>+33 1 00 00 00 00</div>
         </div>
@@ -216,6 +217,7 @@ export function Colophon() {
         <span>2026</span>
         <BitmapClock label="HEURE" />
         <Link to="/atelier">ATELIER / BANC</Link>
+        <Link to="/contact">CONTACT</Link>
         <span>FIN DE MIRE</span>
       </div>
     </footer>
