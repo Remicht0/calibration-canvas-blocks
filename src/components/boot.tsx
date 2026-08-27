@@ -187,10 +187,17 @@ export function NegativeSwitch() {
 /* Transition de page : masque plein ecran en chute de blocs           */
 /* ------------------------------------------------------------------ */
 
+const easeOutCubic = (k: number) => 1 - Math.pow(1 - k, 3);
+const easeInOutCubic = (k: number) =>
+  k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+const seg = (k: number, a: number, b: number) =>
+  Math.min(1, Math.max(0, (k - a) / (b - a)));
+
 export function RouteWipe() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const canvas = useRef<HTMLCanvasElement>(null);
   const [on, setOn] = useState(false);
+  const [label, setLabel] = useState(0);
   const first = useRef(true);
 
   useEffect(() => {
@@ -204,18 +211,37 @@ export function RouteWipe() {
     const cv = canvas.current;
     let raf = 0;
     let dead = false;
-    const DUR = 620;
+    // trois temps : recouvrement, palier de calibration, chute
+    const DUR = 1500;
+    const A = 0.4; // fin du recouvrement
+    const B = 0.56; // fin du palier
     const t0 = performance.now();
 
     const cell = cellSizeFor(window.innerWidth);
     const cols = Math.ceil(window.innerWidth / cell);
     const rows = Math.ceil(window.innerHeight / cell);
-    const order = new Float32Array(cols * rows);
+    const n = cols * rows;
+
     let s = 4441;
     const rnd = () => ((s = (s * 9301 + 49297) % 233280), s / 233280);
-    for (let y = 0; y < rows; y++)
-      for (let x = 0; x < cols; x++)
-        order[y * cols + x] = Math.min(1, (y / rows) * 0.7 + rnd() * 0.6);
+
+    // bruit par colonne : la vague ne descend pas droit
+    const colOffset = new Float32Array(cols);
+    for (let x = 0; x < cols; x++) colOffset[x] = rnd() * 0.22;
+
+    // recouvrement : du haut vers le bas, densite croissante
+    const cover = new Float32Array(n);
+    // chute : du bas vers le haut, quelques cellules tiennent plus longtemps
+    const fall = new Float32Array(n);
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const i = y * cols + x;
+        const v = y / Math.max(1, rows - 1);
+        cover[i] = Math.min(1, v * 0.66 + colOffset[x]! + rnd() * 0.3);
+        const hold = rnd() < 0.06 ? 0.3 : 0; // cellules isolees qui resistent
+        fall[i] = Math.min(1, (1 - v) * 0.6 + colOffset[x]! + rnd() * 0.26 + hold);
+      }
+    }
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (cv) {
@@ -228,18 +254,31 @@ export function RouteWipe() {
     const step = (t: number) => {
       if (dead) return;
       const k = Math.min(1, (t - t0) / DUR);
+      setLabel(Math.round(easeInOutCubic(k) * 100));
       const ctx = cv?.getContext("2d");
       if (ctx) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, cols * cell, rows * cell);
         ctx.fillStyle = "#000000";
-        // 0 -> 0.5 : la page se couvre. 0.5 -> 1 : les blocs tombent.
-        const half = k < 0.5 ? k * 2 : 1 - (k - 0.5) * 2;
-        const drop = k >= 0.5;
-        for (let i = 0; i < order.length; i++) {
-          const o = order[i]!;
-          if (drop ? o > half : o > half) continue;
-          ctx.fillRect((i % cols) * cell, Math.floor(i / cols) * cell, cell, cell);
+
+        if (k < A) {
+          const p = easeOutCubic(seg(k, 0, A));
+          for (let i = 0; i < n; i++) {
+            if (cover[i]! > p) continue;
+            ctx.fillRect((i % cols) * cell, Math.floor(i / cols) * cell, cell, cell);
+          }
+        } else if (k < B) {
+          ctx.fillRect(0, 0, cols * cell, rows * cell);
+          // palier : un seul repere rouge balaye la surface noire
+          const y = Math.floor(seg(k, A, B) * (rows - 1));
+          ctx.fillStyle = "#FF0000";
+          ctx.fillRect(0, y * cell, cols * cell, cell);
+        } else {
+          const p = easeInOutCubic(seg(k, B, 1));
+          for (let i = 0; i < n; i++) {
+            if (fall[i]! <= p) continue;
+            ctx.fillRect((i % cols) * cell, Math.floor(i / cols) * cell, cell, cell);
+          }
         }
       }
       if (k < 1) raf = requestAnimationFrame(step);
@@ -259,6 +298,12 @@ export function RouteWipe() {
       aria-hidden="true"
     >
       <canvas ref={canvas} className="block" />
+      <div className="u-mono absolute inset-0 flex flex-col justify-between p-cell text-white mix-blend-difference">
+        <span>MIRE / RECALIBRAGE</span>
+        <span className="u-display self-end text-[18vw] leading-[0.78] md:text-[8vw]">
+          {String(label).padStart(3, "0")}
+        </span>
+      </div>
     </div>
   );
 }
