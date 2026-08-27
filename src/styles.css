@@ -211,3 +211,38 @@
 @media (prefers-reduced-motion: reduce) {
   .mire-ticker { animation: none; }
 }
+
+/* ---- Focus : un bloc, jamais un halo ---- */
+:where(a, button, [tabindex]):focus-visible {
+  outline: 3px solid #ff0000;
+  outline-offset: 0;
+}
+
+/* ---- Impression : noir seul, aucun repere rouge ---- */
+@media print {
+  .mire-noprint,
+  .mire-keep {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    filter: none !important;
+  }
+
+  * {
+    background-image: none !important;
+    box-shadow: none !important;
+  }
+
+  a {
+    text-decoration: none;
+  }
+
+  section,
+  main > * {
+    break-inside: avoid;
+  }
+}

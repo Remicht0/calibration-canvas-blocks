@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useRouterState } from "@tanstack/react-router";
 import { cellSizeFor } from "@/lib/mire";
 
 /* ------------------------------------------------------------------ */
@@ -179,5 +180,85 @@ export function NegativeSwitch() {
     >
       {neg ? "POSITIF [N]" : "NEGATIF [N]"}
     </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Transition de page : masque plein ecran en chute de blocs           */
+/* ------------------------------------------------------------------ */
+
+export function RouteWipe() {
+  const path = useRouterState({ select: (s) => s.location.pathname });
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const [on, setOn] = useState(false);
+  const first = useRef(true);
+
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    setOn(true);
+    const cv = canvas.current;
+    let raf = 0;
+    let dead = false;
+    const DUR = 620;
+    const t0 = performance.now();
+
+    const cell = cellSizeFor(window.innerWidth);
+    const cols = Math.ceil(window.innerWidth / cell);
+    const rows = Math.ceil(window.innerHeight / cell);
+    const order = new Float32Array(cols * rows);
+    let s = 4441;
+    const rnd = () => ((s = (s * 9301 + 49297) % 233280), s / 233280);
+    for (let y = 0; y < rows; y++)
+      for (let x = 0; x < cols; x++)
+        order[y * cols + x] = Math.min(1, (y / rows) * 0.7 + rnd() * 0.6);
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (cv) {
+      cv.width = cols * cell * dpr;
+      cv.height = rows * cell * dpr;
+      cv.style.width = `${cols * cell}px`;
+      cv.style.height = `${rows * cell}px`;
+    }
+
+    const step = (t: number) => {
+      if (dead) return;
+      const k = Math.min(1, (t - t0) / DUR);
+      const ctx = cv?.getContext("2d");
+      if (ctx) {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cols * cell, rows * cell);
+        ctx.fillStyle = "#000000";
+        // 0 -> 0.5 : la page se couvre. 0.5 -> 1 : les blocs tombent.
+        const half = k < 0.5 ? k * 2 : 1 - (k - 0.5) * 2;
+        const drop = k >= 0.5;
+        for (let i = 0; i < order.length; i++) {
+          const o = order[i]!;
+          if (drop ? o > half : o > half) continue;
+          ctx.fillRect((i % cols) * cell, Math.floor(i / cols) * cell, cell, cell);
+        }
+      }
+      if (k < 1) raf = requestAnimationFrame(step);
+      else setOn(false);
+    };
+    raf = requestAnimationFrame(step);
+    return () => {
+      dead = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [path]);
+
+  return (
+    <div
+      className="pointer-events-none fixed inset-0 z-[190] overflow-hidden"
+      style={{ visibility: on ? "visible" : "hidden" }}
+      aria-hidden="true"
+    >
+      <canvas ref={canvas} className="block" />
+    </div>
   );
 }

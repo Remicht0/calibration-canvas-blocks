@@ -166,15 +166,17 @@ Fait :
 - [x] `/contact` : fiche de calibration + `head()` dedie.
 - [x] 404 et page d'erreur redessinees en mire (aucun style shadcn residuel).
 - [x] Passe responsive 393 / 820 / 1440 px, aucun debordement horizontal.
+- [x] Transition de page en chute de blocs (`RouteWipe`, masque plein ecran,
+      desactivee sous `prefers-reduced-motion`).
+- [x] Feuille `@media print` : noir seul, repere rouge et chrome retires.
+- [x] Focus visible en bloc (contour rouge de 3 px, aucun halo).
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
-- [ ] Transition de page en chute de blocs (masque plein ecran entre routes).
 - [ ] Video reelle sur au moins une page projet, testee en `gris` et `brut`.
 - [ ] `og:image` par projet : export PNG 1-bit genere depuis la planche.
-- [ ] Feuille `@media print` en noir seul, sans repere rouge.
-- [ ] Audit accessibilite : focus visible en bloc, `prefers-reduced-motion`
-      couvrant chute de blocs et boot, textes alternatifs reels.
+- [ ] Audit accessibilite : `prefers-reduced-motion` sur le boot, textes
+      alternatifs reels.
 - [ ] Budget performance : 60 fps sur les pages projet, canvas en pause hors
       viewport (verifier le cas video).
 - [ ] Decider du traitement des accents FR (fonte mono) et le documenter.
