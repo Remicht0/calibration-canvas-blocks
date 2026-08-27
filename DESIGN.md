@@ -54,6 +54,20 @@ tiennent plus longtemps. Sert au chargement, au scroll, au survol, aux
 transitions. Le ticker (translation linéaire) est la seule exception, et il
 est désactivé sous `prefers-reduced-motion`.
 
+### Transition de page (`RouteWipe`)
+
+1500 ms, trois temps, jamais de fondu :
+
+| Temps | Part | Rendu |
+| --- | --- | --- |
+| Recouvrement | 0 → 0,40 | les blocs noirs tombent du haut, `easeOutCubic`, bruit par colonne |
+| Palier | 0,40 → 0,56 | ecran noir plein, un seul repere rouge balaye la surface |
+| Chute | 0,56 → 1 | les blocs se vident du bas vers le haut, `easeInOutCubic`, 6 % de cellules resistent |
+
+Un compteur `000 → 100` en display et la mention `MIRE / RECALIBRAGE`
+accompagnent la sequence. Aucun `mix-blend-mode` sur ce calque : il ferait
+apparaitre une couleur parasite au croisement du repere rouge.
+
 ---
 
 ## 3. Architecture technique
@@ -166,8 +180,8 @@ Fait :
 - [x] `/contact` : fiche de calibration + `head()` dedie.
 - [x] 404 et page d'erreur redessinees en mire (aucun style shadcn residuel).
 - [x] Passe responsive 393 / 820 / 1440 px, aucun debordement horizontal.
-- [x] Transition de page en chute de blocs (`RouteWipe`, masque plein ecran,
-      desactivee sous `prefers-reduced-motion`).
+- [x] Transition de page en trois temps (`RouteWipe`, 1500 ms, masque plein
+      ecran, desactivee sous `prefers-reduced-motion`).
 - [x] Feuille `@media print` : noir seul, repere rouge et chrome retires.
 - [x] Focus visible en bloc (contour rouge de 3 px, aucun halo).
 
