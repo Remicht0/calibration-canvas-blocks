@@ -252,11 +252,10 @@ export function RouteWipe() {
     };
   }, [path]);
 
-  if (!on) return null;
-
   return (
     <div
       className="pointer-events-none fixed inset-0 z-[190] overflow-hidden"
+      style={{ visibility: on ? "visible" : "hidden" }}
       aria-hidden="true"
     >
       <canvas ref={canvas} className="block" />
