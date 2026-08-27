@@ -298,7 +298,10 @@ export function RouteWipe() {
       aria-hidden="true"
     >
       <canvas ref={canvas} className="block" />
-      <div className="u-mono absolute inset-0 flex flex-col justify-between p-cell text-white mix-blend-difference">
+      <div
+        className="u-mono absolute inset-0 flex flex-col justify-between p-cell text-white"
+        style={{ opacity: on ? 1 : 0 }}
+      >
         <span>MIRE / RECALIBRAGE</span>
         <span className="u-display self-end text-[18vw] leading-[0.78] md:text-[8vw]">
           {String(label).padStart(3, "0")}
