@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
-import { BootSequence, GridCursor, NegativeSwitch } from "@/components/boot";
+import { BootSequence, GridCursor, NegativeSwitch, RouteWipe } from "@/components/boot";
 import { ScanLine } from "@/components/mire";
 
 import appCss from "../styles.css?url";
@@ -151,6 +151,7 @@ function RootComponent() {
       <GridCursor />
       <NegativeSwitch />
       <BootSequence />
+      <RouteWipe />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>
