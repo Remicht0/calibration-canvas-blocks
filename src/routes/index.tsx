@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BlockBackdrop, BlockType } from "@/components/mire";
 import { CalibrationBand, Ticker } from "@/components/bars";
 import { HybridMedia } from "@/components/media";
@@ -30,6 +30,45 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [hover, setHover] = useState<string | null>(null);
+  const [active, setActive] = useState<string | null>(null);
+  const items = useRef<Array<HTMLLIElement | null>>([]);
+
+  // Tactile : pas de survol. Le projet le plus proche du centre de l'ecran
+  // se compose de lui-meme en fond. Le scroll devient la tete de lecture.
+  useEffect(() => {
+    if (window.matchMedia("(hover: hover)").matches) return;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const mid = window.innerHeight / 2;
+      let best: number | null = null;
+      let bestD = Infinity;
+      items.current.forEach((el, i) => {
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > window.innerHeight) return;
+        const d = Math.abs(r.top + r.height / 2 - mid);
+        if (d < bestD) {
+          bestD = d;
+          best = i;
+        }
+      });
+      const p = best === null ? null : projects[best];
+      setActive(p ? p.slug : null);
+      setHover(p ? p.image : null);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
 
   return (
     <main className="min-h-screen bg-white text-black">
