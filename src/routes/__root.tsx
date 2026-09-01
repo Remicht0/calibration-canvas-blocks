@@ -10,6 +10,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import { BootSequence, GridCursor, NegativeSwitch, RouteWipe } from "@/components/boot";
+import { MireConsole, ScrollRail } from "@/components/console";
 import { ScanLine } from "@/components/mire";
 
 import appCss from "../styles.css?url";
@@ -152,8 +153,10 @@ function RootComponent() {
       <NegativeSwitch />
       <BootSequence />
       <RouteWipe />
+      <ScrollRail />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <MireConsole />
     </QueryClientProvider>
   );
 }

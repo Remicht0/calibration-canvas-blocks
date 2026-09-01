@@ -212,6 +212,17 @@
   .mire-ticker { animation: none; }
 }
 
+/* ---- Console mobile : reserver la hauteur en bas de page ---- */
+body {
+  padding-bottom: calc(var(--cell) * 3 + 14px);
+}
+
+@media (min-width: 768px) {
+  body {
+    padding-bottom: 0;
+  }
+}
+
 /* ---- Focus : un bloc, jamais un halo ---- */
 :where(a, button, [tabindex]):focus-visible {
   outline: 3px solid #ff0000;
