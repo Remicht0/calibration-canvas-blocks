@@ -184,16 +184,18 @@ Fait :
       ecran, desactivee sous `prefers-reduced-motion`).
 - [x] Feuille `@media print` : noir seul, repere rouge et chrome retires.
 - [x] Focus visible en bloc (contour rouge de 3 px, aucun halo).
+- [x] `prefers-reduced-motion` : la sequence de boot est sautee (comme la
+      transition de page et le ticker).
+- [x] Budget performance : `HybridMedia` met son canvas et sa video en pause
+      des que la planche sort du viewport, et reprend a l'entree.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
 - [ ] Video reelle sur au moins une page projet, testee en `gris` et `brut`.
 - [ ] `og:image` par projet : export PNG 1-bit genere depuis la planche.
-- [ ] Audit accessibilite : `prefers-reduced-motion` sur le boot, textes
-      alternatifs reels.
-- [ ] Budget performance : 60 fps sur les pages projet, canvas en pause hors
-      viewport (verifier le cas video).
+- [ ] Audit accessibilite : textes alternatifs reels sur les vraies planches.
 - [ ] Decider du traitement des accents FR (fonte mono) et le documenter.
+
 
 ## 8. Contrôles avant livraison
 

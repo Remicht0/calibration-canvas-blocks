@@ -15,6 +15,10 @@ export function BootSequence() {
 
   useEffect(() => {
     if (sessionStorage.getItem(KEY)) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      sessionStorage.setItem(KEY, "1");
+      return;
+    }
     sessionStorage.setItem(KEY, "1");
     setDone(false);
     document.documentElement.style.overflow = "hidden";
