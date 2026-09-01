@@ -107,9 +107,9 @@ export function HybridMedia({
     };
 
     const compose = () => {
-      const t0 = performance.now();
+      const t0 = performance.now() - progress * 1000;
       const step = (t: number) => {
-        if (dead) return;
+        if (dead || !visible) return;
         progress = Math.min(1, (t - t0) / 1000);
         if (media instanceof HTMLVideoElement && isReady(media))
           data = sample(media, cols, rows);
@@ -131,7 +131,6 @@ export function HybridMedia({
         if (dead) return;
         media = v;
         build();
-        void v.play().catch(() => {});
         io.observe(el);
       };
       media = null;
@@ -147,16 +146,24 @@ export function HybridMedia({
       img.src = src;
     }
 
+    // Budget performance : hors viewport, le canvas et la video sont a l'arret.
     const io = new IntersectionObserver(
       (entries) => {
-        for (const e of entries)
-          if (e.isIntersecting && !entered) {
+        for (const e of entries) {
+          visible = e.isIntersecting;
+          if (visible) {
             entered = true;
+            if (media instanceof HTMLVideoElement) void media.play().catch(() => {});
             compose();
+          } else {
+            cancelAnimationFrame(raf);
+            if (media instanceof HTMLVideoElement) media.pause();
           }
+        }
       },
       { threshold: 0.12 },
     );
+
 
     const onMove = (ev: PointerEvent) => {
       const r = cv.getBoundingClientRect();
