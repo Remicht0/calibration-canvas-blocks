@@ -72,6 +72,7 @@ export function HybridMedia({
     let rows = 0;
     let progress = 0;
     let entered = false;
+    let visible = false;
     let lens: { x: number; y: number; r: number } | null = null;
 
     const draw = () => {
