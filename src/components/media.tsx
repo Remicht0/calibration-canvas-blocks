@@ -71,7 +71,6 @@ export function HybridMedia({
     let cols = 0;
     let rows = 0;
     let progress = 0;
-    let entered = false;
     let visible = false;
     let lens: { x: number; y: number; r: number } | null = null;
 
@@ -153,7 +152,6 @@ export function HybridMedia({
         for (const e of entries) {
           visible = e.isIntersecting;
           if (visible) {
-            entered = true;
             if (media instanceof HTMLVideoElement) void media.play().catch(() => {});
             compose();
           } else {
