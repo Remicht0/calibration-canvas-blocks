@@ -78,8 +78,13 @@ function Index() {
           <span>MIRE</span>
           <nav className="flex gap-cell2">
             <span className="hidden md:inline">STUDIO DE DESIGN GRAPHIQUE</span>
-            <Link to="/atelier">ATELIER</Link>
-            <Link to="/contact">CONTACT</Link>
+            <span className="md:hidden">STUDIO GRAPHIQUE</span>
+            <Link to="/atelier" className="hidden md:inline">
+              ATELIER
+            </Link>
+            <Link to="/contact" className="hidden md:inline">
+              CONTACT
+            </Link>
           </nav>
         </div>
 
@@ -126,8 +131,13 @@ function Index() {
             <span>PROJETS 2022 — 2024</span>
           </div>
           <ul>
-            {projects.map((p) => (
-              <li key={p.slug}>
+            {projects.map((p, i) => (
+              <li
+                key={p.slug}
+                ref={(el) => {
+                  items.current[i] = el;
+                }}
+              >
                 <Link
                   to="/projet/$slug"
                   params={{ slug: p.slug }}
@@ -135,9 +145,9 @@ function Index() {
                   onFocus={() => setHover(p.image)}
                   className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_8ch_24ch]"
                 >
-                  <span>{p.num}</span>
+                  <span>{active === p.slug ? `\u25A0${p.num}` : p.num}</span>
                   <span className="min-w-0">
-                    <span className="u-display block text-[11vw] leading-[0.9] tracking-[-0.02em] md:text-[3.2vw]">
+                    <span className="u-display block text-[13vw] leading-[0.9] tracking-[-0.02em] md:text-[3.2vw]">
                       {p.title}
                     </span>
                     <span className="mt-[3px] block md:hidden">
