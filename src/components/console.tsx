@@ -56,15 +56,19 @@ const toggleNegative = () =>
 export function ScrollRail() {
   const p = useScrollProgress();
   const [cell, setCell] = useState(20);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    const set = () => setCell(cellSizeFor(window.innerWidth));
+    const set = () => {
+      const c = cellSizeFor(window.innerWidth);
+      setCell(c);
+      setTotal(Math.max(6, Math.floor(window.innerHeight / c) - 4));
+    };
     set();
     window.addEventListener("resize", set);
     return () => window.removeEventListener("resize", set);
   }, []);
 
-  const total = Math.max(6, Math.floor((typeof window === "undefined" ? 800 : window.innerHeight) / cell) - 4);
   const filled = Math.round(p * total);
 
   return (
