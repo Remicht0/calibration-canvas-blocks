@@ -175,12 +175,33 @@
     line-height: 0.82;
   }
 
+  /* lisibilite : le mono reste technique mais se lit sans effort */
   .u-mono {
     font-family: var(--font-mono);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-size: 11px;
-    line-height: var(--cell);
+    letter-spacing: 0.045em;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  /* paragraphes courants : plus de corps, plus d'interligne */
+  .u-copy {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: 13px;
+    line-height: 1.75;
+  }
+
+  @media (min-width: 768px) {
+    .u-mono {
+      font-size: 12.5px;
+    }
+
+    .u-copy {
+      font-size: 14px;
+      line-height: 1.8;
+    }
   }
 }
 
@@ -214,12 +235,14 @@
 
 /* ---- Console mobile : reserver la hauteur en bas de page ---- */
 body {
-  padding-bottom: calc(var(--cell) * 3 + 14px);
+  padding-bottom: calc(var(--cell) * 3 + 48px);
 }
 
 @media (min-width: 768px) {
   body {
     padding-bottom: 0;
+    /* la reglette de defilement occupe la marge gauche */
+    padding-left: calc(var(--cell) * 2);
   }
 }
 

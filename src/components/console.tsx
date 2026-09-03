@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { cellSizeFor } from "@/lib/mire";
+import { BitReadout } from "@/components/readout";
 
 /* ------------------------------------------------------------------ */
 /* Avancement de lecture : 0 -> 1, cale sur la frame                    */
@@ -32,6 +33,64 @@ export function useScrollProgress() {
   return p;
 }
 
+/* ------------------------------------------------------------------ */
+/* Reperage des sections : [data-mire] porte le nom de la piste         */
+/* ------------------------------------------------------------------ */
+
+type Track = { label: string; start: number };
+
+export function useTracks() {
+  const path = useRouterState({ select: (s) => s.location.pathname });
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    let raf = 0;
+    let list: Track[] = [];
+
+    const measure = () => {
+      const els = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-mire]"),
+      );
+      const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      list = els.map((el) => ({
+        label: el.dataset['mire'] ?? "",
+        start: Math.min(1, (el.offsetTop - window.innerHeight * 0.35) / max),
+      }));
+      setTracks(list);
+      locate();
+    };
+
+    const locate = () => {
+      raf = 0;
+      const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const p = window.scrollY / max;
+      let i = 0;
+      list.forEach((t, k) => {
+        if (p >= t.start - 0.001) i = k;
+      });
+      setIndex(i);
+    };
+
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(locate);
+    };
+
+    // laisse le temps au layout de se poser apres un changement de route
+    const t = window.setTimeout(measure, 60);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => {
+      window.clearTimeout(t);
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", measure);
+    };
+  }, [path]);
+
+  return { tracks, index, current: tracks[index]?.label ?? "" };
+}
+
 /** Etat d'inversion, lu directement sur la racine (source unique : NegativeSwitch). */
 function useNegative() {
   const [neg, setNeg] = useState(false);
@@ -49,44 +108,72 @@ function useNegative() {
 const toggleNegative = () =>
   window.dispatchEvent(new KeyboardEvent("keydown", { key: "n" }));
 
+const pct = (p: number) => `${String(Math.round(p * 100)).padStart(3, "0")}%`;
+
 /* ------------------------------------------------------------------ */
-/* ORDINATEUR — colonne de blocs dans la marge gauche                   */
+/* ORDINATEUR — reglette de defilement, lue comme une amorce de film    */
 /* ------------------------------------------------------------------ */
 
 export function ScrollRail() {
   const p = useScrollProgress();
+  const { tracks, index, current } = useTracks();
+  const [rows, setRows] = useState(0);
   const [cell, setCell] = useState(20);
-  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     const set = () => {
       const c = cellSizeFor(window.innerWidth);
       setCell(c);
-      setTotal(Math.max(6, Math.floor(window.innerHeight / c) - 4));
+      // pas de la reglette : 6px de bloc, 3px de vide
+      setRows(Math.max(10, Math.floor((window.innerHeight - c * 12) / 9)));
     };
     set();
     window.addEventListener("resize", set);
     return () => window.removeEventListener("resize", set);
   }, []);
 
-  const filled = Math.round(p * total);
+  const head = Math.round(p * (rows - 1));
 
   return (
     <div
       aria-hidden="true"
-      className="mire-noprint pointer-events-none fixed left-0 top-0 z-[120] hidden h-screen flex-col justify-center gap-[2px] px-[3px] mix-blend-difference md:flex"
-      style={{ width: cell }}
+      className="mire-noprint pointer-events-none fixed left-0 top-0 z-[120] hidden h-screen flex-col items-center justify-between py-cell2 mix-blend-difference md:flex"
+      style={{ width: cell * 2, color: "#FFFFFF" }}
     >
-      {Array.from({ length: total }, (_, i) => (
-        <div
-          key={i}
-          style={{
-            height: 3,
-            background: i < filled ? "#FFFFFF" : "transparent",
-            outline: i < filled ? "none" : "1px solid rgba(255,255,255,0.35)",
-          }}
-        />
-      ))}
+      {/* compteur bitmap */}
+      <BitReadout text={pct(p)} unit={2} className="shrink-0" />
+
+      {/* reglette : blocs pleins, reperes de piste plus larges */}
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-[3px] py-cell">
+        {Array.from({ length: rows }, (_, i) => {
+          const on = i <= head;
+          const isHead = i === head;
+          const mark = tracks.some(
+            (t) => Math.round(t.start * (rows - 1)) === i,
+          );
+          return (
+            <div
+              key={i}
+              style={{
+                height: isHead ? 9 : 6,
+                width: isHead ? 22 : mark ? 18 : on ? 12 : 6,
+                background: on ? "#FFFFFF" : "transparent",
+                outline: on ? "none" : "1px solid rgba(255,255,255,0.45)",
+                outlineOffset: 0,
+              }}
+            />
+          );
+        })}
+      </div>
+
+      {/* piste courante, ecrite dans le sens de la reglette */}
+      <div
+        className="u-mono max-h-[40vh] shrink-0 overflow-hidden whitespace-nowrap"
+        style={{ writingMode: "vertical-rl", letterSpacing: "0.18em" }}
+      >
+        {current || "MIRE"}
+        {tracks.length > 0 && ` / ${String(index + 1).padStart(2, "0")}`}
+      </div>
     </div>
   );
 }
@@ -105,7 +192,8 @@ export function MireConsole() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const p = useScrollProgress();
   const neg = useNegative();
-  const steps = 24;
+  const { tracks, index, current } = useTracks();
+  const steps = 20;
   const filled = Math.round(p * steps);
 
   return (
@@ -113,13 +201,29 @@ export function MireConsole() {
       aria-label="Navigation"
       className="mire-noprint fixed inset-x-0 bottom-0 z-[140] border-t-[6px] border-black bg-white md:hidden"
     >
-      {/* jauge de lecture : blocs pleins, aucune barre lisse */}
-      <div className="flex h-[8px] w-full gap-[2px] border-b-[3px] border-black px-[2px] py-[1px]">
+      {/* piste courante + compteur bitmap */}
+      <div className="u-mono flex items-center justify-between gap-cell border-b-[3px] border-black px-[6px] py-[4px]">
+        <span className="min-w-0 truncate">
+          {current || "MIRE"}
+          {tracks.length > 0 &&
+            ` ${String(index + 1).padStart(2, "0")}/${String(tracks.length).padStart(2, "0")}`}
+        </span>
+        <span className="shrink-0">
+          <BitReadout text={pct(p)} unit={2} />
+        </span>
+      </div>
+
+      {/* jauge : blocs pleins, un cran = 5 % */}
+      <div className="flex h-[14px] w-full items-end gap-[2px] border-b-[3px] border-black px-[4px] py-[2px]">
         {Array.from({ length: steps }, (_, i) => (
           <div
             key={i}
-            className="h-full flex-1"
-            style={{ background: i < filled ? "#000000" : "transparent" }}
+            className="flex-1"
+            style={{
+              height: i % 5 === 0 ? "100%" : "60%",
+              background: i < filled ? "#000000" : "transparent",
+              outline: i < filled ? "none" : "1px solid rgba(0,0,0,0.28)",
+            }}
           />
         ))}
       </div>

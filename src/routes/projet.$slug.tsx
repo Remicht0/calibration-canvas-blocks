@@ -43,14 +43,14 @@ function ProjectPage() {
         </span>
       </div>
 
-      <section className="px-cell pb-cell4">
+      <section data-mire="EN-TETE" className="px-cell pb-cell4">
         <BlockType text={p.title} loop={false} />
       </section>
 
       <CalibrationBand height={5} seed={7} className="border-y-[10px] border-black" />
 
       {/* BLOC NOIR */}
-      <section className="bg-black px-cell py-cell4 text-white">
+      <section data-mire="MESURES" className="bg-black px-cell py-cell4 text-white">
         <div className="u-mono grid gap-y-cell2 md:grid-cols-4 md:gap-x-cell">
           <div>
             <div>CLIENT</div>
@@ -72,7 +72,7 @@ function ProjectPage() {
       </section>
 
       {/* PLANCHE PRINCIPALE — media hybride, lecture au choix */}
-      <section className="bg-white px-cell py-cell4">
+      <section data-mire="PLANCHE 01" className="bg-white px-cell py-cell4">
         <div className="u-mono mb-cell flex justify-between">
           <span>PLANCHE 01 — MATIERE</span>
           <span className="hidden md:inline">SURVOL = LOUPE / MATIERE BRUTE</span>
@@ -81,7 +81,7 @@ function ProjectPage() {
       </section>
 
       {/* TEXTE COLONNE ETROITE */}
-      <section className="bg-black px-cell py-cell4 text-white">
+      <section data-mire="NOTES" className="bg-black px-cell py-cell4 text-white">
         <div className="u-mono max-w-[54ch] space-y-cell2">
           {p.lines.map((l) => (
             <p key={l}>{l}</p>
@@ -89,7 +89,7 @@ function ProjectPage() {
         </div>
       </section>
 
-      <section className="bg-white px-cell py-cell4">
+      <section data-mire="PLANCHE 02" className="bg-white px-cell py-cell4">
         <div className="grid gap-cell md:grid-cols-2">
           <HybridMedia
             src={p.image}
@@ -109,7 +109,7 @@ function ProjectPage() {
       </section>
 
 
-      <section className="border-t-[10px] border-black px-cell py-cell2">
+      <section data-mire="COLOPHON" className="border-t-[10px] border-black px-cell py-cell2">
         <div className="u-mono mb-cell2">SUITE</div>
         <ul>
           {others.map((o) => (

@@ -41,8 +41,14 @@ La force vient du contraste et du vide, jamais de l'accumulation.
 
 - **Display** : `Anton` (`.u-display`), capitales, tracking `-0.02em`,
   line-height ≤ 0.95. Tailles en `vw`, elles peuvent sortir du cadre.
-- **Mono** : `JetBrains Mono` (`.u-mono`), 11 px, capitales, tracking `0.06em`,
-  line-height = `var(--cell)`.
+- **Mono** : `JetBrains Mono` (`.u-mono`), 12 px (12,5 px >= 768 px),
+  capitales, tracking `0.045em`, line-height 1.45. Reserve aux **etiquettes**
+  (en-tetes, chiffres, navigation).
+- **Copie** : `.u-copy`, 13 px (14 px >= 768 px), line-height 1.75 / 1.8,
+  tracking `0.02em`, mesure <= 46 caracteres. Reserve aux **paragraphes** :
+  un texte courant ne doit jamais rester en `.u-mono`.
+- **Fonte bitmap 3x5** (`src/lib/glyphs.ts`) : chiffres et `%` dessines bloc
+  par bloc. Utilisee par `BitReadout`, l'horloge et les compteurs.
 - Deux fontes maximum, une seule graisse par fonte. Texte en **français, en
   capitales, sans accents** dans l'interface (contrainte de mire).
 
@@ -186,6 +192,11 @@ Fait :
 - [x] Focus visible en bloc (contour rouge de 3 px, aucun halo).
 - [x] `prefers-reduced-motion` : la sequence de boot est sautee (comme la
       transition de page et le ticker).
+- [x] Instruments de defilement redessines : reglette bureau (compteur
+      bitmap, reperes de piste, tete de lecture) et console mobile (piste
+      courante, compteur bitmap, jauge a 20 crans dont 1 sur 5 pleine hauteur).
+      Les pistes sont declarees par `data-mire="NOM"` sur chaque `<section>`.
+- [x] Echelle typographique revue pour la lisibilite (`.u-mono` / `.u-copy`).
 - [x] Budget performance : `HybridMedia` met son canvas et sa video en pause
       des que la planche sort du viewport, et reprend a l'entree.
 

@@ -43,7 +43,7 @@ function Contact() {
         <span>FICHE 00</span>
       </div>
 
-      <section className="px-cell pb-cell4">
+      <section data-mire="EN-TETE" className="px-cell pb-cell4">
         <BlockType text="CONTACT" loop={false} />
         <p className="u-mono mt-cell2 max-w-[52ch]">
           UN PROJET SE MESURE AVANT DE SE DESSINER. ECRIRE AVEC : NATURE,
@@ -53,7 +53,7 @@ function Contact() {
 
       <CalibrationBand height={5} seed={17} className="border-y-[10px] border-black" />
 
-      <section className="bg-black px-cell py-cell4 text-white">
+      <section data-mire="COORDONNEES" className="bg-black px-cell py-cell4 text-white">
         <div className="u-mono mb-cell2 flex flex-wrap justify-between gap-cell">
           <span>FICHE DE CALIBRATION</span>
           <BitmapClock label="HEURE STUDIO" />
@@ -90,7 +90,7 @@ function Contact() {
         ]}
       />
 
-      <section className="border-t-[10px] border-black px-cell py-cell4">
+      <section data-mire="CALIBRATION" className="border-t-[10px] border-black px-cell py-cell4">
         <div className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
           ENVOYEZ
           <br />
