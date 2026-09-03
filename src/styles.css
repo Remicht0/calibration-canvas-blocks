@@ -235,7 +235,7 @@
 
 /* ---- Console mobile : reserver la hauteur en bas de page ---- */
 body {
-  padding-bottom: calc(var(--cell) * 3 + 14px);
+  padding-bottom: calc(var(--cell) * 3 + 48px);
 }
 
 @media (min-width: 768px) {
