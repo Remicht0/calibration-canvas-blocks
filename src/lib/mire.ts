@@ -10,6 +10,10 @@ export type Bits = {
 
 export const cellSizeFor = (width: number) => (width < 768 ? 16 : 20);
 
+/** Mouvement reduit demande par le systeme : tout se pose d'un coup, aucune chute. */
+export const prefersReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 /** Réduit une image en grille 1-bit : chaque cellule est noire pleine ou blanche pleine. */
 export function blockifyImage(
   img: HTMLImageElement,

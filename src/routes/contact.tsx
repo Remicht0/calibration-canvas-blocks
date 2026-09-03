@@ -36,7 +36,7 @@ const FICHE = [
 
 function Contact() {
   return (
-    <main className="min-h-screen bg-white text-black">
+    <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
       <div className="u-mono grid grid-cols-[minmax(0,1fr)_auto] gap-cell px-cell py-cell2">
         <Link to="/">RETOUR / INDEX</Link>
         <span>FICHE 00</span>
@@ -54,7 +54,7 @@ function Contact() {
 
       <section data-mire="COORDONNEES" className="bg-black px-cell py-cell4 text-white">
         <div className="u-mono mb-cell2 flex flex-wrap justify-between gap-cell">
-          <span>FICHE DE CALIBRATION</span>
+          <h2>FICHE DE CALIBRATION</h2>
           <BitmapClock label="HEURE STUDIO" />
         </div>
         <dl className="u-mono grid gap-y-cell2 md:grid-cols-2 md:gap-x-cell">
@@ -87,11 +87,11 @@ function Contact() {
       />
 
       <section data-mire="CALIBRATION" className="border-t-[10px] border-black px-cell py-cell4">
-        <div className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
+        <h2 className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
           ENVOYEZ
           <br />
           UNE MESURE.
-        </div>
+        </h2>
         <div className="u-mono mt-cell2 flex flex-wrap gap-cell2">
           <Link to="/atelier" className="border-[3px] border-black px-cell py-[3px]">
             ATELIER

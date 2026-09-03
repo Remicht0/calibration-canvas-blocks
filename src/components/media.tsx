@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { cellSizeFor, fallOrder } from "@/lib/mire";
+import { cellSizeFor, fallOrder, prefersReducedMotion } from "@/lib/mire";
 import {
   isReady,
   isVideo,
@@ -10,10 +10,11 @@ import {
   type Source,
 } from "@/lib/bitmap";
 
-const LABEL: Record<BitMode, string> = {
-  bin: "BIN 1-BIT",
-  gris: "GRIS 5 PALIERS",
-  brut: "BRUT MOSAIQUE",
+/* Hors mire : ce que le lecteur d'ecran entend, en francais accentue. */
+const SPOKEN: Record<BitMode, string> = {
+  bin: "Lecture binaire, seuil dur 1 bit.",
+  gris: "Lecture en gris, cinq paliers quantifiés.",
+  brut: "Lecture brute, mosaïque couleur, un bloc par pixel.",
 };
 
 const CYCLE: BitMode[] = ["bin", "gris", "brut"];
@@ -26,6 +27,7 @@ const CYCLE: BitMode[] = ["bin", "gris", "brut"];
 export function HybridMedia({
   src,
   alt,
+  label,
   ratio = 0.62,
   mode: initial = "gris",
   levels = 5,
@@ -36,7 +38,10 @@ export function HybridMedia({
   className = "",
 }: {
   src: string;
+  /** Description de l'image pour les lecteurs d'ecran : francais accentue, jamais en capitales. */
   alt: string;
+  /** Etiquette visible sous la planche : capitales sans accents (regle de la mire). */
+  label?: string;
   ratio?: number;
   mode?: BitMode;
   levels?: number;
@@ -51,10 +56,29 @@ export function HybridMedia({
   const modeRef = useRef<BitMode>(initial);
   const [mode, setMode] = useState<BitMode>(initial);
   const video = isVideo(src);
+  // video : lecture automatique, sauf si le systeme demande moins de mouvement
+  const playingRef = useRef(true);
+  const [playing, setPlaying] = useState(true);
+  const mediaRef = useRef<Source | null>(null);
+  const restart = useRef<() => void>(() => {});
 
   const apply = useCallback((m: BitMode) => {
     modeRef.current = m;
     setMode(m);
+  }, []);
+
+  const togglePlay = useCallback(() => {
+    const v = mediaRef.current;
+    if (!(v instanceof HTMLVideoElement)) return;
+    const next = !playingRef.current;
+    playingRef.current = next;
+    setPlaying(next);
+    if (next) {
+      void v.play().catch(() => {});
+      restart.current();
+    } else {
+      v.pause();
+    }
   }, []);
 
   useEffect(() => {
@@ -70,9 +94,15 @@ export function HybridMedia({
     let cell = cellSizeFor(window.innerWidth);
     let cols = 0;
     let rows = 0;
-    let progress = 0;
+    const reduced = prefersReducedMotion();
+    let progress = reduced ? 1 : 0;
     let visible = false;
     let lens: { x: number; y: number; r: number } | null = null;
+
+    if (video && reduced) {
+      playingRef.current = false;
+      setPlaying(false);
+    }
 
     const draw = () => {
       const ctx = cv.getContext("2d");
@@ -107,16 +137,20 @@ export function HybridMedia({
     };
 
     const compose = () => {
+      cancelAnimationFrame(raf);
       const t0 = performance.now() - progress * 1000;
       const step = (t: number) => {
         if (dead || !visible) return;
-        progress = Math.min(1, (t - t0) / 1000);
-        if (media instanceof HTMLVideoElement && isReady(media)) data = sample(media, cols, rows);
+        progress = reduced ? 1 : Math.min(1, (t - t0) / 1000);
+        const v = media instanceof HTMLVideoElement ? media : null;
+        const live = v !== null && playingRef.current;
+        if (v && live && isReady(v)) data = sample(v, cols, rows);
         draw();
-        if (progress < 1 || media instanceof HTMLVideoElement) raf = requestAnimationFrame(step);
+        if (progress < 1 || live) raf = requestAnimationFrame(step);
       };
       raf = requestAnimationFrame(step);
     };
+    restart.current = compose;
 
     if (video) {
       const v = document.createElement("video");
@@ -128,6 +162,7 @@ export function HybridMedia({
       v.onloadeddata = () => {
         if (dead) return;
         media = v;
+        mediaRef.current = v;
         build();
         io.observe(el);
       };
@@ -138,6 +173,7 @@ export function HybridMedia({
       img.onload = () => {
         if (dead) return;
         media = img;
+        mediaRef.current = img;
         build();
         io.observe(el);
       };
@@ -150,7 +186,8 @@ export function HybridMedia({
         for (const e of entries) {
           visible = e.isIntersecting;
           if (visible) {
-            if (media instanceof HTMLVideoElement) void media.play().catch(() => {});
+            if (media instanceof HTMLVideoElement && playingRef.current)
+              void media.play().catch(() => {});
             compose();
           } else {
             cancelAnimationFrame(raf);
@@ -168,11 +205,11 @@ export function HybridMedia({
         y: Math.floor(((ev.clientY - r.top) / r.height) * rows),
         r: lensRadius,
       };
-      if (progress >= 1 && !(media instanceof HTMLVideoElement)) draw();
+      if (progress >= 1 && !(media instanceof HTMLVideoElement && playingRef.current)) draw();
     };
     const onLeave = () => {
       lens = null;
-      if (progress >= 1 && !(media instanceof HTMLVideoElement)) draw();
+      if (progress >= 1 && !(media instanceof HTMLVideoElement && playingRef.current)) draw();
     };
     cv.addEventListener("pointermove", onMove);
     cv.addEventListener("pointerleave", onLeave);
@@ -188,6 +225,7 @@ export function HybridMedia({
       cv.removeEventListener("pointermove", onMove);
       cv.removeEventListener("pointerleave", onLeave);
       if (media instanceof HTMLVideoElement) media.pause();
+      mediaRef.current = null;
     };
   }, [src, ratio, levels, gamma, threshold, lensRadius, video]);
 
@@ -198,15 +236,33 @@ export function HybridMedia({
       </div>
       {controls && (
         <figcaption className="u-mono mt-[3px] flex flex-wrap items-center justify-between gap-x-cell gap-y-[3px] border-[3px] border-black px-[6px] py-[3px]">
-          <span className="min-w-0 truncate">{alt}</span>
-          <span className="flex flex-1 items-center justify-end gap-[6px] sm:flex-none">
+          <span className="min-w-0 truncate">{label}</span>
+          <span
+            role="group"
+            aria-label="Mode de lecture"
+            className="flex flex-1 items-center justify-end gap-[6px] sm:flex-none"
+          >
             <span className="hidden sm:inline">{video ? "VIDEO" : "PHOTO"}</span>
+            {video && (
+              <button
+                type="button"
+                onClick={togglePlay}
+                aria-pressed={!playing}
+                aria-label={playing ? "Pause de la vidéo" : "Lecture de la vidéo"}
+                className={`border-[3px] border-black px-[6px] py-[1px] ${
+                  playing ? "bg-white text-black" : "bg-black text-white"
+                }`}
+              >
+                {playing ? "PAUSE" : "LECTURE"}
+              </button>
+            )}
             {CYCLE.map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => apply(m)}
                 aria-pressed={mode === m}
+                aria-label={`${m.toUpperCase()} : ${SPOKEN[m]}`}
                 className={`border-[3px] border-black px-[6px] py-[1px] ${
                   mode === m ? "bg-black text-white" : "bg-white text-black"
                 }`}
@@ -217,7 +273,9 @@ export function HybridMedia({
           </span>
         </figcaption>
       )}
-      <span className="sr-only">{LABEL[mode]}</span>
+      <span className="sr-only" aria-live="polite">
+        {SPOKEN[mode]}
+      </span>
     </figure>
   );
 }

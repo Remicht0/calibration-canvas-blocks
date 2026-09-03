@@ -152,12 +152,18 @@ Loupe : au survol, un disque de cellules passe en `brut`, avec un anneau en
 1. Poser l'image dans `src/assets/` (JPG, ≥ 1600 px de large, contraste franc).
 2. Ajouter l'entrée dans `src/lib/projects.ts` (`num` incrémenté, `slug` en
    kebab-case, textes en capitales sans accents pour les métadonnées).
+   Deux champs **hors mire** sont obligatoires, en français accentué :
+   `resume` (description de la page et des cartes de partage) et `alt`
+   (une phrase qui décrit réellement l'image, jamais le titre du projet).
 3. Rien d'autre : l'index, le survol en négatif, la page projet et le bloc
    « SUITE » se génèrent depuis ce fichier.
 
 ### Une photo ou une vidéo personnelle
 
 - **Toujours** via `<HybridMedia />`. Jamais de `<img>` ni de `<video>` brut.
+- `alt` décrit l'image pour les lecteurs d'écran (français accentué) ;
+  `label` est l'étiquette visible sous la planche (capitales sans accents).
+  Ne jamais mettre l'un à la place de l'autre.
 - Photo douce / portrait / paysage → `mode="gris"`, `gamma` 0.7–0.85.
 - Image très graphique → `mode="bin"`, `threshold` 0.40–0.48.
 - Vidéo `.mp4` / `.webm` → détection automatique, lecture en boucle muette
@@ -227,12 +233,20 @@ Fait :
 - [x] Accents : capitales sans accents dans la mire, francais accentue hors
       mire (metadonnees, `alt`, `sr-only`). Decision documentee en §2.
       Les paragraphes courants passent tous en `.u-copy`.
+- [x] Accessibilite : `alt` reel sur chaque planche (champ `alt` du projet,
+      distinct de l'etiquette visible), lien d'evitement « ALLER AU CONTENU »,
+      un `h1` et des `h2` par page, `aria-pressed` / `aria-current` sur les
+      commandes, bouton lecture / pause sur les videos, bandeau lu une seule
+      fois. `prefers-reduced-motion` couvre desormais aussi les planches,
+      les bandes de calibration et le fond de l'index (pose immediate).
+      Reste : la touche `N` est un raccourci a une seule lettre (WCAG 2.1.4),
+      tolere car le site n'a aucun champ de saisie ; les alt des vraies
+      planches restent a ecrire avec les vrais projets.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
 - [ ] Video reelle sur au moins une page projet, testee en `gris` et `brut`.
 - [ ] `og:image` par projet : export PNG 1-bit genere depuis la planche.
-- [ ] Audit accessibilite : textes alternatifs reels sur les vraies planches.
 
 
 ## 8. Contrôles avant livraison

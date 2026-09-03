@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { cellSizeFor } from "@/lib/mire";
+import { cellSizeFor, prefersReducedMotion } from "@/lib/mire";
 
 /* ------------------------------------------------------------------ */
 /* Bande de calibration : barres 1-bit qui respirent par blocs          */
@@ -48,6 +48,7 @@ export function CalibrationBand({
       }
     };
 
+    const reduced = prefersReducedMotion();
     const paint = (t: number) => {
       if (dead) return;
       const ctx = cv.getContext("2d");
@@ -64,7 +65,8 @@ export function CalibrationBand({
           ctx.fillRect(x * cell, (rows - h) * cell, cell, h * cell);
         }
       }
-      raf = requestAnimationFrame(paint);
+      // mouvement reduit : une seule pose, la bande ne respire pas
+      if (!reduced) raf = requestAnimationFrame(paint);
     };
 
     size();
@@ -94,7 +96,13 @@ export function Ticker({ items }: { items: string[] }) {
   const line = [...items, ...items, ...items];
   return (
     <div className="overflow-hidden border-y-[10px] border-black bg-black py-[6px]">
-      <div className="mire-ticker flex w-max gap-cell4 whitespace-nowrap">
+      {/* hors mire : la liste est lue une seule fois, le defilement est masque */}
+      <ul className="sr-only">
+        {items.map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+      </ul>
+      <div className="mire-ticker flex w-max gap-cell4 whitespace-nowrap" aria-hidden="true">
         {[0, 1].map((k) => (
           <div key={k} className="flex gap-cell4">
             {line.map((t, i) => (

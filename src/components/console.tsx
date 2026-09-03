@@ -193,7 +193,7 @@ export function MireConsole() {
 
   return (
     <nav
-      aria-label="Navigation"
+      aria-label="Console de navigation"
       className="mire-noprint fixed inset-x-0 bottom-0 z-[140] border-t-[6px] border-black bg-white md:hidden"
     >
       {/* piste courante + compteur bitmap */}
@@ -230,6 +230,7 @@ export function MireConsole() {
             <Link
               key={t.to}
               to={t.to}
+              aria-current={active ? "page" : undefined}
               className="u-mono border-r-[3px] border-black py-[10px] text-center"
               style={{
                 background: active ? "#000000" : "#FFFFFF",
@@ -244,6 +245,7 @@ export function MireConsole() {
           type="button"
           onClick={toggleNegative}
           aria-pressed={neg}
+          aria-label={neg ? "Revenir au positif" : "Passer en négatif"}
           className="u-mono py-[10px] text-center"
           style={{
             background: neg ? "#000000" : "#FFFFFF",

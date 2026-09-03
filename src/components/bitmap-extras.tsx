@@ -197,7 +197,11 @@ export function BitmapBoard({ rows = 14 }: { rows?: number }) {
   const btn = "u-mono border-[3px] border-black bg-white px-[8px] py-[2px] text-black";
 
   return (
-    <div ref={wrap} className="max-w-full">
+    <div ref={wrap} className="max-w-full" role="group" aria-label="Table de composition">
+      <p className="sr-only">
+        Grille de blocs dessinée au pointeur, puis propagée par un automate cellulaire aux règles
+        23/3. Le dessin n&apos;est pas accessible au clavier ; les commandes le sont.
+      </p>
       <canvas
         ref={canvas}
         className="block border-[3px] border-black touch-none"
@@ -206,7 +210,12 @@ export function BitmapBoard({ rows = 14 }: { rows?: number }) {
         aria-hidden="true"
       />
       <div className="mt-[3px] flex flex-wrap items-center gap-[6px]">
-        <button type="button" className={btn} onClick={() => setRunning((v) => !v)}>
+        <button
+          type="button"
+          className={btn}
+          onClick={() => setRunning((v) => !v)}
+          aria-pressed={running}
+        >
           {running ? "ARRETER" : "PROPAGER"}
         </button>
         <button type="button" className={btn} onClick={() => seed(0.22)}>

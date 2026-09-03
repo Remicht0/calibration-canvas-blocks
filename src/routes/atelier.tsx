@@ -28,7 +28,7 @@ export const Route = createFileRoute("/atelier")({
 
 function Atelier() {
   return (
-    <main className="min-h-screen bg-white text-black">
+    <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
       <div className="u-mono grid gap-cell px-cell py-cell2 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
         <Link to="/">RETOUR / INDEX</Link>
         <div className="min-w-0 sm:justify-self-end">
@@ -49,7 +49,7 @@ function Atelier() {
       {/* INSTRUMENT 01 — table de composition */}
       <section data-mire="AUTOMATE" className="bg-white px-cell py-cell4">
         <div className="u-mono mb-cell2 flex justify-between">
-          <span>INSTRUMENT 01 — TABLE DE COMPOSITION</span>
+          <h2>INSTRUMENT 01 — TABLE DE COMPOSITION</h2>
           <span className="hidden md:inline">DESSINER PUIS PROPAGER</span>
         </div>
         <BitmapBoard rows={14} />
@@ -65,7 +65,7 @@ function Atelier() {
         className="border-t-[10px] border-black bg-black px-cell py-cell4 text-white"
       >
         <div className="u-mono mb-cell2 flex justify-between">
-          <span>INSTRUMENT 02 — PLANCHE DE BRUIT</span>
+          <h2>INSTRUMENT 02 — PLANCHE DE BRUIT</h2>
           <span className="hidden md:inline">CENTRE ECRAN = SIGNAL NET</span>
         </div>
         <div className="border-[3px] border-white">
@@ -94,7 +94,7 @@ function Atelier() {
         className="border-t-[10px] border-black bg-white px-cell py-cell4"
       >
         <div className="u-mono mb-cell2 flex justify-between">
-          <span>INSTRUMENT 03 — HORLOGE</span>
+          <h2>INSTRUMENT 03 — HORLOGE</h2>
           <span className="hidden md:inline">FONTE INTERNE 3 x 5 BLOCS</span>
         </div>
         <div className="border-[3px] border-black p-cell2">
@@ -103,11 +103,11 @@ function Atelier() {
       </section>
 
       <section data-mire="NOTES" className="border-t-[10px] border-black bg-white px-cell py-cell4">
-        <div className="u-display text-[12vw] leading-[0.95] md:text-[6vw]">
+        <h2 className="u-display text-[12vw] leading-[0.95] md:text-[6vw]">
           UN BLOC
           <br />
           OU RIEN.
-        </div>
+        </h2>
         <div className="u-mono mt-cell2">
           <Link to="/">INDEX DES PROJETS</Link>
           <Link to="/contact" className="ml-cell2">
