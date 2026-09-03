@@ -241,6 +241,8 @@ body {
 @media (min-width: 768px) {
   body {
     padding-bottom: 0;
+    /* la reglette de defilement occupe la marge gauche */
+    padding-left: calc(var(--cell) * 2);
   }
 }
 
