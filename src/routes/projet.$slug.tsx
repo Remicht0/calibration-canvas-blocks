@@ -13,9 +13,7 @@ export const Route = createFileRoute("/projet/$slug")({
   },
   head: ({ loaderData }) => {
     const t = loaderData ? `${loaderData.title} — MIRE` : "Projet — MIRE";
-    const d = loaderData
-      ? `${loaderData.nature}, ${loaderData.year}. Projet du studio MIRE pour ${loaderData.client}.`
-      : "Projet du studio de design graphique MIRE.";
+    const d = loaderData ? loaderData.resume : "Projet du studio de design graphique MIRE.";
     return {
       meta: [
         { title: t },
@@ -84,7 +82,7 @@ function ProjectPage() {
 
       {/* TEXTE COLONNE ETROITE */}
       <section data-mire="NOTES" className="bg-black px-cell py-cell4 text-white">
-        <div className="u-mono max-w-[54ch] space-y-cell2">
+        <div className="u-copy max-w-[54ch] space-y-cell2">
           {p.lines.map((l) => (
             <p key={l}>{l}</p>
           ))}

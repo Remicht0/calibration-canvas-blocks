@@ -52,6 +52,31 @@ La force vient du contraste et du vide, jamais de l'accumulation.
 - Deux fontes maximum, une seule graisse par fonte. Texte en **français, en
   capitales, sans accents** dans l'interface (contrainte de mire).
 
+### Accents et diacritiques (décision)
+
+Anton et JetBrains Mono possèdent les capitales accentuées : le choix est donc
+délibéré, pas une limite technique.
+
+- **Dans la mire (tout ce qui est rendu à l'écran)** : capitales **sans
+  accents**, sans cédille, sans ligature (`OEUVRE`, `CA`, `A PARTIR`). Un
+  accent sur une capitale est un trait de 1 à 2 px à 12 px de corps : plus fin
+  que le bloc, il n'a pas sa place sur une mire. En display, il dépasserait la
+  hauteur de capitale sur laquelle l'interligne (0,82) est calé. Les
+  apostrophes et les tirets restent (`D'ANTENNE`, `2022 — 2024`).
+- **Hors mire (ce qui n'est jamais rendu dans la grille)** : français
+  courant, **accentué, en bas de casse** : `<title>`, `meta description`,
+  `og:*`, textes alternatifs (`alt`, `aria-label`), contenus `sr-only`. Les
+  lecteurs d'écran prononcent correctement un mot accentué et risquent
+  d'épeler un mot en capitales ; les moteurs de recherche et les cartes de
+  partage sont lus hors calibration.
+- **Dans les données** (`src/lib/projects.ts`) : les champs visibles (`title`,
+  `nature`, `client`, `lines`) suivent la règle de la mire ; les champs hors
+  mire (`resume`, `alt`) sont écrits en français accentué.
+- **Dans la fonte bitmap 3x5** (`glyphs.ts`) : aucun glyphe accentué, par
+  construction. L'export `og:image` en hérite.
+- `<html lang="fr">` reste : la langue du site est le français, même sans
+  accents.
+
 ### Mouvement
 
 Un seul mouvement : la **chute de blocs** (`fallOrder` + `progress`).
@@ -199,13 +224,15 @@ Fait :
 - [x] Echelle typographique revue pour la lisibilite (`.u-mono` / `.u-copy`).
 - [x] Budget performance : `HybridMedia` met son canvas et sa video en pause
       des que la planche sort du viewport, et reprend a l'entree.
+- [x] Accents : capitales sans accents dans la mire, francais accentue hors
+      mire (metadonnees, `alt`, `sr-only`). Decision documentee en §2.
+      Les paragraphes courants passent tous en `.u-copy`.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
 - [ ] Video reelle sur au moins une page projet, testee en `gris` et `brut`.
 - [ ] `og:image` par projet : export PNG 1-bit genere depuis la planche.
 - [ ] Audit accessibilite : textes alternatifs reels sur les vraies planches.
-- [ ] Decider du traitement des accents FR (fonte mono) et le documenter.
 
 
 ## 8. Contrôles avant livraison

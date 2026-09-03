@@ -11,12 +11,12 @@ export const Route = createFileRoute("/contact")({
       {
         name: "description",
         content:
-          "Contacter le studio MIRE : adresse, telephone, courriel et fiche de calibration. Identite, edition, signaletique.",
+          "Contacter le studio MIRE : adresse, téléphone, courriel et fiche de calibration. Identité, édition, signalétique.",
       },
       { property: "og:title", content: "Contact — MIRE, studio de design graphique" },
       {
         property: "og:description",
-        content: "Fiche de calibration du studio MIRE : courriel, telephone, adresse, mentions.",
+        content: "Fiche de calibration du studio MIRE : courriel, téléphone, adresse, mentions.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -44,7 +44,7 @@ function Contact() {
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
         <BlockType text="CONTACT" loop={false} />
-        <p className="u-mono mt-cell2 max-w-[52ch]">
+        <p className="u-copy mt-cell2 max-w-[52ch]">
           UN PROJET SE MESURE AVANT DE SE DESSINER. ECRIRE AVEC : NATURE, CALENDRIER, BUDGET,
           SUPPORTS. REPONSE SOUS 48 HEURES.
         </p>

@@ -29,7 +29,7 @@ function NotFoundComponent() {
           <br />
           SIGNAL
         </div>
-        <p className="u-mono mt-cell2 max-w-[48ch]">
+        <p className="u-copy mt-cell2 max-w-[48ch]">
           CETTE ADRESSE NE RENVOIE AUCUNE MIRE. LA PAGE A ETE DEPLACEE OU N&apos;A JAMAIS ETE
           CALIBREE.
         </p>
@@ -65,7 +65,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           <br />
           CORROMPU
         </div>
-        <p className="u-mono mt-cell2 max-w-[48ch]">
+        <p className="u-copy mt-cell2 max-w-[48ch]">
           LA PAGE N&apos;A PAS PU ETRE COMPOSEE. RELANCER LA CALIBRATION OU REVENIR A L&apos;INDEX.
         </p>
       </div>
@@ -103,7 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "MIRE — Studio de design graphique" },
       {
         property: "og:description",
-        content: "Identite, edition, signaletique. Rendu 1-bit par blocs.",
+        content: "Identité, édition, signalétique. Rendu 1-bit par blocs.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

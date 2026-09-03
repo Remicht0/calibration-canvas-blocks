@@ -13,13 +13,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "MIRE, studio de design graphique. Identite, edition, signaletique. Un site construit comme une image de calibration : 1-bit, grille de blocs, une seule ligne rouge.",
+          "MIRE, studio de design graphique. Identité, édition, signalétique. Un site construit comme une image de calibration : 1-bit, grille de blocs, une seule ligne rouge.",
       },
       { property: "og:title", content: "MIRE — Studio de design graphique" },
       {
         property: "og:description",
         content:
-          "Identite, edition, signaletique. Rendu 1-bit par blocs, dissolution par chute de blocs.",
+          "Identité, édition, signalétique. Rendu 1-bit par blocs, dissolution par chute de blocs.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
