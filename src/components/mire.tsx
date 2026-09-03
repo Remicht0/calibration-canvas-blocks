@@ -161,10 +161,7 @@ export function BlockType({
       cell = cellSizeFor(window.innerWidth);
       const w = el.clientWidth;
       const cols = Math.max(8, Math.floor(w / cell));
-      const rows = Math.max(
-        3,
-        Math.round(textBlockHeight(text, DISPLAY_FONT, cols * cell) / cell),
-      );
+      const rows = Math.max(3, Math.round(textBlockHeight(text, DISPLAY_FONT, cols * cell) / cell));
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       cv.style.width = `${cols * cell}px`;
       cv.style.height = `${rows * cell}px`;

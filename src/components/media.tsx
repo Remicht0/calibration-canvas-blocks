@@ -111,11 +111,9 @@ export function HybridMedia({
       const step = (t: number) => {
         if (dead || !visible) return;
         progress = Math.min(1, (t - t0) / 1000);
-        if (media instanceof HTMLVideoElement && isReady(media))
-          data = sample(media, cols, rows);
+        if (media instanceof HTMLVideoElement && isReady(media)) data = sample(media, cols, rows);
         draw();
-        if (progress < 1 || media instanceof HTMLVideoElement)
-          raf = requestAnimationFrame(step);
+        if (progress < 1 || media instanceof HTMLVideoElement) raf = requestAnimationFrame(step);
       };
       raf = requestAnimationFrame(step);
     };
@@ -162,7 +160,6 @@ export function HybridMedia({
       },
       { threshold: 0.12 },
     );
-
 
     const onMove = (ev: PointerEvent) => {
       const r = cv.getBoundingClientRect();

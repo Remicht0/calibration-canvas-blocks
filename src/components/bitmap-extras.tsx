@@ -54,10 +54,7 @@ export function BitmapClock({
     );
     const unit = Math.max(
       2,
-      Math.min(
-        Math.round((cellSizeFor(window.innerWidth) / 3) * scale),
-        Math.floor(avail / cols),
-      ),
+      Math.min(Math.round((cellSizeFor(window.innerWidth) / 3) * scale), Math.floor(avail / cols)),
     );
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     cv.style.width = `${cols * unit}px`;
@@ -74,8 +71,7 @@ export function BitmapClock({
       const g = GLYPHS[ch] ?? GLYPHS["0"]!;
       for (let y = 0; y < 5; y++)
         for (let x = 0; x < 3; x++)
-          if (g[y]![x] === "1")
-            ctx.fillRect((i * 4 + x) * unit, y * unit, unit, unit);
+          if (g[y]![x] === "1") ctx.fillRect((i * 4 + x) * unit, y * unit, unit, unit);
     });
   }, [txt, scale]);
 
@@ -198,8 +194,7 @@ export function BitmapBoard({ rows = 14 }: { rows?: number }) {
     paint();
   };
 
-  const btn =
-    "u-mono border-[3px] border-black bg-white px-[8px] py-[2px] text-black";
+  const btn = "u-mono border-[3px] border-black bg-white px-[8px] py-[2px] text-black";
 
   return (
     <div ref={wrap} className="max-w-full">
@@ -266,8 +261,7 @@ export function NoiseField({ rows = 10, seed = 5 }: { rows?: number; seed?: numb
         // 0 au centre de l'ecran = image nette, loin = bruit total
         const d = Math.min(
           1,
-          Math.abs(r.top + r.height / 2 - window.innerHeight / 2) /
-            (window.innerHeight / 1.1),
+          Math.abs(r.top + r.height / 2 - window.innerHeight / 2) / (window.innerHeight / 1.1),
         );
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

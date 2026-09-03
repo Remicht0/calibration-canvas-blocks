@@ -30,8 +30,8 @@ function NotFoundComponent() {
           SIGNAL
         </div>
         <p className="u-mono mt-cell2 max-w-[48ch]">
-          CETTE ADRESSE NE RENVOIE AUCUNE MIRE. LA PAGE A ETE DEPLACEE OU
-          N&apos;A JAMAIS ETE CALIBREE.
+          CETTE ADRESSE NE RENVOIE AUCUNE MIRE. LA PAGE A ETE DEPLACEE OU N&apos;A JAMAIS ETE
+          CALIBREE.
         </p>
       </div>
       <div className="u-mono flex flex-wrap gap-cell2">
@@ -66,8 +66,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           CORROMPU
         </div>
         <p className="u-mono mt-cell2 max-w-[48ch]">
-          LA PAGE N&apos;A PAS PU ETRE COMPOSEE. RELANCER LA CALIBRATION OU
-          REVENIR A L&apos;INDEX.
+          LA PAGE N&apos;A PAS PU ETRE COMPOSEE. RELANCER LA CALIBRATION OU REVENIR A L&apos;INDEX.
         </p>
       </div>
       <div className="u-mono flex flex-wrap gap-cell2">

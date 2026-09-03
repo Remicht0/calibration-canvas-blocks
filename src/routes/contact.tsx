@@ -16,8 +16,7 @@ export const Route = createFileRoute("/contact")({
       { property: "og:title", content: "Contact — MIRE, studio de design graphique" },
       {
         property: "og:description",
-        content:
-          "Fiche de calibration du studio MIRE : courriel, telephone, adresse, mentions.",
+        content: "Fiche de calibration du studio MIRE : courriel, telephone, adresse, mentions.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -46,8 +45,8 @@ function Contact() {
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
         <BlockType text="CONTACT" loop={false} />
         <p className="u-mono mt-cell2 max-w-[52ch]">
-          UN PROJET SE MESURE AVANT DE SE DESSINER. ECRIRE AVEC : NATURE,
-          CALENDRIER, BUDGET, SUPPORTS. REPONSE SOUS 48 HEURES.
+          UN PROJET SE MESURE AVANT DE SE DESSINER. ECRIRE AVEC : NATURE, CALENDRIER, BUDGET,
+          SUPPORTS. REPONSE SOUS 48 HEURES.
         </p>
       </section>
 
@@ -67,10 +66,7 @@ function Contact() {
           ))}
         </dl>
         <div className="u-mono mt-cell4 flex flex-wrap gap-cell2">
-          <a
-            href="mailto:studio@mire.fr"
-            className="border-[3px] border-white px-cell py-[3px]"
-          >
+          <a href="mailto:studio@mire.fr" className="border-[3px] border-white px-cell py-[3px]">
             ECRIRE AU STUDIO
           </a>
           <a href="tel:+33100000000" className="border-[3px] border-white px-cell py-[3px]">

@@ -66,7 +66,9 @@ function ProjectPage() {
           </div>
           <div>
             <div>REF</div>
-            <div>MIRE-{p.num}-{p.year}</div>
+            <div>
+              MIRE-{p.num}-{p.year}
+            </div>
           </div>
         </div>
       </section>
@@ -107,7 +109,6 @@ function ProjectPage() {
           />
         </div>
       </section>
-
 
       <section data-mire="COLOPHON" className="border-t-[10px] border-black px-cell py-cell2">
         <div className="u-mono mb-cell2">SUITE</div>

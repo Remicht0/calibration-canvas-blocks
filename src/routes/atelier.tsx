@@ -39,8 +39,8 @@ function Atelier() {
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
         <BlockType text="ATELIER" loop={false} />
         <p className="u-mono mt-cell2 max-w-[56ch]">
-          TROIS INSTRUMENTS. AUCUNE DECORATION. CHACUN NE SAIT FAIRE QU&apos;UNE
-          CHOSE : POSER UN BLOC, OU NE PAS LE POSER.
+          TROIS INSTRUMENTS. AUCUNE DECORATION. CHACUN NE SAIT FAIRE QU&apos;UNE CHOSE : POSER UN
+          BLOC, OU NE PAS LE POSER.
         </p>
       </section>
 
@@ -54,14 +54,16 @@ function Atelier() {
         </div>
         <BitmapBoard rows={14} />
         <p className="u-mono mt-cell2 max-w-[56ch]">
-          UN BLOC POSE A LA MAIN SURVIT S&apos;IL A DEUX OU TROIS VOISINS. IL
-          NAIT S&apos;IL EN A EXACTEMENT TROIS. LA SURFACE EST UN TORE : LE BORD
-          DROIT TOUCHE LE BORD GAUCHE.
+          UN BLOC POSE A LA MAIN SURVIT S&apos;IL A DEUX OU TROIS VOISINS. IL NAIT S&apos;IL EN A
+          EXACTEMENT TROIS. LA SURFACE EST UN TORE : LE BORD DROIT TOUCHE LE BORD GAUCHE.
         </p>
       </section>
 
       {/* INSTRUMENT 02 — planche de bruit */}
-      <section data-mire="BRUIT" className="border-t-[10px] border-black bg-black px-cell py-cell4 text-white">
+      <section
+        data-mire="BRUIT"
+        className="border-t-[10px] border-black bg-black px-cell py-cell4 text-white"
+      >
         <div className="u-mono mb-cell2 flex justify-between">
           <span>INSTRUMENT 02 — PLANCHE DE BRUIT</span>
           <span className="hidden md:inline">CENTRE ECRAN = SIGNAL NET</span>
@@ -70,8 +72,8 @@ function Atelier() {
           <NoiseField rows={10} seed={3} />
         </div>
         <p className="u-mono mt-cell2 max-w-[56ch]">
-          LE BRUIT SE RESORBE A MESURE QUE LA PLANCHE ATTEINT LE CENTRE DU
-          CADRE. C&apos;EST LE REGLAGE, PAS UN EFFET.
+          LE BRUIT SE RESORBE A MESURE QUE LA PLANCHE ATTEINT LE CENTRE DU CADRE. C&apos;EST LE
+          REGLAGE, PAS UN EFFET.
         </p>
       </section>
 
@@ -87,7 +89,10 @@ function Atelier() {
       />
 
       {/* INSTRUMENT 03 — horloge */}
-      <section data-mire="HORLOGE" className="border-t-[10px] border-black bg-white px-cell py-cell4">
+      <section
+        data-mire="HORLOGE"
+        className="border-t-[10px] border-black bg-white px-cell py-cell4"
+      >
         <div className="u-mono mb-cell2 flex justify-between">
           <span>INSTRUMENT 03 — HORLOGE</span>
           <span className="hidden md:inline">FONTE INTERNE 3 x 5 BLOCS</span>
@@ -105,7 +110,9 @@ function Atelier() {
         </div>
         <div className="u-mono mt-cell2">
           <Link to="/">INDEX DES PROJETS</Link>
-          <Link to="/contact" className="ml-cell2">CONTACT</Link>
+          <Link to="/contact" className="ml-cell2">
+            CONTACT
+          </Link>
         </div>
       </section>
 

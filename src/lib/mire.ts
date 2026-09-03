@@ -43,8 +43,7 @@ export function blockifyImage(
   const px = c.getImageData(0, 0, cols, rows).data;
   const data = new Uint8Array(cols * rows);
   for (let i = 0; i < cols * rows; i++) {
-    const l =
-      (0.2126 * px[i * 4]! + 0.7152 * px[i * 4 + 1]! + 0.0722 * px[i * 4 + 2]!) / 255;
+    const l = (0.2126 * px[i * 4]! + 0.7152 * px[i * 4 + 1]! + 0.0722 * px[i * 4 + 2]!) / 255;
     data[i] = l < threshold ? 1 : 0;
   }
   return { cols, rows, data };
@@ -62,12 +61,7 @@ export function textBlockHeight(text: string, font: string, widthPx: number): nu
 }
 
 /** Rend un texte en grille 1-bit (seuillage sur l'alpha), compose pleine largeur. */
-export function blockifyText(
-  text: string,
-  font: string,
-  cols: number,
-  rows: number,
-): Bits {
+export function blockifyText(text: string, font: string, cols: number, rows: number): Bits {
   const scale = 6;
   const off = document.createElement("canvas");
   off.width = cols * scale;
@@ -95,7 +89,6 @@ export function blockifyText(
   for (let i = 0; i < cols * rows; i++) data[i] = px[i * 4 + 3]! > 110 ? 1 : 0;
   return { cols, rows, data };
 }
-
 
 /**
  * Ordre de chute : les cellules du bas partent en premier, certaines colonnes

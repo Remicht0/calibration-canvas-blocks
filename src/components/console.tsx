@@ -49,12 +49,10 @@ export function useTracks() {
     let list: Track[] = [];
 
     const measure = () => {
-      const els = Array.from(
-        document.querySelectorAll<HTMLElement>("[data-mire]"),
-      );
+      const els = Array.from(document.querySelectorAll<HTMLElement>("[data-mire]"));
       const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
       list = els.map((el) => ({
-        label: el.dataset['mire'] ?? "",
+        label: el.dataset["mire"] ?? "",
         start: Math.min(1, (el.offsetTop - window.innerHeight * 0.35) / max),
       }));
       setTracks(list);
@@ -105,8 +103,7 @@ function useNegative() {
   return neg;
 }
 
-const toggleNegative = () =>
-  window.dispatchEvent(new KeyboardEvent("keydown", { key: "n" }));
+const toggleNegative = () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "n" }));
 
 const pct = (p: number) => `${String(Math.round(p * 100)).padStart(3, "0")}%`;
 
@@ -148,9 +145,7 @@ export function ScrollRail() {
         {Array.from({ length: rows }, (_, i) => {
           const on = i <= head;
           const isHead = i === head;
-          const mark = tracks.some(
-            (t) => Math.round(t.start * (rows - 1)) === i,
-          );
+          const mark = tracks.some((t) => Math.round(t.start * (rows - 1)) === i);
           return (
             <div
               key={i}
