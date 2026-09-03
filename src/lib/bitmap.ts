@@ -4,6 +4,8 @@
 //   GRIS : quantification en N paliers (integration douce des photos)
 //   BRUT : mosaique couleur, un bloc = un pixel (photo / video assumee)
 
+import { coverCrop, luminance } from "@/lib/mire";
+
 export type BitMode = "bin" | "gris" | "brut";
 
 export type Sampled = {
@@ -36,13 +38,8 @@ export function sample(src: Source, cols: number, rows: number): Sampled | null 
   off.height = rows;
   const c = off.getContext("2d", { willReadFrequently: true })!;
   c.imageSmoothingEnabled = true;
-  const ar = nw / nh;
-  const target = cols / rows;
-  let sw = nw;
-  let sh = nh;
-  if (ar > target) sw = nh * target;
-  else sh = nw / target;
-  c.drawImage(src, (nw - sw) / 2, (nh - sh) / 2, sw, sh, 0, 0, cols, rows);
+  const { sx, sy, sw, sh } = coverCrop(nw, nh, cols, rows);
+  c.drawImage(src, sx, sy, sw, sh, 0, 0, cols, rows);
   const px = c.getImageData(0, 0, cols, rows).data;
   const n = cols * rows;
   const rgb = new Uint8ClampedArray(n * 3);
@@ -54,7 +51,7 @@ export function sample(src: Source, cols: number, rows: number): Sampled | null 
     rgb[i * 3] = r;
     rgb[i * 3 + 1] = g;
     rgb[i * 3 + 2] = b;
-    lum[i] = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    lum[i] = luminance(r, g, b);
   }
   return { cols, rows, rgb, lum };
 }

@@ -14,6 +14,76 @@ export const cellSizeFor = (width: number) => (width < 768 ? 16 : 20);
 export const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/** Luminance relative 0..1 d'un pixel (Rec. 709), la seule mesure du seuil. */
+export const luminance = (r: number, g: number, b: number) =>
+  (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+
+/** Recadrage "cover" : la fenetre source qui remplit cols x rows sans deformation. */
+export function coverCrop(nw: number, nh: number, cols: number, rows: number) {
+  const ar = nw / nh;
+  const target = cols / rows;
+  let sw = nw;
+  let sh = nh;
+  if (ar > target) sw = nh * target;
+  else sh = nw / target;
+  return { sx: (nw - sw) / 2, sy: (nh - sh) / 2, sw, sh };
+}
+
+/**
+ * Seuil dur sur un tampon RGBA de cols x rows : chaque cellule devient encre ou vide.
+ * Aucune dependance au DOM : c'est le meme algorithme dans le navigateur et dans
+ * l'export og:image (scripts/og.ts).
+ */
+export function bitsFromRGBA(
+  px: ArrayLike<number>,
+  cols: number,
+  rows: number,
+  threshold = 0.5,
+): Bits {
+  const data = new Uint8Array(cols * rows);
+  for (let i = 0; i < cols * rows; i++) {
+    const l = luminance(px[i * 4]!, px[i * 4 + 1]!, px[i * 4 + 2]!);
+    data[i] = l < threshold ? 1 : 0;
+  }
+  return { cols, rows, data };
+}
+
+/**
+ * Seuil d'Otsu : la coupure qui separe le mieux les cellules en deux classes
+ * (encre / vide). Sert quand une image sombre ou claire ecraserait le seuil fixe.
+ * Retour borne pour rester dans la plage de reglage du site.
+ */
+export function otsuThreshold(lum: ArrayLike<number>, min = 0.3, max = 0.6): number {
+  const bins = 64;
+  const hist = new Float64Array(bins);
+  for (let i = 0; i < lum.length; i++) {
+    const v = Math.min(bins - 1, Math.max(0, Math.floor(lum[i]! * bins)));
+    hist[v] = hist[v]! + 1;
+  }
+  const total = lum.length || 1;
+  let sum = 0;
+  for (let b = 0; b < bins; b++) sum += b * hist[b]!;
+  let wB = 0;
+  let sumB = 0;
+  let best = 0;
+  let cut = Math.floor(((min + max) / 2) * bins);
+  for (let b = 0; b < bins; b++) {
+    wB += hist[b]!;
+    if (wB === 0) continue;
+    const wF = total - wB;
+    if (wF === 0) break;
+    sumB += b * hist[b]!;
+    const mB = sumB / wB;
+    const mF = (sum - sumB) / wF;
+    const between = wB * wF * (mB - mF) * (mB - mF);
+    if (between > best) {
+      best = between;
+      cut = b;
+    }
+  }
+  return Math.min(max, Math.max(min, (cut + 1) / bins));
+}
+
 /** Réduit une image en grille 1-bit : chaque cellule est noire pleine ou blanche pleine. */
 export function blockifyImage(
   img: HTMLImageElement,
@@ -27,30 +97,9 @@ export function blockifyImage(
   const c = off.getContext("2d", { willReadFrequently: true })!;
   c.imageSmoothingEnabled = true;
   // recadrage "cover" : jamais de deformation
-  const ar = img.naturalWidth / img.naturalHeight;
-  const target = cols / rows;
-  let sw = img.naturalWidth;
-  let sh = img.naturalHeight;
-  if (ar > target) sw = img.naturalHeight * target;
-  else sh = img.naturalWidth / target;
-  c.drawImage(
-    img,
-    (img.naturalWidth - sw) / 2,
-    (img.naturalHeight - sh) / 2,
-    sw,
-    sh,
-    0,
-    0,
-    cols,
-    rows,
-  );
-  const px = c.getImageData(0, 0, cols, rows).data;
-  const data = new Uint8Array(cols * rows);
-  for (let i = 0; i < cols * rows; i++) {
-    const l = (0.2126 * px[i * 4]! + 0.7152 * px[i * 4 + 1]! + 0.0722 * px[i * 4 + 2]!) / 255;
-    data[i] = l < threshold ? 1 : 0;
-  }
-  return { cols, rows, data };
+  const { sx, sy, sw, sh } = coverCrop(img.naturalWidth, img.naturalHeight, cols, rows);
+  c.drawImage(img, sx, sy, sw, sh, 0, 0, cols, rows);
+  return bitsFromRGBA(c.getImageData(0, 0, cols, rows).data, cols, rows, threshold);
 }
 
 /** Hauteur en px du texte compose pleine largeur (capitales, sans marge). */

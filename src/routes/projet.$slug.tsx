@@ -3,17 +3,23 @@ import { BlockType } from "@/components/mire";
 import { HybridMedia } from "@/components/media";
 import { CalibrationBand } from "@/components/bars";
 import { bySlug, projects } from "@/lib/projects";
+import { ogPath, siteOrigin } from "@/lib/site";
 import { Colophon } from "./index";
 
 export const Route = createFileRoute("/projet/$slug")({
   loader: ({ params }) => {
     const project = bySlug(params.slug);
     if (!project) throw notFound();
-    return project;
+    return { ...project, origin: siteOrigin() };
   },
   head: ({ loaderData }) => {
     const t = loaderData ? `${loaderData.title} — MIRE` : "Projet — MIRE";
     const d = loaderData ? loaderData.resume : "Projet du studio de design graphique MIRE.";
+    // carte de partage 1-bit generee par `bun run og` (scripts/og.ts)
+    const img = loaderData ? `${loaderData.origin}${ogPath(loaderData.slug)}` : null;
+    const imgAlt = loaderData
+      ? `${loaderData.alt} Carte du projet ${loaderData.title}, rendue en blocs 1 bit.`
+      : null;
     return {
       meta: [
         { title: t },
@@ -22,6 +28,17 @@ export const Route = createFileRoute("/projet/$slug")({
         { property: "og:description", content: d },
         { property: "og:type", content: "article" },
         { name: "twitter:card", content: "summary_large_image" },
+        ...(img && imgAlt
+          ? [
+              { property: "og:image", content: img },
+              { property: "og:image:width", content: "1200" },
+              { property: "og:image:height", content: "630" },
+              { property: "og:image:type", content: "image/png" },
+              { property: "og:image:alt", content: imgAlt },
+              { name: "twitter:image", content: img },
+              { name: "twitter:image:alt", content: imgAlt },
+            ]
+          : []),
       ],
     };
   },

@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import { BootSequence, GridCursor, NegativeSwitch, RouteWipe } from "@/components/boot";
 import { MireConsole, ScrollRail } from "@/components/console";
 import { ScanLine } from "@/components/mire";
+import { ogPath, siteOrigin } from "@/lib/site";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -97,7 +98,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
+  // origine absolue du site : les cartes de partage l'exigent
+  loader: () => ({ origin: siteOrigin() }),
+  head: ({ loaderData }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -114,7 +117,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Identité, édition, signalétique. Rendu 1-bit par blocs.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: `${loaderData?.origin ?? ""}${ogPath()}` },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:type", content: "image/png" },
+      {
+        property: "og:image:alt",
+        content: "MIRE en lettres de blocs sous une bande de calibration, noir sur blanc.",
+      },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: `${loaderData?.origin ?? ""}${ogPath()}` },
     ],
     links: [
       {
