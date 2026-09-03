@@ -125,7 +125,7 @@ export function ScrollRail() {
       const c = cellSizeFor(window.innerWidth);
       setCell(c);
       // pas de la reglette : 6px de bloc, 3px de vide
-      setRows(Math.max(10, Math.floor((window.innerHeight - c * 10) / 9)));
+      setRows(Math.max(10, Math.floor((window.innerHeight - c * 12) / 9)));
     };
     set();
     window.addEventListener("resize", set);
@@ -141,10 +141,10 @@ export function ScrollRail() {
       style={{ width: cell * 2, color: "#FFFFFF" }}
     >
       {/* compteur bitmap */}
-      <BitReadout text={pct(p)} unit={3} />
+      <BitReadout text={pct(p)} unit={2} className="shrink-0" />
 
       {/* reglette : blocs pleins, reperes de piste plus larges */}
-      <div className="flex flex-1 flex-col justify-center gap-[3px] py-cell">
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-[3px] py-cell">
         {Array.from({ length: rows }, (_, i) => {
           const on = i <= head;
           const isHead = i === head;
@@ -168,7 +168,7 @@ export function ScrollRail() {
 
       {/* piste courante, ecrite dans le sens de la reglette */}
       <div
-        className="u-mono whitespace-nowrap"
+        className="u-mono max-h-[40vh] shrink-0 overflow-hidden whitespace-nowrap"
         style={{ writingMode: "vertical-rl", letterSpacing: "0.18em" }}
       >
         {current || "MIRE"}
