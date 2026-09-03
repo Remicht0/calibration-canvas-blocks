@@ -54,7 +54,7 @@ export function useTracks() {
       );
       const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
       list = els.map((el) => ({
-        label: el.dataset.mire ?? "",
+        label: el.dataset['mire'] ?? "",
         start: Math.min(1, (el.offsetTop - window.innerHeight * 0.35) / max),
       }));
       setTracks(list);
