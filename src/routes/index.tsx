@@ -73,7 +73,7 @@ function Index() {
   return (
     <main className="min-h-screen bg-white text-black">
       {/* ENTREE */}
-      <section className="flex min-h-screen flex-col justify-between px-cell py-cell2">
+      <section data-mire="ENTREE" className="flex min-h-screen flex-col justify-between px-cell py-cell2">
         <div className="u-mono flex justify-between">
           <span>MIRE</span>
           <nav className="flex gap-cell2">
@@ -90,7 +90,7 @@ function Index() {
 
         <div>
           <BlockType text="MIRE" />
-          <p className="u-mono mt-cell2 max-w-[52ch]">
+          <p className="u-copy mt-cell2 max-w-[46ch]">
             IMAGE DE CALIBRATION — CHAQUE SURFACE EST REDUITE A DEUX VALEURS,
             NOIR PLEIN OU BLANC PLEIN, SUR UNE GRILLE DE BLOCS. LE SITE NE
             DECORE PAS. IL CALIBRE.
@@ -119,7 +119,7 @@ function Index() {
       />
 
       {/* INDEX */}
-      <section className="relative border-t-[10px] border-black">
+      <section data-mire="INDEX" className="relative border-t-[10px] border-black">
         <BlockBackdrop src={hover} />
         <div
           className="relative"
@@ -165,7 +165,7 @@ function Index() {
       </section>
 
       {/* BANC D'ESSAI — la meme source lue en trois profondeurs */}
-      <section className="border-t-[10px] border-black bg-white px-cell py-cell4">
+      <section data-mire="BANC D'ESSAI" className="border-t-[10px] border-black bg-white px-cell py-cell4">
         <div className="u-mono mb-cell2 flex justify-between">
           <span>BANC D&apos;ESSAI</span>
           <span>UNE SOURCE / TROIS LECTURES</span>
@@ -175,7 +175,7 @@ function Index() {
           <HybridMedia src={projects[1]!.image} alt="LECTURE GRIS" ratio={1} mode="gris" />
           <HybridMedia src={projects[2]!.image} alt="LECTURE BRUT" ratio={1} mode="brut" />
         </div>
-        <p className="u-mono mt-cell2 max-w-[60ch]">
+        <p className="u-copy mt-cell2 max-w-[54ch]">
           LES PHOTOS ET VIDEOS NE SONT PAS COLLEES SUR LA MIRE : ELLES SONT
           ECHANTILLONNEES DANS SA GRILLE. UN BLOC = UN PIXEL. LE SURVOL OUVRE
           UNE LOUPE DE MATIERE BRUTE.
@@ -184,7 +184,7 @@ function Index() {
 
       {/* PROCEDE — trois planches de mesure */}
 
-      <section className="border-t-[10px] border-black bg-white px-cell py-cell4">
+      <section data-mire="PROCEDE" className="border-t-[10px] border-black bg-white px-cell py-cell4">
         <div className="u-mono mb-cell2 flex justify-between">
           <span>PROCEDE</span>
           <span>PLANCHES 01 — 03</span>
@@ -202,7 +202,7 @@ function Index() {
                   <span>{c.n}</span>
                   <span>{c.t}</span>
                 </div>
-                <p className="mt-cell">{c.d}</p>
+                <p className="u-copy mt-cell">{c.d}</p>
               </div>
             </article>
           ))}
@@ -210,7 +210,7 @@ function Index() {
       </section>
 
       {/* ATELIER — bloc noir plein */}
-      <section className="border-t-[10px] border-black bg-black px-cell py-cell6 text-white">
+      <section data-mire="MANIFESTE" className="border-t-[10px] border-black bg-black px-cell py-cell6 text-white">
         <div className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
           LE SITE NE
           <br />
@@ -219,15 +219,15 @@ function Index() {
           IL CALIBRE.
         </div>
         <div className="u-mono mt-cell4 grid gap-y-cell2 md:grid-cols-3 md:gap-x-cell">
-          <p className="max-w-[38ch]">
+          <p className="u-copy max-w-[34ch]">
             ATELIER FONDE EN 2019. IDENTITE, EDITION, SIGNALETIQUE, HABILLAGE
             D&apos;ANTENNE.
           </p>
-          <p className="max-w-[38ch]">
+          <p className="u-copy max-w-[34ch]">
             CHAQUE PROJET COMMENCE PAR UNE MESURE : PAS DE GRILLE, TAUX
             D&apos;ENCRAGE, DISTANCE DE LECTURE.
           </p>
-          <p className="max-w-[38ch]">
+          <p className="u-copy max-w-[34ch]">
             AUCUNE IMAGE N&apos;EST RETOUCHEE. ELLE EST SEUILLEE.
           </p>
         </div>
