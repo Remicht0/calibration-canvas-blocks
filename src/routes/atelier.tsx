@@ -36,7 +36,7 @@ function Atelier() {
         </div>
       </div>
 
-      <section className="px-cell pb-cell4">
+      <section data-mire="EN-TETE" className="px-cell pb-cell4">
         <BlockType text="ATELIER" loop={false} />
         <p className="u-mono mt-cell2 max-w-[56ch]">
           TROIS INSTRUMENTS. AUCUNE DECORATION. CHACUN NE SAIT FAIRE QU&apos;UNE
@@ -47,7 +47,7 @@ function Atelier() {
       <CalibrationBand height={5} seed={11} className="border-y-[10px] border-black" />
 
       {/* INSTRUMENT 01 — table de composition */}
-      <section className="bg-white px-cell py-cell4">
+      <section data-mire="AUTOMATE" className="bg-white px-cell py-cell4">
         <div className="u-mono mb-cell2 flex justify-between">
           <span>INSTRUMENT 01 — TABLE DE COMPOSITION</span>
           <span className="hidden md:inline">DESSINER PUIS PROPAGER</span>
@@ -61,7 +61,7 @@ function Atelier() {
       </section>
 
       {/* INSTRUMENT 02 — planche de bruit */}
-      <section className="border-t-[10px] border-black bg-black px-cell py-cell4 text-white">
+      <section data-mire="BRUIT" className="border-t-[10px] border-black bg-black px-cell py-cell4 text-white">
         <div className="u-mono mb-cell2 flex justify-between">
           <span>INSTRUMENT 02 — PLANCHE DE BRUIT</span>
           <span className="hidden md:inline">CENTRE ECRAN = SIGNAL NET</span>
@@ -87,7 +87,7 @@ function Atelier() {
       />
 
       {/* INSTRUMENT 03 — horloge */}
-      <section className="border-t-[10px] border-black bg-white px-cell py-cell4">
+      <section data-mire="HORLOGE" className="border-t-[10px] border-black bg-white px-cell py-cell4">
         <div className="u-mono mb-cell2 flex justify-between">
           <span>INSTRUMENT 03 — HORLOGE</span>
           <span className="hidden md:inline">FONTE INTERNE 3 x 5 BLOCS</span>
@@ -97,7 +97,7 @@ function Atelier() {
         </div>
       </section>
 
-      <section className="border-t-[10px] border-black bg-white px-cell py-cell4">
+      <section data-mire="NOTES" className="border-t-[10px] border-black bg-white px-cell py-cell4">
         <div className="u-display text-[12vw] leading-[0.95] md:text-[6vw]">
           UN BLOC
           <br />
