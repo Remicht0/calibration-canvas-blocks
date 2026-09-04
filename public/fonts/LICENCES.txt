@@ -1,0 +1,5 @@
+Fontes auto-hebergees (sous-ensemble latin, WOFF2), toutes deux sous
+SIL Open Font License 1.1 (https://openfontlicense.org).
+
+Anton            Vernon Adams        https://fonts.google.com/specimen/Anton
+JetBrains Mono   JetBrains           https://www.jetbrains.com/lp/mono/
