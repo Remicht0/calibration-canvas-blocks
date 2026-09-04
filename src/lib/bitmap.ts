@@ -126,4 +126,26 @@ export function paintBlocks(
   }
 }
 
+/**
+ * Taux d'encrage 0..1 de la planche entiere, dans le mode demande :
+ * BIN = part des cellules encrees ; GRIS = noirceur moyenne des paliers ;
+ * BRUT = noirceur moyenne de la matiere. C'est la mesure affichee sous la planche.
+ */
+export function inkRatio(
+  s: Sampled,
+  mode: BitMode,
+  { threshold = 0.45, levels = 5, gamma = 0.85 }: Pick<PaintOpts, "threshold" | "levels" | "gamma">,
+): number {
+  const n = s.lum.length;
+  if (!n) return 0;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const l = s.lum[i]!;
+    if (mode === "bin") sum += l < threshold ? 1 : 0;
+    else if (mode === "gris") sum += 1 - quantize(l, levels, gamma) / 255;
+    else sum += 1 - l;
+  }
+  return sum / n;
+}
+
 export const isVideo = (src: string) => /\.(mp4|webm|mov|m4v)(\?|$)/i.test(src);

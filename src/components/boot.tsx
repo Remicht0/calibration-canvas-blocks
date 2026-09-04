@@ -127,9 +127,14 @@ export function GridCursor() {
       y = e.clientY;
       if (!raf) raf = requestAnimationFrame(draw);
     };
+    // sur un lien, la cellule se creuse : un cadre blanc, inverse par le mode
+    // difference. Jamais de rouge ici : le repere est unique, et un rouge en
+    // difference sur fond blanc donnerait du cyan.
     const over = () => {
       const t = document.querySelectorAll("a:hover, button:hover").length > 0;
-      el.style.outline = t ? `${cell / 4}px solid #FF0000` : "none";
+      el.style.outline = t ? `${cell / 4}px solid #FFFFFF` : "none";
+      el.style.outlineOffset = `-${cell / 4}px`;
+      el.style.background = t ? "transparent" : "#FFFFFF";
     };
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerover", over, { passive: true });

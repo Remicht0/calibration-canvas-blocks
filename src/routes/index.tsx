@@ -4,6 +4,7 @@ import { BlockBackdrop, BlockType } from "@/components/mire";
 import { CalibrationBand, Ticker } from "@/components/bars";
 import { HybridMedia } from "@/components/media";
 import { BitmapClock } from "@/components/bitmap-extras";
+import { TopBar } from "@/components/chrome";
 import { projects } from "@/lib/projects";
 
 export const Route = createFileRoute("/")({
@@ -77,19 +78,14 @@ function Index() {
         data-mire="ENTREE"
         className="flex min-h-screen flex-col justify-between px-cell py-cell2"
       >
-        <div className="u-mono flex justify-between">
-          <span>MIRE</span>
-          <nav aria-label="Navigation principale" className="flex gap-cell2">
-            <span className="hidden md:inline">STUDIO DE DESIGN GRAPHIQUE</span>
-            <span className="md:hidden">STUDIO GRAPHIQUE</span>
-            <Link to="/atelier" className="hidden md:inline">
-              ATELIER
-            </Link>
-            <Link to="/contact" className="hidden md:inline">
-              CONTACT
-            </Link>
-          </nav>
-        </div>
+        <TopBar
+          right={
+            <>
+              <span className="hidden md:inline">STUDIO DE DESIGN GRAPHIQUE</span>
+              <span className="md:hidden">STUDIO GRAPHIQUE</span>
+            </>
+          }
+        />
 
         <div>
           <BlockType text="MIRE" />
@@ -176,7 +172,7 @@ function Index() {
       >
         <div className="u-mono mb-cell2 flex justify-between">
           <h2>BANC D&apos;ESSAI</h2>
-          <span>UNE SOURCE / TROIS LECTURES</span>
+          <span>UNE SOURCE / TROIS LECTURES / LE DEFILEMENT COMPOSE</span>
         </div>
         <div className="grid gap-cell md:grid-cols-3">
           <HybridMedia
@@ -185,6 +181,7 @@ function Index() {
             label="LECTURE BIN"
             ratio={1}
             mode="bin"
+            drive="scroll"
           />
           <HybridMedia
             src={projects[1]!.image}
@@ -192,6 +189,7 @@ function Index() {
             label="LECTURE GRIS"
             ratio={1}
             mode="gris"
+            drive="scroll"
           />
           <HybridMedia
             src={projects[2]!.image}
@@ -199,6 +197,7 @@ function Index() {
             label="LECTURE BRUT"
             ratio={1}
             mode="brut"
+            drive="scroll"
           />
         </div>
         <p className="u-copy mt-cell2 max-w-[54ch]">

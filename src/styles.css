@@ -4,6 +4,23 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ---- Fontes auto-hebergees (sous-ensemble latin, SIL OFL) : aucune requete tierce ---- */
+@font-face {
+  font-family: "Anton";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/anton-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-latin.woff2") format("woff2");
+}
+
 /*
  * Design system definition.
  *
@@ -73,7 +90,7 @@
 :root {
   --radius: 0px;
   --cell: 16px;
-  --mire-red: #FF0000;
+  --mire-red: #ff0000;
   --background: oklch(1 0 0);
   --foreground: oklch(0 0 0);
   --card: oklch(1 0 0);
@@ -221,8 +238,12 @@
 }
 
 @keyframes mire-slide {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(-50%, 0, 0); }
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
 }
 
 .mire-ticker {
@@ -230,7 +251,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mire-ticker { animation: none; }
+  .mire-ticker {
+    animation: none;
+  }
 }
 
 /* ---- Console mobile : reserver la hauteur en bas de page ---- */
@@ -241,8 +264,10 @@ body {
 @media (min-width: 768px) {
   body {
     padding-bottom: 0;
-    /* la reglette de defilement occupe la marge gauche */
+    /* la reglette de defilement occupe la marge gauche,
+       l'inverseur de signal la marge droite : rien ne passe dessous */
     padding-left: calc(var(--cell) * 2);
+    padding-right: calc(var(--cell) * 3);
   }
 }
 
