@@ -37,6 +37,20 @@ export const Route = createFileRoute("/projet/$slug")({
               { property: "og:image:alt", content: imgAlt },
               { name: "twitter:image", content: img },
               { name: "twitter:image:alt", content: imgAlt },
+              {
+                "script:ld+json": {
+                  "@context": "https://schema.org",
+                  "@type": "CreativeWork",
+                  name: loaderData!.title,
+                  description: d,
+                  image: img,
+                  dateCreated: loaderData!.year,
+                  genre: loaderData!.nature,
+                  url: `${loaderData!.origin}/projet/${loaderData!.slug}`,
+                  creator: { "@type": "Organization", name: "MIRE" },
+                  sourceOrganization: { "@type": "Organization", name: loaderData!.client },
+                },
+              },
             ]
           : []),
       ],

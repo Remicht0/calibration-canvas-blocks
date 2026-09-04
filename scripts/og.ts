@@ -34,15 +34,21 @@ const U_SMALL = CELL / 5; // 6
 
 /* ---- trame 1 bit : 1 = encre ---- */
 class Raster {
-  ink = new Uint8Array(W * H);
+  ink: Uint8Array;
   fillStyle = "#000000";
+  constructor(
+    public w = W,
+    public h = H,
+  ) {
+    this.ink = new Uint8Array(w * h);
+  }
   fillRect(x: number, y: number, w: number, h: number) {
     const v = this.fillStyle.toUpperCase() === "#FFFFFF" ? 0 : 1;
     const x0 = Math.max(0, Math.round(x));
     const y0 = Math.max(0, Math.round(y));
-    const x1 = Math.min(W, Math.round(x + w));
-    const y1 = Math.min(H, Math.round(y + h));
-    for (let yy = y0; yy < y1; yy++) this.ink.fill(v, yy * W + x0, yy * W + x1);
+    const x1 = Math.min(this.w, Math.round(x + w));
+    const y1 = Math.min(this.h, Math.round(y + h));
+    for (let yy = y0; yy < y1; yy++) this.ink.fill(v, yy * this.w + x0, yy * this.w + x1);
   }
 }
 // drawText n'utilise que fillStyle / fillRect : la trame tient lieu de contexte 2D.
@@ -201,16 +207,17 @@ const chunk = (type: string, data: Uint8Array) => {
 };
 
 function png1bit(r: Raster): Buffer {
-  const stride = Math.ceil(W / 8);
-  const raw = new Uint8Array((stride + 1) * H); // filtre 0 en tete de ligne
-  for (let y = 0; y < H; y++) {
+  const { w, h } = r;
+  const stride = Math.ceil(w / 8);
+  const raw = new Uint8Array((stride + 1) * h); // filtre 0 en tete de ligne
+  for (let y = 0; y < h; y++) {
     const row = y * (stride + 1) + 1;
-    for (let x = 0; x < W; x++) {
+    for (let x = 0; x < w; x++) {
       // profondeur 1 : bit a 1 = blanc, bit a 0 = noir
-      if (!r.ink[y * W + x]) raw[row + (x >> 3)]! |= 0x80 >> (x & 7);
+      if (!r.ink[y * w + x]) raw[row + (x >> 3)]! |= 0x80 >> (x & 7);
     }
   }
-  const ihdr = Buffer.concat([u32(W), u32(H), Buffer.from([1, 0, 0, 0, 0])]);
+  const ihdr = Buffer.concat([u32(w), u32(h), Buffer.from([1, 0, 0, 0, 0])]);
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk("IHDR", ihdr),
@@ -219,8 +226,56 @@ function png1bit(r: Raster): Buffer {
   ]);
 }
 
+/* ---- ICO : un conteneur autour du PNG 32 px (favicon.ico de secours) ---- */
+function ico(png: Buffer, size: number): Buffer {
+  const head = Buffer.alloc(6 + 16);
+  head.writeUInt16LE(0, 0); // reserve
+  head.writeUInt16LE(1, 2); // type : icone
+  head.writeUInt16LE(1, 4); // une image
+  head[6] = size;
+  head[7] = size;
+  head[8] = 0; // palette
+  head[9] = 0;
+  head.writeUInt16LE(1, 10); // plans
+  head.writeUInt16LE(1, 12); // bits par pixel
+  head.writeUInt32LE(png.length, 14);
+  head.writeUInt32LE(22, 18); // decalage de l'image
+  return Buffer.concat([head, png]);
+}
+
+/* ---- icone : un M en 5 x 5 blocs, blanc sur noir, centre sur une grille de 8 ---- */
+// A 3 colonnes le M de la fonte se lit comme un H une fois agrandi ; l'icone
+// a son propre M, a 5 colonnes, dessine bloc par bloc comme le reste.
+const ICON_M = ["10001", "11011", "10101", "10001", "10001"];
+
+function icon(size: number): Raster {
+  const r = new Raster(size, size);
+  r.fillStyle = "#000000";
+  r.fillRect(0, 0, size, size);
+  const unit = Math.floor(size / 8); // le glyphe occupe 5 x 5 unites sur 8 x 8
+  const ox = Math.round((size - 5 * unit) / 2);
+  const oy = Math.round((size - 5 * unit) / 2);
+  r.fillStyle = "#FFFFFF";
+  for (let y = 0; y < 5; y++)
+    for (let x = 0; x < 5; x++)
+      if (ICON_M[y]![x] === "1") r.fillRect(ox + x * unit, oy + y * unit, unit, unit);
+  return r;
+}
+
+function faviconSvg(): string {
+  // 16 x 16, unite 2 : le meme M, en rectangles pleins, sans anti-aliasing
+  const rects: string[] = [];
+  for (let y = 0; y < 5; y++)
+    for (let x = 0; x < 5; x++)
+      if (ICON_M[y]![x] === "1")
+        rects.push(`<rect x="${3 + x * 2}" y="${3 + y * 2}" width="2" height="2" fill="#FFFFFF"/>`);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect width="16" height="16" fill="#000000"/>${rects.join("")}</svg>\n`;
+}
+
 /* ---- export ---- */
 mkdirSync(OUT, { recursive: true });
+const ICONS = join(ROOT, "public", "icons");
+mkdirSync(ICONS, { recursive: true });
 const write = (name: string, r: Raster, note = "") => {
   const file = join(OUT, `${name}.png`);
   writeFileSync(file, png1bit(r));
@@ -235,3 +290,16 @@ for (const p of projects) {
   const { raster, threshold } = projectCard(p);
   write(p.slug, raster, `seuil ${threshold.toFixed(2)}`);
 }
+
+// icones : PWA, ecran d'accueil iOS, favicon PNG-dans-ICO et SVG
+for (const [name, size] of [
+  ["icon-192", 192],
+  ["icon-512", 512],
+  ["apple-touch-icon", 180],
+] as const) {
+  writeFileSync(join(ICONS, `${name}.png`), png1bit(icon(size)));
+  console.log(`${name.padEnd(17)} ${size}x${size} 1-bit`);
+}
+writeFileSync(join(ROOT, "public", "favicon.ico"), ico(png1bit(icon(32)), 32));
+writeFileSync(join(ROOT, "public", "favicon.svg"), faviconSvg());
+console.log("favicon.ico 32x32 (PNG 1-bit) + favicon.svg");

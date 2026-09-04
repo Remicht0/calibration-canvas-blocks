@@ -12,7 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import { BootSequence, GridCursor, NegativeSwitch, RouteWipe } from "@/components/boot";
 import { MireConsole, ScrollRail } from "@/components/console";
 import { ScanLine } from "@/components/mire";
-import { ogPath, siteOrigin } from "@/lib/site";
+import { ogPath, siteOrigin, STUDIO } from "@/lib/site";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -98,50 +98,87 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  // origine absolue du site : les cartes de partage l'exigent
+  // origine absolue du site : les cartes de partage et le canonical l'exigent
   loader: () => ({ origin: siteOrigin() }),
-  head: ({ loaderData }) => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "MIRE — Studio de design graphique" },
-      {
-        name: "description",
-        content:
-          "MIRE, studio de design graphique. Un site construit comme une image de calibration.",
-      },
-      { name: "author", content: "MIRE" },
-      { property: "og:title", content: "MIRE — Studio de design graphique" },
-      {
-        property: "og:description",
-        content: "Identité, édition, signalétique. Rendu 1-bit par blocs.",
-      },
-      { property: "og:type", content: "website" },
-      { property: "og:image", content: `${loaderData?.origin ?? ""}${ogPath()}` },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
-      { property: "og:image:type", content: "image/png" },
-      {
-        property: "og:image:alt",
-        content: "MIRE en lettres de blocs sous une bande de calibration, noir sur blanc.",
-      },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: `${loaderData?.origin ?? ""}${ogPath()}` },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@400&display=swap",
-      },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-    ],
-  }),
+  head: ({ loaderData, matches }) => {
+    const origin = loaderData?.origin ?? "";
+    const path = matches[matches.length - 1]?.pathname ?? "/";
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { title: "MIRE — Studio de design graphique" },
+        {
+          name: "description",
+          content:
+            "MIRE, studio de design graphique. Un site construit comme une image de calibration.",
+        },
+        { name: "author", content: "MIRE" },
+        { name: "theme-color", content: "#000000" },
+        { property: "og:site_name", content: "MIRE" },
+        { property: "og:locale", content: "fr_FR" },
+        { property: "og:title", content: "MIRE — Studio de design graphique" },
+        {
+          property: "og:description",
+          content: "Identité, édition, signalétique. Rendu 1-bit par blocs.",
+        },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: `${origin}${path}` },
+        { property: "og:image", content: `${origin}${ogPath()}` },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
+        { property: "og:image:type", content: "image/png" },
+        {
+          property: "og:image:alt",
+          content: "MIRE en lettres de blocs sous une bande de calibration, noir sur blanc.",
+        },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:image", content: `${origin}${ogPath()}` },
+        {
+          "script:ld+json": {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: STUDIO.name,
+            legalName: STUDIO.legalName,
+            url: origin || undefined,
+            logo: origin ? `${origin}/icons/icon-512.png` : undefined,
+            email: STUDIO.email,
+            telephone: STUDIO.phone,
+            foundingDate: STUDIO.founded,
+            address: {
+              "@type": "PostalAddress",
+              streetAddress: STUDIO.street,
+              postalCode: STUDIO.postalCode,
+              addressLocality: STUDIO.city,
+              addressCountry: STUDIO.country,
+            },
+          },
+        },
+      ],
+      links: [
+        { rel: "stylesheet", href: appCss },
+        {
+          rel: "preload",
+          href: "/fonts/anton-latin.woff2",
+          as: "font",
+          type: "font/woff2",
+          crossOrigin: "anonymous",
+        },
+        {
+          rel: "preload",
+          href: "/fonts/jetbrains-mono-latin.woff2",
+          as: "font",
+          type: "font/woff2",
+          crossOrigin: "anonymous",
+        },
+        { rel: "canonical", href: `${origin}${path}` },
+        { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+        { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
+        { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
+        { rel: "manifest", href: "/manifest.webmanifest" },
+      ],
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

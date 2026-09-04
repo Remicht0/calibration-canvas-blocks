@@ -51,6 +51,9 @@ La force vient du contraste et du vide, jamais de l'accumulation.
   par bloc. Utilisee par `BitReadout`, l'horloge et les compteurs.
 - Deux fontes maximum, une seule graisse par fonte. Texte en **français, en
   capitales, sans accents** dans l'interface (contrainte de mire).
+- Les deux fontes sont **auto-hébergées** (`public/fonts/*.woff2`, sous-ensemble
+  latin, SIL OFL, licences dans `LICENCES.txt`) et préchargées : aucune requête
+  vers un tiers, aucun transfert d'adresse IP (RGPD), aucun saut de mise en page.
 
 ### Accents et diacritiques (décision)
 
@@ -118,7 +121,8 @@ src/
                        année, nature, client, image, lignes, resume, alt)
     glyphs.ts          fonte bitmap 3x5 (capitales, chiffres, ponctuation),
                        mireText() : capitales sans accents
-    site.ts            origine absolue du site (og:image), chemin des cartes
+    site.ts            origine absolue du site (og:image, canonical, sitemap),
+                       chemin des cartes, identite du studio (STUDIO)
   components/
     mire.tsx           BlockImage, BlockType, BlockBackdrop, ScanLine
     media.tsx          HybridMedia — photo/vidéo échantillonnée dans la grille
@@ -133,10 +137,27 @@ src/
     projet.$slug.tsx   page projet
     atelier.tsx        instruments manipulables
     contact.tsx        fiche de calibration (coordonnees, horaires, mentions)
+    sitemap[.]xml.tsx  route serveur : plan du site en URL absolues
+    robots[.]txt.tsx   route serveur : robots.txt qui declare le sitemap
 scripts/
-  og.ts                export des cartes de partage : `bun run og`
+  og.ts                export 1-bit : cartes de partage, icones, favicon
 public/og/             cartes generees (mire.png + une par slug), versionnees
+public/icons/          icones PWA / iOS generees (M en 5 x 5 blocs, 1 bit)
+public/fonts/          Anton et JetBrains Mono auto-hebergees (woff2)
 ```
+
+### Visibilite (SEO, partage, installation)
+
+- `<link rel="canonical">` et `og:url` sur chaque page, en URL absolue.
+- `og:site_name`, `og:locale`, `theme-color`, `manifest.webmanifest`
+  (installation sur ecran d'accueil : tuile noire, M blanc en blocs).
+- Donnees structurees JSON-LD : `Organization` (racine, depuis `STUDIO`) et
+  `CreativeWork` par projet (titre, annee, nature, client, carte 1 bit).
+- `/sitemap.xml` et `/robots.txt` sont des routes serveur : l'origine vient de
+  la requete (ou de `VITE_SITE_URL`), rien n'est code en dur.
+- Favicon : `favicon.svg` (rectangles pleins, `crispEdges`) et `favicon.ico`
+  de secours (PNG 1 bit dans un conteneur ICO). Tout est produit par
+  `bun run og`.
 
 ### Cartes de partage (`og:image`)
 
@@ -270,6 +291,9 @@ Fait :
 - [x] `og:image` par projet : PNG 1 bit genere depuis la planche par
       `bun run og` (`scripts/og.ts`), fonte 3x5 etendue aux capitales,
       metadonnees `og:image` / `twitter:image` en URL absolue.
+- [x] Fontes auto-hebergees et prechargees (plus aucune requete Google Fonts).
+- [x] Visibilite : canonical, `og:url`, JSON-LD, manifest, icones et favicon
+      1 bit generes, `sitemap.xml` et `robots.txt` en routes serveur.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
