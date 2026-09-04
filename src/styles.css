@@ -264,8 +264,10 @@ body {
 @media (min-width: 768px) {
   body {
     padding-bottom: 0;
-    /* la reglette de defilement occupe la marge gauche */
+    /* la reglette de defilement occupe la marge gauche,
+       l'inverseur de signal la marge droite : rien ne passe dessous */
     padding-left: calc(var(--cell) * 2);
+    padding-right: calc(var(--cell) * 3);
   }
 }
 

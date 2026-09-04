@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { CalibrationBand, Ticker } from "@/components/bars";
 import { BlockType } from "@/components/mire";
 import { BitmapClock } from "@/components/bitmap-extras";
+import { TopBar } from "@/components/chrome";
 import { Colophon } from "./index";
 
 export const Route = createFileRoute("/contact")({
@@ -37,10 +38,7 @@ const FICHE = [
 function Contact() {
   return (
     <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
-      <div className="u-mono grid grid-cols-[minmax(0,1fr)_auto] gap-cell px-cell py-cell2">
-        <Link to="/">RETOUR / INDEX</Link>
-        <span>FICHE 00</span>
-      </div>
+      <TopBar className="px-cell py-cell2" right="FICHE 00" />
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
         <BlockType text="CONTACT" loop={false} />

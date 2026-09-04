@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BitmapBoard, BitmapClock, NoiseField } from "@/components/bitmap-extras";
 import { CalibrationBand, Ticker } from "@/components/bars";
 import { BlockType } from "@/components/mire";
+import { TopBar } from "@/components/chrome";
 import { Colophon } from "./index";
 
 export const Route = createFileRoute("/atelier")({
@@ -29,12 +30,7 @@ export const Route = createFileRoute("/atelier")({
 function Atelier() {
   return (
     <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
-      <div className="u-mono grid gap-cell px-cell py-cell2 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
-        <Link to="/">RETOUR / INDEX</Link>
-        <div className="min-w-0 sm:justify-self-end">
-          <BitmapClock label="ATELIER" />
-        </div>
-      </div>
+      <TopBar className="px-cell py-cell2" right={<BitmapClock label="ATELIER" />} />
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
         <BlockType text="ATELIER" loop={false} />

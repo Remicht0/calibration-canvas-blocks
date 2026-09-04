@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cellSizeFor, fallOrder, prefersReducedMotion } from "@/lib/mire";
 import {
+  inkRatio,
   isReady,
   isVideo,
   paintBlocks,
@@ -9,6 +10,7 @@ import {
   type Sampled,
   type Source,
 } from "@/lib/bitmap";
+import { BitReadout } from "@/components/readout";
 
 /* Hors mire : ce que le lecteur d'ecran entend, en francais accentue. */
 const SPOKEN: Record<BitMode, string> = {
@@ -34,6 +36,7 @@ export function HybridMedia({
   gamma = 0.85,
   threshold = 0.45,
   lensRadius = 3.5,
+  drive = "time",
   controls = true,
   className = "",
 }: {
@@ -48,6 +51,8 @@ export function HybridMedia({
   gamma?: number;
   threshold?: number;
   lensRadius?: number;
+  /** time : la planche se compose a l'entree en ecran ; scroll : la chute suit le defilement */
+  drive?: "time" | "scroll";
   controls?: boolean;
   className?: string;
 }) {
@@ -61,10 +66,14 @@ export function HybridMedia({
   const [playing, setPlaying] = useState(true);
   const mediaRef = useRef<Source | null>(null);
   const restart = useRef<() => void>(() => {});
+  // taux d'encrage mesure sur la trame, en pour cent
+  const [ink, setInk] = useState<number | null>(null);
+  const measure = useRef<() => void>(() => {});
 
   const apply = useCallback((m: BitMode) => {
     modeRef.current = m;
     setMode(m);
+    measure.current();
   }, []);
 
   const togglePlay = useCallback(() => {
@@ -95,9 +104,21 @@ export function HybridMedia({
     let cols = 0;
     let rows = 0;
     const reduced = prefersReducedMotion();
+    const scrolled = drive === "scroll" && !video && !reduced;
     let progress = reduced ? 1 : 0;
     let visible = false;
     let lens: { x: number; y: number; r: number } | null = null;
+    let lastInk = -1;
+    let inkAt = 0;
+
+    measure.current = () => {
+      if (!data) return;
+      const v = Math.round(inkRatio(data, modeRef.current, { threshold, levels, gamma }) * 100);
+      if (v !== lastInk) {
+        lastInk = v;
+        setInk(v);
+      }
+    };
 
     if (video && reduced) {
       playingRef.current = false;
@@ -133,18 +154,48 @@ export function HybridMedia({
       cv.height = rows * cell * dpr;
       order = fallOrder(cols, rows, cols * 5 + rows);
       data = sample(media, cols, rows);
+      if (scrolled) progress = scrollProgress();
       draw();
+      measure.current();
+    };
+
+    // chute liee au defilement : 0 quand le haut de la planche entre par le bas,
+    // 1 quand il atteint 45 % de la hauteur d'ecran ; a rebours en remontant
+    const scrollProgress = () => {
+      const r = cv.getBoundingClientRect();
+      const h = window.innerHeight;
+      return Math.min(1, Math.max(0, (h - r.top) / (h * 0.55)));
+    };
+    let scrollRaf = 0;
+    const onScroll = () => {
+      if (scrollRaf) return;
+      scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = 0;
+        progress = scrollProgress();
+        draw();
+      });
     };
 
     const compose = () => {
       cancelAnimationFrame(raf);
+      if (scrolled) {
+        progress = scrollProgress();
+        draw();
+        return;
+      }
       const t0 = performance.now() - progress * 1000;
       const step = (t: number) => {
         if (dead || !visible) return;
         progress = reduced ? 1 : Math.min(1, (t - t0) / 1000);
         const v = media instanceof HTMLVideoElement ? media : null;
         const live = v !== null && playingRef.current;
-        if (v && live && isReady(v)) data = sample(v, cols, rows);
+        if (v && live && isReady(v)) {
+          data = sample(v, cols, rows);
+          if (t - inkAt > 600) {
+            inkAt = t;
+            measure.current();
+          }
+        }
         draw();
         if (progress < 1 || live) raf = requestAnimationFrame(step);
       };
@@ -188,9 +239,11 @@ export function HybridMedia({
           if (visible) {
             if (media instanceof HTMLVideoElement && playingRef.current)
               void media.play().catch(() => {});
+            if (scrolled) window.addEventListener("scroll", onScroll, { passive: true });
             compose();
           } else {
             cancelAnimationFrame(raf);
+            if (scrolled) window.removeEventListener("scroll", onScroll);
             if (media instanceof HTMLVideoElement) media.pause();
           }
         }
@@ -220,6 +273,8 @@ export function HybridMedia({
     return () => {
       dead = true;
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(scrollRaf);
+      window.removeEventListener("scroll", onScroll);
       io.disconnect();
       ro.disconnect();
       cv.removeEventListener("pointermove", onMove);
@@ -227,7 +282,7 @@ export function HybridMedia({
       if (media instanceof HTMLVideoElement) media.pause();
       mediaRef.current = null;
     };
-  }, [src, ratio, levels, gamma, threshold, lensRadius, video]);
+  }, [src, ratio, levels, gamma, threshold, lensRadius, video, drive]);
 
   return (
     <figure className={`min-w-0 max-w-full ${className}`}>
@@ -236,7 +291,15 @@ export function HybridMedia({
       </div>
       {controls && (
         <figcaption className="u-mono mt-[3px] flex flex-wrap items-center justify-between gap-x-cell gap-y-[3px] border-[3px] border-black px-[6px] py-[3px]">
-          <span className="min-w-0 truncate">{label}</span>
+          <span className="flex min-w-0 items-center gap-[6px]">
+            {label && <span className="min-w-0 truncate">{label}</span>}
+            {ink !== null && (
+              <span className="flex shrink-0 items-center gap-[4px]">
+                <span>ENCRE</span>
+                <BitReadout text={`${ink}%`} unit={2} />
+              </span>
+            )}
+          </span>
           <span
             role="group"
             aria-label="Mode de lecture"

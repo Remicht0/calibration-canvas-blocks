@@ -88,6 +88,28 @@ tiennent plus longtemps. Sert au chargement, au scroll, au survol, aux
 transitions. Le ticker (translation linéaire) est la seule exception, et il
 est désactivé sous `prefers-reduced-motion`.
 
+Deux pilotages pour une planche (`HybridMedia`, prop `drive`) :
+`time` (défaut) compose la planche en une seconde à son entrée en écran ;
+`scroll` lie `progress` au défilement — 0 quand le haut de la planche entre
+par le bas, 1 quand il atteint 45 % de la hauteur d'écran, et à rebours en
+remontant. Le banc d'essai et les planches 02 sont pilotés au scroll.
+
+### Chrome commun
+
+- `TopBar` (`chrome.tsx`) sur chaque page : `MIRE` puis `INDEX / ATELIER /
+  CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`, et un
+  emplacement à droite propre à la page (studio, numéro / année, horloge,
+  fiche). Sous 768 px, la console en bas d'écran porte la navigation.
+- Gouttières bureau : la réglette occupe la marge gauche (2 cellules),
+  l'inverseur `NEGATIF [N]` la marge droite (3 cellules). Aucun contenu ne
+  passe sous l'un ou l'autre.
+- Curseur bloc : une cellule blanche en différence ; sur un lien elle se
+  creuse en cadre. Jamais de rouge sur le curseur (le repère est unique, et
+  un rouge en différence sur fond blanc donnerait du cyan).
+- Page projet : le bloc `SUITE` liste les autres projets avec le survol en
+  négatif de l'index, `PRECEDENT` / `SUIVANT` étiquetés, et les flèches du
+  clavier feuillettent les projets.
+
 ### Transition de page (`RouteWipe`)
 
 1500 ms, trois temps, jamais de fondu :
@@ -210,6 +232,10 @@ Loupe : au survol, un disque de cellules passe en `brut`, avec un anneau en
 - `alt` décrit l'image pour les lecteurs d'écran (français accentué) ;
   `label` est l'étiquette visible sous la planche (capitales sans accents).
   Ne jamais mettre l'un à la place de l'autre.
+- Sous chaque planche, `ENCRE nn%` est mesuré sur la trame réelle
+  (`inkRatio`, `bitmap.ts`) dans le mode courant : part des cellules encrées
+  en BIN, noirceur moyenne des paliers en GRIS, de la matière en BRUT. C'est
+  une mesure, pas une décoration : elle change avec le mode et avec la vidéo.
 - Photo douce / portrait / paysage → `mode="gris"`, `gamma` 0.7–0.85.
 - Image très graphique → `mode="bin"`, `threshold` 0.40–0.48.
 - Vidéo `.mp4` / `.webm` → détection automatique, lecture en boucle muette
@@ -294,6 +320,11 @@ Fait :
 - [x] Fontes auto-hebergees et prechargees (plus aucune requete Google Fonts).
 - [x] Visibilite : canonical, `og:url`, JSON-LD, manifest, icones et favicon
       1 bit generes, `sitemap.xml` et `robots.txt` en routes serveur.
+- [x] Chrome commun (`TopBar`), gouttiere droite pour l'inverseur, curseur
+      sans rouge ; page projet : SUITE en negatif au survol, PRECEDENT /
+      SUIVANT, fleches du clavier.
+- [x] Planches : taux d'encrage mesure (`ENCRE nn%`) et chute liee au
+      defilement (`drive="scroll"`) sur le banc d'essai et les planches 02.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
