@@ -11,13 +11,12 @@ export const Route = createFileRoute("/contact")({
       {
         name: "description",
         content:
-          "Contacter le studio MIRE : adresse, telephone, courriel et fiche de calibration. Identite, edition, signaletique.",
+          "Contacter le studio MIRE : adresse, téléphone, courriel et fiche de calibration. Identité, édition, signalétique.",
       },
       { property: "og:title", content: "Contact — MIRE, studio de design graphique" },
       {
         property: "og:description",
-        content:
-          "Fiche de calibration du studio MIRE : courriel, telephone, adresse, mentions.",
+        content: "Fiche de calibration du studio MIRE : courriel, téléphone, adresse, mentions.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -37,7 +36,7 @@ const FICHE = [
 
 function Contact() {
   return (
-    <main className="min-h-screen bg-white text-black">
+    <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
       <div className="u-mono grid grid-cols-[minmax(0,1fr)_auto] gap-cell px-cell py-cell2">
         <Link to="/">RETOUR / INDEX</Link>
         <span>FICHE 00</span>
@@ -45,9 +44,9 @@ function Contact() {
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
         <BlockType text="CONTACT" loop={false} />
-        <p className="u-mono mt-cell2 max-w-[52ch]">
-          UN PROJET SE MESURE AVANT DE SE DESSINER. ECRIRE AVEC : NATURE,
-          CALENDRIER, BUDGET, SUPPORTS. REPONSE SOUS 48 HEURES.
+        <p className="u-copy mt-cell2 max-w-[52ch]">
+          UN PROJET SE MESURE AVANT DE SE DESSINER. ECRIRE AVEC : NATURE, CALENDRIER, BUDGET,
+          SUPPORTS. REPONSE SOUS 48 HEURES.
         </p>
       </section>
 
@@ -55,7 +54,7 @@ function Contact() {
 
       <section data-mire="COORDONNEES" className="bg-black px-cell py-cell4 text-white">
         <div className="u-mono mb-cell2 flex flex-wrap justify-between gap-cell">
-          <span>FICHE DE CALIBRATION</span>
+          <h2>FICHE DE CALIBRATION</h2>
           <BitmapClock label="HEURE STUDIO" />
         </div>
         <dl className="u-mono grid gap-y-cell2 md:grid-cols-2 md:gap-x-cell">
@@ -67,10 +66,7 @@ function Contact() {
           ))}
         </dl>
         <div className="u-mono mt-cell4 flex flex-wrap gap-cell2">
-          <a
-            href="mailto:studio@mire.fr"
-            className="border-[3px] border-white px-cell py-[3px]"
-          >
+          <a href="mailto:studio@mire.fr" className="border-[3px] border-white px-cell py-[3px]">
             ECRIRE AU STUDIO
           </a>
           <a href="tel:+33100000000" className="border-[3px] border-white px-cell py-[3px]">
@@ -91,11 +87,11 @@ function Contact() {
       />
 
       <section data-mire="CALIBRATION" className="border-t-[10px] border-black px-cell py-cell4">
-        <div className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
+        <h2 className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
           ENVOYEZ
           <br />
           UNE MESURE.
-        </div>
+        </h2>
         <div className="u-mono mt-cell2 flex flex-wrap gap-cell2">
           <Link to="/atelier" className="border-[3px] border-black px-cell py-[3px]">
             ATELIER

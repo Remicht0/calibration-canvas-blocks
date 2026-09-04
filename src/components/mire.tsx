@@ -5,6 +5,7 @@ import {
   cellSizeFor,
   drawBits,
   fallOrder,
+  prefersReducedMotion,
   textBlockHeight,
   type Bits,
 } from "@/lib/mire";
@@ -75,6 +76,11 @@ export function BlockImage({
 
     const animate = () => {
       if (running || dead) return;
+      if (prefersReducedMotion()) {
+        progress = 1;
+        paint();
+        return;
+      }
       running = true;
       const t0 = performance.now();
       const step = (t: number) => {
@@ -161,10 +167,7 @@ export function BlockType({
       cell = cellSizeFor(window.innerWidth);
       const w = el.clientWidth;
       const cols = Math.max(8, Math.floor(w / cell));
-      const rows = Math.max(
-        3,
-        Math.round(textBlockHeight(text, DISPLAY_FONT, cols * cell) / cell),
-      );
+      const rows = Math.max(3, Math.round(textBlockHeight(text, DISPLAY_FONT, cols * cell) / cell));
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       cv.style.width = `${cols * cell}px`;
       cv.style.height = `${rows * cell}px`;
@@ -205,7 +208,8 @@ export function BlockType({
 
     const start = () => {
       build();
-      run();
+      if (prefersReducedMotion()) paint(1);
+      else run();
     };
 
     if (document.fonts?.ready) document.fonts.ready.then(start);
@@ -282,6 +286,11 @@ export function BlockBackdrop({ src }: { src: string | null }) {
 
     const animate = (target: number) => {
       cancelAnimationFrame(raf);
+      if (prefersReducedMotion()) {
+        progress = target;
+        paint();
+        return;
+      }
       const from = progress;
       const t0 = performance.now();
       const dur = 700;

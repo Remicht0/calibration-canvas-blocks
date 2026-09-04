@@ -3,19 +3,23 @@ import { BlockType } from "@/components/mire";
 import { HybridMedia } from "@/components/media";
 import { CalibrationBand } from "@/components/bars";
 import { bySlug, projects } from "@/lib/projects";
+import { ogPath, siteOrigin } from "@/lib/site";
 import { Colophon } from "./index";
 
 export const Route = createFileRoute("/projet/$slug")({
   loader: ({ params }) => {
     const project = bySlug(params.slug);
     if (!project) throw notFound();
-    return project;
+    return { ...project, origin: siteOrigin() };
   },
   head: ({ loaderData }) => {
     const t = loaderData ? `${loaderData.title} — MIRE` : "Projet — MIRE";
-    const d = loaderData
-      ? `${loaderData.nature}, ${loaderData.year}. Projet du studio MIRE pour ${loaderData.client}.`
-      : "Projet du studio de design graphique MIRE.";
+    const d = loaderData ? loaderData.resume : "Projet du studio de design graphique MIRE.";
+    // carte de partage 1-bit generee par `bun run og` (scripts/og.ts)
+    const img = loaderData ? `${loaderData.origin}${ogPath(loaderData.slug)}` : null;
+    const imgAlt = loaderData
+      ? `${loaderData.alt} Carte du projet ${loaderData.title}, rendue en blocs 1 bit.`
+      : null;
     return {
       meta: [
         { title: t },
@@ -24,6 +28,17 @@ export const Route = createFileRoute("/projet/$slug")({
         { property: "og:description", content: d },
         { property: "og:type", content: "article" },
         { name: "twitter:card", content: "summary_large_image" },
+        ...(img && imgAlt
+          ? [
+              { property: "og:image", content: img },
+              { property: "og:image:width", content: "1200" },
+              { property: "og:image:height", content: "630" },
+              { property: "og:image:type", content: "image/png" },
+              { property: "og:image:alt", content: imgAlt },
+              { name: "twitter:image", content: img },
+              { name: "twitter:image:alt", content: imgAlt },
+            ]
+          : []),
       ],
     };
   },
@@ -35,7 +50,7 @@ function ProjectPage() {
   const others = projects.filter((o) => o.slug !== p.slug);
 
   return (
-    <main className="min-h-screen bg-white text-black">
+    <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
       <div className="u-mono flex justify-between px-cell py-cell2">
         <Link to="/">RETOUR / INDEX</Link>
         <span>
@@ -51,6 +66,7 @@ function ProjectPage() {
 
       {/* BLOC NOIR */}
       <section data-mire="MESURES" className="bg-black px-cell py-cell4 text-white">
+        <h2 className="sr-only">Mesures</h2>
         <div className="u-mono grid gap-y-cell2 md:grid-cols-4 md:gap-x-cell">
           <div>
             <div>CLIENT</div>
@@ -66,7 +82,9 @@ function ProjectPage() {
           </div>
           <div>
             <div>REF</div>
-            <div>MIRE-{p.num}-{p.year}</div>
+            <div>
+              MIRE-{p.num}-{p.year}
+            </div>
           </div>
         </div>
       </section>
@@ -74,15 +92,23 @@ function ProjectPage() {
       {/* PLANCHE PRINCIPALE — media hybride, lecture au choix */}
       <section data-mire="PLANCHE 01" className="bg-white px-cell py-cell4">
         <div className="u-mono mb-cell flex justify-between">
-          <span>PLANCHE 01 — MATIERE</span>
+          <h2>PLANCHE 01 — MATIERE</h2>
           <span className="hidden md:inline">SURVOL = LOUPE / MATIERE BRUTE</span>
         </div>
-        <HybridMedia src={p.image} alt={p.title} ratio={0.56} mode="gris" gamma={0.78} />
+        <HybridMedia
+          src={p.image}
+          alt={p.alt}
+          label={p.title}
+          ratio={0.56}
+          mode="gris"
+          gamma={0.78}
+        />
       </section>
 
       {/* TEXTE COLONNE ETROITE */}
       <section data-mire="NOTES" className="bg-black px-cell py-cell4 text-white">
-        <div className="u-mono max-w-[54ch] space-y-cell2">
+        <h2 className="sr-only">Notes</h2>
+        <div className="u-copy max-w-[54ch] space-y-cell2">
           {p.lines.map((l) => (
             <p key={l}>{l}</p>
           ))}
@@ -90,17 +116,20 @@ function ProjectPage() {
       </section>
 
       <section data-mire="PLANCHE 02" className="bg-white px-cell py-cell4">
+        <h2 className="sr-only">Planche 02, détails</h2>
         <div className="grid gap-cell md:grid-cols-2">
           <HybridMedia
             src={p.image}
-            alt={`${p.title} — detail seuil`}
+            alt={`${p.alt} Détail en seuil binaire.`}
+            label={`${p.title} — DETAIL SEUIL`}
             ratio={1.05}
             mode="bin"
             threshold={0.42}
           />
           <HybridMedia
             src={p.image}
-            alt={`${p.title} — detail mosaique`}
+            alt={`${p.alt} Détail en mosaïque brute.`}
+            label={`${p.title} — DETAIL MOSAIQUE`}
             ratio={1.05}
             mode="brut"
             lensRadius={4.5}
@@ -108,9 +137,8 @@ function ProjectPage() {
         </div>
       </section>
 
-
       <section data-mire="COLOPHON" className="border-t-[10px] border-black px-cell py-cell2">
-        <div className="u-mono mb-cell2">SUITE</div>
+        <h2 className="u-mono mb-cell2">SUITE</h2>
         <ul>
           {others.map((o) => (
             <li key={o.slug}>

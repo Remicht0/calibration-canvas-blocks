@@ -164,6 +164,9 @@ export function NegativeSwitch() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (e.key === "n" || e.key === "N") setNeg((v) => !v);
     };
     window.addEventListener("keydown", onKey);
@@ -174,7 +177,10 @@ export function NegativeSwitch() {
     <button
       type="button"
       onClick={() => setNeg((v) => !v)}
-      className="u-mono fixed right-0 top-1/2 z-[160] hidden -translate-y-1/2 border-[3px] px-[6px] py-cell md:block"
+      aria-pressed={neg}
+      aria-keyshortcuts="n"
+      aria-label={neg ? "Revenir au positif, touche N" : "Passer en négatif, touche N"}
+      className="mire-noprint u-mono fixed right-0 top-1/2 z-[160] hidden -translate-y-1/2 border-[3px] px-[6px] py-cell md:block"
       style={{
         writingMode: "vertical-rl",
         background: "#FFFFFF",
@@ -192,10 +198,8 @@ export function NegativeSwitch() {
 /* ------------------------------------------------------------------ */
 
 const easeOutCubic = (k: number) => 1 - Math.pow(1 - k, 3);
-const easeInOutCubic = (k: number) =>
-  k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
-const seg = (k: number, a: number, b: number) =>
-  Math.min(1, Math.max(0, (k - a) / (b - a)));
+const easeInOutCubic = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const seg = (k: number, a: number, b: number) => Math.min(1, Math.max(0, (k - a) / (b - a)));
 
 export function RouteWipe() {
   const path = useRouterState({ select: (s) => s.location.pathname });

@@ -28,7 +28,7 @@ export const Route = createFileRoute("/atelier")({
 
 function Atelier() {
   return (
-    <main className="min-h-screen bg-white text-black">
+    <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
       <div className="u-mono grid gap-cell px-cell py-cell2 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
         <Link to="/">RETOUR / INDEX</Link>
         <div className="min-w-0 sm:justify-self-end">
@@ -38,9 +38,9 @@ function Atelier() {
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
         <BlockType text="ATELIER" loop={false} />
-        <p className="u-mono mt-cell2 max-w-[56ch]">
-          TROIS INSTRUMENTS. AUCUNE DECORATION. CHACUN NE SAIT FAIRE QU&apos;UNE
-          CHOSE : POSER UN BLOC, OU NE PAS LE POSER.
+        <p className="u-copy mt-cell2 max-w-[56ch]">
+          TROIS INSTRUMENTS. AUCUNE DECORATION. CHACUN NE SAIT FAIRE QU&apos;UNE CHOSE : POSER UN
+          BLOC, OU NE PAS LE POSER.
         </p>
       </section>
 
@@ -49,29 +49,31 @@ function Atelier() {
       {/* INSTRUMENT 01 — table de composition */}
       <section data-mire="AUTOMATE" className="bg-white px-cell py-cell4">
         <div className="u-mono mb-cell2 flex justify-between">
-          <span>INSTRUMENT 01 — TABLE DE COMPOSITION</span>
+          <h2>INSTRUMENT 01 — TABLE DE COMPOSITION</h2>
           <span className="hidden md:inline">DESSINER PUIS PROPAGER</span>
         </div>
         <BitmapBoard rows={14} />
-        <p className="u-mono mt-cell2 max-w-[56ch]">
-          UN BLOC POSE A LA MAIN SURVIT S&apos;IL A DEUX OU TROIS VOISINS. IL
-          NAIT S&apos;IL EN A EXACTEMENT TROIS. LA SURFACE EST UN TORE : LE BORD
-          DROIT TOUCHE LE BORD GAUCHE.
+        <p className="u-copy mt-cell2 max-w-[56ch]">
+          UN BLOC POSE A LA MAIN SURVIT S&apos;IL A DEUX OU TROIS VOISINS. IL NAIT S&apos;IL EN A
+          EXACTEMENT TROIS. LA SURFACE EST UN TORE : LE BORD DROIT TOUCHE LE BORD GAUCHE.
         </p>
       </section>
 
       {/* INSTRUMENT 02 — planche de bruit */}
-      <section data-mire="BRUIT" className="border-t-[10px] border-black bg-black px-cell py-cell4 text-white">
+      <section
+        data-mire="BRUIT"
+        className="border-t-[10px] border-black bg-black px-cell py-cell4 text-white"
+      >
         <div className="u-mono mb-cell2 flex justify-between">
-          <span>INSTRUMENT 02 — PLANCHE DE BRUIT</span>
+          <h2>INSTRUMENT 02 — PLANCHE DE BRUIT</h2>
           <span className="hidden md:inline">CENTRE ECRAN = SIGNAL NET</span>
         </div>
         <div className="border-[3px] border-white">
           <NoiseField rows={10} seed={3} />
         </div>
-        <p className="u-mono mt-cell2 max-w-[56ch]">
-          LE BRUIT SE RESORBE A MESURE QUE LA PLANCHE ATTEINT LE CENTRE DU
-          CADRE. C&apos;EST LE REGLAGE, PAS UN EFFET.
+        <p className="u-copy mt-cell2 max-w-[56ch]">
+          LE BRUIT SE RESORBE A MESURE QUE LA PLANCHE ATTEINT LE CENTRE DU CADRE. C&apos;EST LE
+          REGLAGE, PAS UN EFFET.
         </p>
       </section>
 
@@ -87,9 +89,12 @@ function Atelier() {
       />
 
       {/* INSTRUMENT 03 — horloge */}
-      <section data-mire="HORLOGE" className="border-t-[10px] border-black bg-white px-cell py-cell4">
+      <section
+        data-mire="HORLOGE"
+        className="border-t-[10px] border-black bg-white px-cell py-cell4"
+      >
         <div className="u-mono mb-cell2 flex justify-between">
-          <span>INSTRUMENT 03 — HORLOGE</span>
+          <h2>INSTRUMENT 03 — HORLOGE</h2>
           <span className="hidden md:inline">FONTE INTERNE 3 x 5 BLOCS</span>
         </div>
         <div className="border-[3px] border-black p-cell2">
@@ -98,14 +103,16 @@ function Atelier() {
       </section>
 
       <section data-mire="NOTES" className="border-t-[10px] border-black bg-white px-cell py-cell4">
-        <div className="u-display text-[12vw] leading-[0.95] md:text-[6vw]">
+        <h2 className="u-display text-[12vw] leading-[0.95] md:text-[6vw]">
           UN BLOC
           <br />
           OU RIEN.
-        </div>
+        </h2>
         <div className="u-mono mt-cell2">
           <Link to="/">INDEX DES PROJETS</Link>
-          <Link to="/contact" className="ml-cell2">CONTACT</Link>
+          <Link to="/contact" className="ml-cell2">
+            CONTACT
+          </Link>
         </div>
       </section>
 

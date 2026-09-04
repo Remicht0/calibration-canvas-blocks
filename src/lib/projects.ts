@@ -11,7 +11,12 @@ export type Project = {
   nature: string;
   client: string;
   image: string;
+  /** Notes visibles dans la mire : capitales, sans accents. */
   lines: string[];
+  /** Resume hors mire (meta description, partage) : francais courant, accentue. */
+  resume: string;
+  /** Texte alternatif de l'image (lecteurs d'ecran, og:image:alt) : francais accentue, une phrase. */
+  alt: string;
 };
 
 export const projects: Project[] = [
@@ -27,6 +32,9 @@ export const projects: Project[] = [
       "Identite d'un equipement public en beton brut. Le systeme reprend le pas de la structure : chaque element de signaletique est un rectangle plein, cale sur un module de 60 cm.",
       "Aucun contour, aucune fleche. L'orientation se lit dans le vide entre les blocs.",
     ],
+    resume:
+      "Identité et signalétique d'un équipement public en béton brut : des rectangles pleins calés sur un module de 60 cm, sans contour ni flèche. Projet du studio MIRE pour TMC, 2024.",
+    alt: "Façade en béton blanc d'un bâtiment public sous un soleil dur, ombres portées noires, le sigle TMC peint en petites capitales sur le mur.",
   },
   {
     slug: "cylindre",
@@ -40,6 +48,9 @@ export const projects: Project[] = [
       "Un ouvrage de 240 pages imprime en une seule encre. La grille de composition est celle de la presse : douze colonnes, aucune exception.",
       "Les images sont tramees en blocs a la sortie du RIP, sans demi-teinte.",
     ],
+    resume:
+      "Édition et impression d'un ouvrage de 240 pages en une seule encre, sur la grille de la presse. Projet du studio MIRE pour Atelier Nord, 2023.",
+    alt: "Gros plan d'un cylindre de presse en métal brossé monté sur son axe, dans la pénombre d'un atelier d'impression.",
   },
   {
     slug: "mire-tv",
@@ -53,6 +64,9 @@ export const projects: Project[] = [
       "Habillage d'antenne fonde sur la mire de reglage. Tous les inter-programmes sont des etats de calibration : barres, seuils, repere de lecture.",
       "Le rouge n'apparait qu'une fois par heure, a la seconde zero.",
     ],
+    resume:
+      "Habillage d'antenne fondé sur la mire de réglage : barres, seuils et repère de lecture comme inter-programmes. Projet du studio MIRE pour Canal Public, 2023.",
+    alt: "Écran noir affichant une mire de réglage : barres verticales du blanc au gris foncé et cinq pastilles rondes alignées dessous.",
   },
   {
     slug: "rames",
@@ -66,6 +80,9 @@ export const projects: Project[] = [
       "Un catalogue de papiers ou la matiere est absente de la photographie : seule la lumiere sur la tranche est conservee.",
       "Le noir couvre 62% de la surface imprimee. Ce chiffre est le cahier des charges.",
     ],
+    resume:
+      "Identité et catalogue de papiers où seule la lumière sur la tranche est conservée. Projet du studio MIRE pour Papeterie B., 2022.",
+    alt: "Piles de rames de papier dans une réserve sombre, éclairées par une fenêtre à petits carreaux, seule la tranche des feuilles prise par la lumière.",
   },
 ];
 

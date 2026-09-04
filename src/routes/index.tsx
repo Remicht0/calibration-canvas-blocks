@@ -13,13 +13,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "MIRE, studio de design graphique. Identite, edition, signaletique. Un site construit comme une image de calibration : 1-bit, grille de blocs, une seule ligne rouge.",
+          "MIRE, studio de design graphique. Identité, édition, signalétique. Un site construit comme une image de calibration : 1-bit, grille de blocs, une seule ligne rouge.",
       },
       { property: "og:title", content: "MIRE — Studio de design graphique" },
       {
         property: "og:description",
         content:
-          "Identite, edition, signaletique. Rendu 1-bit par blocs, dissolution par chute de blocs.",
+          "Identité, édition, signalétique. Rendu 1-bit par blocs, dissolution par chute de blocs.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -71,12 +71,15 @@ function Index() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-white text-black">
+    <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
       {/* ENTREE */}
-      <section data-mire="ENTREE" className="flex min-h-screen flex-col justify-between px-cell py-cell2">
+      <section
+        data-mire="ENTREE"
+        className="flex min-h-screen flex-col justify-between px-cell py-cell2"
+      >
         <div className="u-mono flex justify-between">
           <span>MIRE</span>
-          <nav className="flex gap-cell2">
+          <nav aria-label="Navigation principale" className="flex gap-cell2">
             <span className="hidden md:inline">STUDIO DE DESIGN GRAPHIQUE</span>
             <span className="md:hidden">STUDIO GRAPHIQUE</span>
             <Link to="/atelier" className="hidden md:inline">
@@ -91,9 +94,8 @@ function Index() {
         <div>
           <BlockType text="MIRE" />
           <p className="u-copy mt-cell2 max-w-[46ch]">
-            IMAGE DE CALIBRATION — CHAQUE SURFACE EST REDUITE A DEUX VALEURS,
-            NOIR PLEIN OU BLANC PLEIN, SUR UNE GRILLE DE BLOCS. LE SITE NE
-            DECORE PAS. IL CALIBRE.
+            IMAGE DE CALIBRATION — CHAQUE SURFACE EST REDUITE A DEUX VALEURS, NOIR PLEIN OU BLANC
+            PLEIN, SUR UNE GRILLE DE BLOCS. LE SITE NE DECORE PAS. IL CALIBRE.
           </p>
         </div>
 
@@ -128,7 +130,7 @@ function Index() {
         >
           <div className="u-mono grid grid-cols-[4ch_1fr] gap-x-cell px-cell py-cell2">
             <span>IDX</span>
-            <span>PROJETS 2022 — 2024</span>
+            <h2>PROJETS 2022 — 2024</h2>
           </div>
           <ul>
             {projects.map((p, i) => (
@@ -145,7 +147,10 @@ function Index() {
                   onFocus={() => setHover(p.image)}
                   className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_8ch_24ch]"
                 >
-                  <span>{active === p.slug ? `\u25A0${p.num}` : p.num}</span>
+                  <span>
+                    {active === p.slug && <span aria-hidden="true">{"\u25A0"}</span>}
+                    {p.num}
+                  </span>
                   <span className="min-w-0">
                     <span className="u-display block text-[13vw] leading-[0.9] tracking-[-0.02em] md:text-[3.2vw]">
                       {p.title}
@@ -165,28 +170,51 @@ function Index() {
       </section>
 
       {/* BANC D'ESSAI — la meme source lue en trois profondeurs */}
-      <section data-mire="BANC D'ESSAI" className="border-t-[10px] border-black bg-white px-cell py-cell4">
+      <section
+        data-mire="BANC D'ESSAI"
+        className="border-t-[10px] border-black bg-white px-cell py-cell4"
+      >
         <div className="u-mono mb-cell2 flex justify-between">
-          <span>BANC D&apos;ESSAI</span>
+          <h2>BANC D&apos;ESSAI</h2>
           <span>UNE SOURCE / TROIS LECTURES</span>
         </div>
         <div className="grid gap-cell md:grid-cols-3">
-          <HybridMedia src={projects[0]!.image} alt="LECTURE BIN" ratio={1} mode="bin" />
-          <HybridMedia src={projects[1]!.image} alt="LECTURE GRIS" ratio={1} mode="gris" />
-          <HybridMedia src={projects[2]!.image} alt="LECTURE BRUT" ratio={1} mode="brut" />
+          <HybridMedia
+            src={projects[0]!.image}
+            alt={projects[0]!.alt}
+            label="LECTURE BIN"
+            ratio={1}
+            mode="bin"
+          />
+          <HybridMedia
+            src={projects[1]!.image}
+            alt={projects[1]!.alt}
+            label="LECTURE GRIS"
+            ratio={1}
+            mode="gris"
+          />
+          <HybridMedia
+            src={projects[2]!.image}
+            alt={projects[2]!.alt}
+            label="LECTURE BRUT"
+            ratio={1}
+            mode="brut"
+          />
         </div>
         <p className="u-copy mt-cell2 max-w-[54ch]">
-          LES PHOTOS ET VIDEOS NE SONT PAS COLLEES SUR LA MIRE : ELLES SONT
-          ECHANTILLONNEES DANS SA GRILLE. UN BLOC = UN PIXEL. LE SURVOL OUVRE
-          UNE LOUPE DE MATIERE BRUTE.
+          LES PHOTOS ET VIDEOS NE SONT PAS COLLEES SUR LA MIRE : ELLES SONT ECHANTILLONNEES DANS SA
+          GRILLE. UN BLOC = UN PIXEL. LE SURVOL OUVRE UNE LOUPE DE MATIERE BRUTE.
         </p>
       </section>
 
       {/* PROCEDE — trois planches de mesure */}
 
-      <section data-mire="PROCEDE" className="border-t-[10px] border-black bg-white px-cell py-cell4">
+      <section
+        data-mire="PROCEDE"
+        className="border-t-[10px] border-black bg-white px-cell py-cell4"
+      >
         <div className="u-mono mb-cell2 flex justify-between">
-          <span>PROCEDE</span>
+          <h2>PROCEDE</h2>
           <span>PLANCHES 01 — 03</span>
         </div>
         <div className="grid gap-cell md:grid-cols-3">
@@ -210,22 +238,24 @@ function Index() {
       </section>
 
       {/* ATELIER — bloc noir plein */}
-      <section data-mire="MANIFESTE" className="border-t-[10px] border-black bg-black px-cell py-cell6 text-white">
-        <div className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
+      <section
+        data-mire="MANIFESTE"
+        className="border-t-[10px] border-black bg-black px-cell py-cell6 text-white"
+      >
+        <h2 className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
           LE SITE NE
           <br />
           DECORE PAS.
           <br />
           IL CALIBRE.
-        </div>
+        </h2>
         <div className="u-mono mt-cell4 grid gap-y-cell2 md:grid-cols-3 md:gap-x-cell">
           <p className="u-copy max-w-[34ch]">
-            ATELIER FONDE EN 2019. IDENTITE, EDITION, SIGNALETIQUE, HABILLAGE
-            D&apos;ANTENNE.
+            ATELIER FONDE EN 2019. IDENTITE, EDITION, SIGNALETIQUE, HABILLAGE D&apos;ANTENNE.
           </p>
           <p className="u-copy max-w-[34ch]">
-            CHAQUE PROJET COMMENCE PAR UNE MESURE : PAS DE GRILLE, TAUX
-            D&apos;ENCRAGE, DISTANCE DE LECTURE.
+            CHAQUE PROJET COMMENCE PAR UNE MESURE : PAS DE GRILLE, TAUX D&apos;ENCRAGE, DISTANCE DE
+            LECTURE.
           </p>
           <p className="u-copy max-w-[34ch]">
             AUCUNE IMAGE N&apos;EST RETOUCHEE. ELLE EST SEUILLEE.
@@ -243,7 +273,7 @@ export function Colophon() {
     <footer className="border-t-[10px] border-black bg-white px-cell py-cell2 text-black">
       <div className="u-mono grid gap-y-cell md:grid-cols-4">
         <div>
-          <div>FICHE DE CALIBRATION</div>
+          <h2>FICHE DE CALIBRATION</h2>
           <div>MIRE — STUDIO</div>
         </div>
         <div>

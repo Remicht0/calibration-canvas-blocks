@@ -49,12 +49,10 @@ export function useTracks() {
     let list: Track[] = [];
 
     const measure = () => {
-      const els = Array.from(
-        document.querySelectorAll<HTMLElement>("[data-mire]"),
-      );
+      const els = Array.from(document.querySelectorAll<HTMLElement>("[data-mire]"));
       const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
       list = els.map((el) => ({
-        label: el.dataset['mire'] ?? "",
+        label: el.dataset["mire"] ?? "",
         start: Math.min(1, (el.offsetTop - window.innerHeight * 0.35) / max),
       }));
       setTracks(list);
@@ -105,8 +103,7 @@ function useNegative() {
   return neg;
 }
 
-const toggleNegative = () =>
-  window.dispatchEvent(new KeyboardEvent("keydown", { key: "n" }));
+const toggleNegative = () => window.dispatchEvent(new KeyboardEvent("keydown", { key: "n" }));
 
 const pct = (p: number) => `${String(Math.round(p * 100)).padStart(3, "0")}%`;
 
@@ -148,9 +145,7 @@ export function ScrollRail() {
         {Array.from({ length: rows }, (_, i) => {
           const on = i <= head;
           const isHead = i === head;
-          const mark = tracks.some(
-            (t) => Math.round(t.start * (rows - 1)) === i,
-          );
+          const mark = tracks.some((t) => Math.round(t.start * (rows - 1)) === i);
           return (
             <div
               key={i}
@@ -198,7 +193,7 @@ export function MireConsole() {
 
   return (
     <nav
-      aria-label="Navigation"
+      aria-label="Console de navigation"
       className="mire-noprint fixed inset-x-0 bottom-0 z-[140] border-t-[6px] border-black bg-white md:hidden"
     >
       {/* piste courante + compteur bitmap */}
@@ -235,6 +230,7 @@ export function MireConsole() {
             <Link
               key={t.to}
               to={t.to}
+              aria-current={active ? "page" : undefined}
               className="u-mono border-r-[3px] border-black py-[10px] text-center"
               style={{
                 background: active ? "#000000" : "#FFFFFF",
@@ -249,6 +245,7 @@ export function MireConsole() {
           type="button"
           onClick={toggleNegative}
           aria-pressed={neg}
+          aria-label={neg ? "Revenir au positif" : "Passer en négatif"}
           className="u-mono py-[10px] text-center"
           style={{
             background: neg ? "#000000" : "#FFFFFF",

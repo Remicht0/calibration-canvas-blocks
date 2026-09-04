@@ -12,26 +12,31 @@ import { useEffect, type ReactNode } from "react";
 import { BootSequence, GridCursor, NegativeSwitch, RouteWipe } from "@/components/boot";
 import { MireConsole, ScrollRail } from "@/components/console";
 import { ScanLine } from "@/components/mire";
+import { ogPath, siteOrigin } from "@/lib/site";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
-    <main className="flex min-h-screen flex-col justify-between bg-white px-cell py-cell2 text-black">
+    <main
+      id="contenu"
+      tabIndex={-1}
+      className="flex min-h-screen flex-col justify-between bg-white px-cell py-cell2 text-black"
+    >
       <div className="u-mono flex justify-between">
         <span>MIRE / SIGNAL ABSENT</span>
         <span>404</span>
       </div>
       <div>
-        <div className="u-display text-[26vw] leading-[0.82] md:text-[16vw]">
+        <h1 className="u-display text-[26vw] leading-[0.82] md:text-[16vw]">
           PAS DE
           <br />
           SIGNAL
-        </div>
-        <p className="u-mono mt-cell2 max-w-[48ch]">
-          CETTE ADRESSE NE RENVOIE AUCUNE MIRE. LA PAGE A ETE DEPLACEE OU
-          N&apos;A JAMAIS ETE CALIBREE.
+        </h1>
+        <p className="u-copy mt-cell2 max-w-[48ch]">
+          CETTE ADRESSE NE RENVOIE AUCUNE MIRE. LA PAGE A ETE DEPLACEE OU N&apos;A JAMAIS ETE
+          CALIBREE.
         </p>
       </div>
       <div className="u-mono flex flex-wrap gap-cell2">
@@ -54,20 +59,23 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <main className="flex min-h-screen flex-col justify-between bg-black px-cell py-cell2 text-white">
+    <main
+      id="contenu"
+      tabIndex={-1}
+      className="flex min-h-screen flex-col justify-between bg-black px-cell py-cell2 text-white"
+    >
       <div className="u-mono flex justify-between">
         <span>MIRE / DEFAUT DE LECTURE</span>
         <span>ERR</span>
       </div>
       <div>
-        <div className="u-display text-[22vw] leading-[0.82] md:text-[13vw]">
+        <h1 className="u-display text-[22vw] leading-[0.82] md:text-[13vw]">
           SIGNAL
           <br />
           CORROMPU
-        </div>
-        <p className="u-mono mt-cell2 max-w-[48ch]">
-          LA PAGE N&apos;A PAS PU ETRE COMPOSEE. RELANCER LA CALIBRATION OU
-          REVENIR A L&apos;INDEX.
+        </h1>
+        <p className="u-copy mt-cell2 max-w-[48ch]">
+          LA PAGE N&apos;A PAS PU ETRE COMPOSEE. RELANCER LA CALIBRATION OU REVENIR A L&apos;INDEX.
         </p>
       </div>
       <div className="u-mono flex flex-wrap gap-cell2">
@@ -90,7 +98,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
+  // origine absolue du site : les cartes de partage l'exigent
+  loader: () => ({ origin: siteOrigin() }),
+  head: ({ loaderData }) => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -104,10 +114,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "MIRE — Studio de design graphique" },
       {
         property: "og:description",
-        content: "Identite, edition, signaletique. Rendu 1-bit par blocs.",
+        content: "Identité, édition, signalétique. Rendu 1-bit par blocs.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: `${loaderData?.origin ?? ""}${ogPath()}` },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:type", content: "image/png" },
+      {
+        property: "og:image:alt",
+        content: "MIRE en lettres de blocs sous une bande de calibration, noir sur blanc.",
+      },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: `${loaderData?.origin ?? ""}${ogPath()}` },
     ],
     links: [
       {
@@ -148,6 +167,13 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      {/* lien d'evitement : invisible jusqu'au focus clavier, puis un bloc noir */}
+      <a
+        href="#contenu"
+        className="u-mono sr-only focus:not-sr-only focus:fixed focus:left-0 focus:top-0 focus:z-[300] focus:bg-black focus:px-cell focus:py-cell focus:text-white"
+      >
+        ALLER AU CONTENU
+      </a>
       <ScanLine />
       <GridCursor />
       <NegativeSwitch />

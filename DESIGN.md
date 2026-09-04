@@ -52,6 +52,31 @@ La force vient du contraste et du vide, jamais de l'accumulation.
 - Deux fontes maximum, une seule graisse par fonte. Texte en **français, en
   capitales, sans accents** dans l'interface (contrainte de mire).
 
+### Accents et diacritiques (décision)
+
+Anton et JetBrains Mono possèdent les capitales accentuées : le choix est donc
+délibéré, pas une limite technique.
+
+- **Dans la mire (tout ce qui est rendu à l'écran)** : capitales **sans
+  accents**, sans cédille, sans ligature (`OEUVRE`, `CA`, `A PARTIR`). Un
+  accent sur une capitale est un trait de 1 à 2 px à 12 px de corps : plus fin
+  que le bloc, il n'a pas sa place sur une mire. En display, il dépasserait la
+  hauteur de capitale sur laquelle l'interligne (0,82) est calé. Les
+  apostrophes et les tirets restent (`D'ANTENNE`, `2022 — 2024`).
+- **Hors mire (ce qui n'est jamais rendu dans la grille)** : français
+  courant, **accentué, en bas de casse** : `<title>`, `meta description`,
+  `og:*`, textes alternatifs (`alt`, `aria-label`), contenus `sr-only`. Les
+  lecteurs d'écran prononcent correctement un mot accentué et risquent
+  d'épeler un mot en capitales ; les moteurs de recherche et les cartes de
+  partage sont lus hors calibration.
+- **Dans les données** (`src/lib/projects.ts`) : les champs visibles (`title`,
+  `nature`, `client`, `lines`) suivent la règle de la mire ; les champs hors
+  mire (`resume`, `alt`) sont écrits en français accentué.
+- **Dans la fonte bitmap 3x5** (`glyphs.ts`) : aucun glyphe accentué, par
+  construction. L'export `og:image` en hérite.
+- `<html lang="fr">` reste : la langue du site est le français, même sans
+  accents.
+
 ### Mouvement
 
 Un seul mouvement : la **chute de blocs** (`fallOrder` + `progress`).
@@ -90,7 +115,10 @@ src/
     bitmap.ts          noyau hybride : sample(), paintBlocks(), BitMode,
                        quantification en paliers, loupe, support vidéo
     projects.ts        source de vérité des projets (slug, num, titre,
-                       année, nature, client, image, lignes)
+                       année, nature, client, image, lignes, resume, alt)
+    glyphs.ts          fonte bitmap 3x5 (capitales, chiffres, ponctuation),
+                       mireText() : capitales sans accents
+    site.ts            origine absolue du site (og:image), chemin des cartes
   components/
     mire.tsx           BlockImage, BlockType, BlockBackdrop, ScanLine
     media.tsx          HybridMedia — photo/vidéo échantillonnée dans la grille
@@ -105,7 +133,29 @@ src/
     projet.$slug.tsx   page projet
     atelier.tsx        instruments manipulables
     contact.tsx        fiche de calibration (coordonnees, horaires, mentions)
+scripts/
+  og.ts                export des cartes de partage : `bun run og`
+public/og/             cartes generees (mire.png + une par slug), versionnees
 ```
+
+### Cartes de partage (`og:image`)
+
+`bun run og` genere `public/og/<slug>.png` pour chaque projet et
+`public/og/mire.png` pour le studio : des **PNG a 1 bit par pixel**, 1200 x 630,
+moins de 1 Ko chacun. Aucun navigateur : le JPEG est decode en pur JS, reduit
+par moyenne de bloc avec le meme recadrage `cover` que le site (`coverCrop`),
+seuille par `bitsFromRGBA` avec un seuil d'Otsu borne a 0,30–0,60
+(`otsuThreshold`, pour qu'une photo sombre ne devienne pas un aplat), puis
+ecrit bloc par bloc. Composition : planche 34 x 42 cellules de 15 px a gauche
+(la densite du site en bureau), fiche a droite en fonte 3x5 (`MIRE`, numero,
+annee, titre, nature). Pas de rouge : un PNG 1 bit n'a que deux valeurs, et la
+carte s'affiche a cote d'autres interfaces.
+
+Les routes declarent `og:image`, `og:image:width/height/type/alt` et
+`twitter:image` avec une URL absolue : `VITE_SITE_URL` si elle est definie,
+sinon l'origine de la requete (`siteOrigin`, `src/lib/site.ts`). Relancer
+`bun run og` a chaque ajout ou changement d'image de projet, et commiter les
+PNG : ils sont servis tels quels depuis `public/`.
 
 ### Modes de lecture d'un média (`BitMode`)
 
@@ -127,12 +177,18 @@ Loupe : au survol, un disque de cellules passe en `brut`, avec un anneau en
 1. Poser l'image dans `src/assets/` (JPG, ≥ 1600 px de large, contraste franc).
 2. Ajouter l'entrée dans `src/lib/projects.ts` (`num` incrémenté, `slug` en
    kebab-case, textes en capitales sans accents pour les métadonnées).
+   Deux champs **hors mire** sont obligatoires, en français accentué :
+   `resume` (description de la page et des cartes de partage) et `alt`
+   (une phrase qui décrit réellement l'image, jamais le titre du projet).
 3. Rien d'autre : l'index, le survol en négatif, la page projet et le bloc
    « SUITE » se génèrent depuis ce fichier.
 
 ### Une photo ou une vidéo personnelle
 
 - **Toujours** via `<HybridMedia />`. Jamais de `<img>` ni de `<video>` brut.
+- `alt` décrit l'image pour les lecteurs d'écran (français accentué) ;
+  `label` est l'étiquette visible sous la planche (capitales sans accents).
+  Ne jamais mettre l'un à la place de l'autre.
 - Photo douce / portrait / paysage → `mode="gris"`, `gamma` 0.7–0.85.
 - Image très graphique → `mode="bin"`, `threshold` 0.40–0.48.
 - Vidéo `.mp4` / `.webm` → détection automatique, lecture en boucle muette
@@ -199,13 +255,25 @@ Fait :
 - [x] Echelle typographique revue pour la lisibilite (`.u-mono` / `.u-copy`).
 - [x] Budget performance : `HybridMedia` met son canvas et sa video en pause
       des que la planche sort du viewport, et reprend a l'entree.
+- [x] Accents : capitales sans accents dans la mire, francais accentue hors
+      mire (metadonnees, `alt`, `sr-only`). Decision documentee en §2.
+      Les paragraphes courants passent tous en `.u-copy`.
+- [x] Accessibilite : `alt` reel sur chaque planche (champ `alt` du projet,
+      distinct de l'etiquette visible), lien d'evitement « ALLER AU CONTENU »,
+      un `h1` et des `h2` par page, `aria-pressed` / `aria-current` sur les
+      commandes, bouton lecture / pause sur les videos, bandeau lu une seule
+      fois. `prefers-reduced-motion` couvre desormais aussi les planches,
+      les bandes de calibration et le fond de l'index (pose immediate).
+      Reste : la touche `N` est un raccourci a une seule lettre (WCAG 2.1.4),
+      tolere car le site n'a aucun champ de saisie ; les alt des vraies
+      planches restent a ecrire avec les vrais projets.
+- [x] `og:image` par projet : PNG 1 bit genere depuis la planche par
+      `bun run og` (`scripts/og.ts`), fonte 3x5 etendue aux capitales,
+      metadonnees `og:image` / `twitter:image` en URL absolue.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
 - [ ] Video reelle sur au moins une page projet, testee en `gris` et `brut`.
-- [ ] `og:image` par projet : export PNG 1-bit genere depuis la planche.
-- [ ] Audit accessibilite : textes alternatifs reels sur les vraies planches.
-- [ ] Decider du traitement des accents FR (fonte mono) et le documenter.
 
 
 ## 8. Contrôles avant livraison
