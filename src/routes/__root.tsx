@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import { BootSequence, GridCursor, NegativeSwitch, RouteWipe } from "@/components/boot";
 import { MireConsole, ScrollRail } from "@/components/console";
+import { KeyHelp } from "@/components/help";
 import { ScanLine } from "@/components/mire";
 import { ogPath, siteOrigin, STUDIO } from "@/lib/site";
 
@@ -220,6 +221,7 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <MireConsole />
+      <KeyHelp />
     </QueryClientProvider>
   );
 }

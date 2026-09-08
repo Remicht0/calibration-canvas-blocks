@@ -325,6 +325,9 @@ Fait :
       SUIVANT, fleches du clavier.
 - [x] Planches : taux d'encrage mesure (`ENCRE nn%`) et chute liee au
       defilement (`drive="scroll"`) sur le banc d'essai et les planches 02.
+- [x] Fiche de commande (`help.tsx`, `KeyHelp`) : masque noir plein liste des
+      raccourcis (N, ?, fleches, tab, loupe), ouverture par `?` ou par le
+      bouton `AIDE [?]` en bas a droite (bureau), fermeture par `ESC`.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
