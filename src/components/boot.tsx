@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { drawText, textCols } from "@/lib/glyphs";
-import { bitUnit, cellSizeFor } from "@/lib/mire";
+import { drawText, mireText, textCols } from "@/lib/glyphs";
+import { bitUnit, blockifyText, cellSizeFor, fallOrder, textBlockHeight } from "@/lib/mire";
+import { bySlug } from "@/lib/projects";
 
 /* ------------------------------------------------------------------ */
 /* Sequence de mise en route : la mire se charge, bloc par bloc        */
@@ -207,6 +208,17 @@ const easeOutCubic = (k: number) => 1 - Math.pow(1 - k, 3);
 const easeInOutCubic = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
 const seg = (k: number, a: number, b: number) => Math.min(1, Math.max(0, (k - a) / (b - a)));
 
+const DISPLAY_FONT = "'Anton', sans-serif";
+
+/** Titre de la page de destination, lu sur le chemin deja change au declenchement. */
+function titleFor(path: string): string {
+  if (path === "/") return "MIRE";
+  if (path.startsWith("/atelier")) return "ATELIER";
+  if (path.startsWith("/contact")) return "CONTACT";
+  const m = /^\/projet\/([^/]+)/.exec(path);
+  return (m && bySlug(m[1]!)?.title) || "MIRE";
+}
+
 /**
  * Texte 3x5 en XOR par cellule : chaque bloc de glyphe est blanc si la cellule du
  * masque sous lui est noire, noir sinon, et rien n'est peint sur la rangee rouge.
@@ -312,6 +324,18 @@ export function RouteWipe() {
     const counterX = (Math.floor(window.innerWidth / cell) - 1 - textCols("000")) * cell;
     const counterY = (Math.floor(window.innerHeight / cell) - 1 - 5) * cell;
 
+    // titre de destination, compose pleine largeur et centre ; s'il depasse la
+    // hauteur d'ecran, on reduit sa largeur plutot que de le couper
+    const title = mireText(titleFor(path));
+    const rowsMax = Math.max(1, rows - 6);
+    const needed = Math.ceil(textBlockHeight(title, DISPLAY_FONT, cols * cell) / cell);
+    const rowsTitle = Math.min(needed, rowsMax);
+    const colsTitle = needed > rowsMax ? Math.max(1, Math.floor((cols * rowsMax) / needed)) : cols;
+    const titleBits = blockifyText(title, DISPLAY_FONT, colsTitle, rowsTitle);
+    const titleOrder = fallOrder(colsTitle, rowsTitle, 13);
+    const titleX = Math.floor((cols - colsTitle) / 2);
+    const titleY = Math.floor((rows - rowsTitle) / 2);
+
     const step = (t: number) => {
       if (dead) return;
       const k = Math.min(1, (t - t0) / DUR);
@@ -343,6 +367,21 @@ export function RouteWipe() {
           ctx.fillRect(0, red * cell, cols * cell, cell);
         }
 
+        // titre : se compose avec le masque, tient au palier, tombe avec lui
+        const pTitle = k < A ? easeOutCubic(seg(k, 0, A)) : 1;
+        ctx.fillStyle = "#FFFFFF";
+        for (let y = 0; y < rowsTitle; y++) {
+          const gy = titleY + y;
+          if (gy === red) continue;
+          for (let x = 0; x < colsTitle; x++) {
+            const i = y * colsTitle + x;
+            if (!titleBits.data[i] || titleOrder[i]! > pTitle) continue;
+            const gx = titleX + x;
+            if (!state[gy * cols + gx]) continue;
+            ctx.fillRect(gx * cell, gy * cell, cell, cell);
+          }
+        }
+
         const ink = (gx: number, gy: number) => (gy === red ? null : state[gy * cols + gx] === 1);
         drawTextXor(ctx, MENTION, u, cell, cell, cell, ink);
         const count = String(Math.round(easeInOutCubic(k) * 100)).padStart(3, "0");
@@ -360,7 +399,7 @@ export function RouteWipe() {
 
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-[190] overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-[195] overflow-hidden"
       style={{ visibility: on ? "visible" : "hidden" }}
       aria-hidden="true"
     >
