@@ -92,7 +92,7 @@ export function KeyHelp() {
               closeBtn.current?.focus();
             }
           }}
-          className="on-black fixed inset-0 z-[240] flex flex-col justify-between bg-black px-cell py-cell2 text-white"
+          className="on-black fixed inset-0 z-[240] flex flex-col justify-between overflow-y-auto bg-black px-cell py-cell2 text-white"
         >
           <div className="u-mono flex items-center justify-between">
             <span>MIRE / FICHE DE COMMANDE</span>
