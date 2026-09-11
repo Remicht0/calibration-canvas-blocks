@@ -171,6 +171,7 @@ export function NegativeSwitch() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (document.documentElement.classList.contains("mire-modal")) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (e.key === "n" || e.key === "N") setNeg((v) => !v);

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import type { ComponentProps, ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
+import type { ComponentProps, ElementType, ReactNode } from "react";
 
 /* ------------------------------------------------------------------ */
 /* Bloc : tout bouton ou lien cadre de la mire (classe .u-bloc).       */
@@ -14,8 +14,8 @@ type Base = {
   children?: ReactNode;
 };
 
-type ButtonBloc = Base & { as?: "button" } & ComponentPropsWithoutRef<"button">;
-type AnchorBloc = Base & { as: "a" } & ComponentPropsWithoutRef<"a">;
+type ButtonBloc = Base & { as?: "button" } & ComponentProps<"button">;
+type AnchorBloc = Base & { as: "a" } & ComponentProps<"a">;
 type LinkBloc = Base & { as: typeof Link } & ComponentProps<typeof Link>;
 
 export type BlocProps = ButtonBloc | AnchorBloc | LinkBloc;
