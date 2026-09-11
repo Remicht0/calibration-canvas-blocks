@@ -130,6 +130,7 @@ function ProjectPage() {
         <div className="u-mono mb-cell flex justify-between">
           <h2>PLANCHE 01 — MATIERE</h2>
           <span className="hidden md:inline">SURVOL = LOUPE / MATIERE BRUTE</span>
+          <span className="md:hidden">APPUI LONG = LOUPE</span>
         </div>
         <HybridMedia
           src={p.image}

@@ -210,7 +210,8 @@ function Index() {
         </div>
         <p className="u-copy mt-cell2 max-w-[54ch]">
           LES PHOTOS ET VIDEOS NE SONT PAS COLLEES SUR LA MIRE : ELLES SONT ECHANTILLONNEES DANS SA
-          GRILLE. UN BLOC = UN PIXEL. LE SURVOL OUVRE UNE LOUPE DE MATIERE BRUTE.
+          GRILLE. UN BLOC = UN PIXEL. LE SURVOL, OU L&apos;APPUI LONG, OUVRE UNE LOUPE DE MATIERE
+          BRUTE.
         </p>
       </section>
 

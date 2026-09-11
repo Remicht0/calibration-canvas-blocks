@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { cellSizeFor, fallOrder, prefersReducedMotion } from "@/lib/mire";
+import { cellSizeFor, fallOrder, otsuThreshold, prefersReducedMotion } from "@/lib/mire";
 import {
   inkRatio,
   isReady,
@@ -15,15 +15,35 @@ import { BitReadout } from "@/components/readout";
 /* Hors mire : ce que le lecteur d'ecran entend, en francais accentue. */
 const SPOKEN: Record<BitMode, string> = {
   bin: "Lecture binaire, seuil dur 1 bit.",
-  gris: "Lecture en gris, cinq paliers quantifiés.",
+  gris: "Lecture en gris, paliers quantifiés.",
   brut: "Lecture brute, mosaïque couleur, un bloc par pixel.",
 };
 
 const CYCLE: BitMode[] = ["bin", "gris", "brut"];
 
+type Tune = { threshold: number; levels: number; gamma: number };
+
+/* Crans de reglage : seuil par 0,05 entre 0,20 et 0,70, paliers entiers de 2 a 8. */
+const clampTune = (t: Tune): Tune => ({
+  threshold: Math.min(0.7, Math.max(0.2, Math.round(t.threshold * 20) / 20)),
+  levels: Math.min(8, Math.max(2, Math.round(t.levels))),
+  gamma: t.gamma,
+});
+
+const frNumber = (v: number) => v.toFixed(2).replace(".", ",");
+
+type KeyLike = {
+  key: string;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  preventDefault: () => void;
+};
+
 /* ------------------------------------------------------------------ */
 /* Media hybride : photo ou video reduite a la grille de blocs.         */
-/* Trois lectures (BIN / GRIS / BRUT) + loupe de matiere au survol.     */
+/* Trois lectures (BIN / GRIS / BRUT), seuil et paliers reglables,      */
+/* loupe de matiere au survol (souris) ou a l'appui long (tactile).     */
 /* ------------------------------------------------------------------ */
 
 export function HybridMedia({
@@ -38,6 +58,7 @@ export function HybridMedia({
   lensRadius = 3.5,
   drive = "time",
   controls = true,
+  onSample,
   className = "",
 }: {
   src: string;
@@ -54,6 +75,8 @@ export function HybridMedia({
   /** time : la planche se compose a l'entree en ecran ; scroll : la chute suit le defilement */
   drive?: "time" | "scroll";
   controls?: boolean;
+  /** Trame echantillonnee, pour un instrument externe (video : au plus toutes les 600 ms) */
+  onSample?: (s: Sampled) => void;
   className?: string;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
@@ -66,15 +89,62 @@ export function HybridMedia({
   const [playing, setPlaying] = useState(true);
   const mediaRef = useRef<Source | null>(null);
   const restart = useRef<() => void>(() => {});
+  const redraw = useRef<() => void>(() => {});
+  const auto = useRef<() => void>(() => {});
+  const sampleRef = useRef<((s: Sampled) => void) | undefined>(onSample);
+  sampleRef.current = onSample;
+  // reglages lus par draw() sans relancer l'effet : un changement redessine, ne refait pas tomber
+  const tune = useRef<Tune>({ threshold, levels, gamma });
+  const [shown, setShown] = useState<Tune>(tune.current);
+  // survol de la planche : les raccourcis - / + / A s'appliquent sans focus
+  const hovered = useRef(false);
+  const figure = useRef<HTMLElement>(null);
   // taux d'encrage mesure sur la trame, en pour cent
   const [ink, setInk] = useState<number | null>(null);
   const measure = useRef<() => void>(() => {});
+  // pointeur grossier : la loupe s'ouvre a l'appui long, l'etiquette le dit
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => {
+    setCoarse(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
 
   const apply = useCallback((m: BitMode) => {
     modeRef.current = m;
     setMode(m);
     measure.current();
   }, []);
+
+  const setTune = useCallback((patch: Partial<Tune>) => {
+    const next = clampTune({ ...tune.current, ...patch });
+    tune.current = next;
+    setShown(next);
+    redraw.current();
+    measure.current();
+  }, []);
+
+  const step = useCallback(
+    (dir: -1 | 1) => {
+      const m = modeRef.current;
+      if (m === "bin") setTune({ threshold: tune.current.threshold + dir * 0.05 });
+      else if (m === "gris") setTune({ levels: tune.current.levels + dir });
+    },
+    [setTune],
+  );
+
+  const shortcut = useCallback(
+    (e: KeyLike) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (document.documentElement.classList.contains("mire-modal")) return;
+      const m = modeRef.current;
+      if (m === "brut") return;
+      if (e.key === "-") step(-1);
+      else if (e.key === "+" || e.key === "=") step(1);
+      else if ((e.key === "a" || e.key === "A") && m === "bin") auto.current();
+      else return;
+      e.preventDefault();
+    },
+    [step],
+  );
 
   const togglePlay = useCallback(() => {
     const v = mediaRef.current;
@@ -89,6 +159,17 @@ export function HybridMedia({
       v.pause();
     }
   }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!hovered.current) return;
+      // la figure focalisee recoit deja l'evenement par onKeyDown
+      if (figure.current?.contains(e.target as Node)) return;
+      shortcut(e);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [shortcut]);
 
   useEffect(() => {
     const el = wrap.current;
@@ -113,7 +194,7 @@ export function HybridMedia({
 
     measure.current = () => {
       if (!data) return;
-      const v = Math.round(inkRatio(data, modeRef.current, { threshold, levels, gamma }) * 100);
+      const v = Math.round(inkRatio(data, modeRef.current, tune.current) * 100);
       if (v !== lastInk) {
         lastInk = v;
         setInk(v);
@@ -135,12 +216,11 @@ export function HybridMedia({
         mode: modeRef.current,
         progress,
         order,
-        threshold,
-        levels,
-        gamma,
+        ...tune.current,
         lens,
       });
     };
+    redraw.current = draw;
 
     const build = () => {
       if (!media || !isReady(media)) return;
@@ -154,6 +234,7 @@ export function HybridMedia({
       cv.height = rows * cell * dpr;
       order = fallOrder(cols, rows, cols * 5 + rows);
       data = sample(media, cols, rows);
+      if (data) sampleRef.current?.(data);
       if (scrolled) progress = scrollProgress();
       draw();
       measure.current();
@@ -184,7 +265,7 @@ export function HybridMedia({
         return;
       }
       const t0 = performance.now() - progress * 1000;
-      const step = (t: number) => {
+      const frame = (t: number) => {
         if (dead || !visible) return;
         progress = reduced ? 1 : Math.min(1, (t - t0) / 1000);
         const v = media instanceof HTMLVideoElement ? media : null;
@@ -194,14 +275,21 @@ export function HybridMedia({
           if (t - inkAt > 600) {
             inkAt = t;
             measure.current();
+            if (data) sampleRef.current?.(data);
           }
         }
         draw();
-        if (progress < 1 || live) raf = requestAnimationFrame(step);
+        if (progress < 1 || live) raf = requestAnimationFrame(frame);
       };
-      raf = requestAnimationFrame(step);
+      raf = requestAnimationFrame(frame);
     };
     restart.current = compose;
+
+    // seuil d'Otsu sur la trame courante ; sur une image plate il tombe sur une borne, affichee telle quelle
+    auto.current = () => {
+      if (!data) return;
+      setTune({ threshold: otsuThreshold(data.lum, 0.2, 0.7) });
+    };
 
     if (video) {
       const v = document.createElement("video");
@@ -251,70 +339,209 @@ export function HybridMedia({
       { threshold: 0.12 },
     );
 
-    const onMove = (ev: PointerEvent) => {
+    // loupe : un seul dessin par image, meme si le pointeur bouge plus vite
+    let drawRaf = 0;
+    const requestDraw = () => {
+      if (drawRaf) return;
+      drawRaf = requestAnimationFrame(() => {
+        drawRaf = 0;
+        if (progress > 0 && !(media instanceof HTMLVideoElement && playingRef.current)) draw();
+      });
+    };
+    const lift = Math.ceil(lensRadius + 1);
+    const setLens = (ev: PointerEvent, touch: boolean) => {
       const r = cv.getBoundingClientRect();
+      const x = Math.floor(((ev.clientX - r.left) / r.width) * cols);
+      let y = Math.floor(((ev.clientY - r.top) / r.height) * rows);
+      // tactile : le disque se pose au-dessus du doigt, jamais dessous
+      if (touch) y = Math.max(Math.ceil(lensRadius), y - lift);
       lens = {
-        x: Math.floor(((ev.clientX - r.left) / r.width) * cols),
-        y: Math.floor(((ev.clientY - r.top) / r.height) * rows),
+        x: Math.min(cols - 1, Math.max(0, x)),
+        y: Math.min(rows - 1, Math.max(0, y)),
         r: lensRadius,
       };
-      if (progress >= 1 && !(media instanceof HTMLVideoElement && playingRef.current)) draw();
     };
-    const onLeave = () => {
+
+    // appui long tactile : 220 ms sans bouger de plus de 6 px, sinon la page defile
+    let engaged = false;
+    let pressTimer = 0;
+    let press: { id: number; x: number; y: number } | null = null;
+    const disarm = () => {
+      clearTimeout(pressTimer);
+      pressTimer = 0;
+      press = null;
+    };
+    const onDown = (ev: PointerEvent) => {
+      if (ev.pointerType !== "touch") return;
+      disarm();
+      press = { id: ev.pointerId, x: ev.clientX, y: ev.clientY };
+      pressTimer = window.setTimeout(() => {
+        pressTimer = 0;
+        engaged = true;
+        try {
+          cv.setPointerCapture(ev.pointerId);
+        } catch {
+          /* pointeur deja releve */
+        }
+        navigator.vibrate?.(8);
+        setLens(ev, true);
+        requestDraw();
+      }, 220);
+    };
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerType === "touch") {
+        if (engaged) {
+          setLens(ev, true);
+          requestDraw();
+        } else if (
+          press &&
+          Math.max(Math.abs(ev.clientX - press.x), Math.abs(ev.clientY - press.y)) > 6
+        ) {
+          disarm();
+        }
+        return;
+      }
+      setLens(ev, false);
+      requestDraw();
+    };
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerType !== "touch") return;
+      disarm();
+      engaged = false;
       lens = null;
-      if (progress >= 1 && !(media instanceof HTMLVideoElement && playingRef.current)) draw();
+      requestDraw();
     };
+    const onTouchMove = (ev: TouchEvent) => {
+      if (engaged) ev.preventDefault();
+    };
+    const onEnter = () => {
+      hovered.current = true;
+    };
+    const onLeave = (ev: PointerEvent) => {
+      hovered.current = false;
+      if (ev.pointerType === "touch") return;
+      lens = null;
+      requestDraw();
+    };
+    cv.addEventListener("pointerenter", onEnter);
+    cv.addEventListener("pointerdown", onDown);
     cv.addEventListener("pointermove", onMove);
+    cv.addEventListener("pointerup", onUp);
+    cv.addEventListener("pointercancel", onUp);
     cv.addEventListener("pointerleave", onLeave);
+    cv.addEventListener("touchmove", onTouchMove, { passive: false });
 
     const ro = new ResizeObserver(() => build());
     ro.observe(el);
 
     return () => {
       dead = true;
+      disarm();
       cancelAnimationFrame(raf);
       cancelAnimationFrame(scrollRaf);
+      cancelAnimationFrame(drawRaf);
       window.removeEventListener("scroll", onScroll);
       io.disconnect();
       ro.disconnect();
+      cv.removeEventListener("pointerenter", onEnter);
+      cv.removeEventListener("pointerdown", onDown);
       cv.removeEventListener("pointermove", onMove);
+      cv.removeEventListener("pointerup", onUp);
+      cv.removeEventListener("pointercancel", onUp);
       cv.removeEventListener("pointerleave", onLeave);
+      cv.removeEventListener("touchmove", onTouchMove);
       if (media instanceof HTMLVideoElement) media.pause();
       mediaRef.current = null;
+      hovered.current = false;
     };
-  }, [src, ratio, levels, gamma, threshold, lensRadius, video, drive]);
+  }, [src, ratio, lensRadius, video, drive, setTune]);
+
+  const spokenTune =
+    mode === "bin"
+      ? `Seuil ${frNumber(shown.threshold)}, `
+      : mode === "gris"
+        ? `Paliers ${shown.levels}, `
+        : "";
+  const spokenInk = ink !== null && !video ? `encrage ${ink} %.` : "";
 
   return (
-    <figure className={`min-w-0 max-w-full ${className}`}>
+    <figure
+      ref={figure}
+      tabIndex={0}
+      onKeyDown={shortcut}
+      className={`min-w-0 max-w-full ${className}`}
+    >
       <div ref={wrap} role="img" aria-label={alt} className="max-w-full">
-        <canvas ref={canvas} className="block max-w-full" />
+        <canvas
+          ref={canvas}
+          className="block max-w-full touch-pan-y select-none"
+          style={{ WebkitTouchCallout: "none" }}
+        />
       </div>
       {controls && (
-        <figcaption className="u-mono mt-[3px] flex flex-wrap items-center justify-between gap-x-cell gap-y-[3px] border-[3px] border-black px-[6px] py-[3px]">
-          <span className="flex min-w-0 items-center gap-[6px]">
+        <figcaption className="u-mono mt-[3px] flex flex-wrap items-center justify-between gap-x-cell gap-y-0 border-[3px] border-black px-[6px]">
+          <span className="flex min-h-cell2 min-w-0 items-center gap-[6px]">
             {label && <span className="min-w-0 truncate">{label}</span>}
             {ink !== null && (
               <span className="flex shrink-0 items-center gap-[4px]">
                 <span>ENCRE</span>
-                <BitReadout text={`${ink}%`} unit={2} />
+                <BitReadout text={`${ink}%`} />
               </span>
             )}
           </span>
+          {mode !== "brut" && (
+            <span
+              role="group"
+              aria-label="Réglage de la planche"
+              className="flex min-h-cell2 basis-full items-center justify-end gap-[6px] sm:flex-1 sm:basis-auto"
+            >
+              <span>{mode === "bin" ? "SEUIL" : "PALIERS"}</span>
+              <BitReadout
+                text={mode === "bin" ? shown.threshold.toFixed(2) : String(shown.levels)}
+              />
+              <button
+                type="button"
+                onClick={() => step(-1)}
+                aria-label={mode === "bin" ? "Baisser le seuil" : "Moins de paliers"}
+                className="u-mono u-bloc min-w-cell2 px-[6px]"
+              >
+                -
+              </button>
+              <button
+                type="button"
+                onClick={() => step(1)}
+                aria-label={mode === "bin" ? "Monter le seuil" : "Plus de paliers"}
+                className="u-mono u-bloc min-w-cell2 px-[6px]"
+              >
+                +
+              </button>
+              {mode === "bin" && (
+                <button
+                  type="button"
+                  onClick={() => auto.current()}
+                  aria-label="Seuil automatique (Otsu)"
+                  className="u-mono u-bloc px-[6px]"
+                >
+                  AUTO
+                </button>
+              )}
+            </span>
+          )}
           <span
             role="group"
             aria-label="Mode de lecture"
-            className="flex flex-1 items-center justify-end gap-[6px] sm:flex-none"
+            className="ml-auto flex min-h-cell2 flex-1 items-center justify-end gap-[6px] sm:flex-none"
           >
-            <span className="hidden sm:inline">{video ? "VIDEO" : "PHOTO"}</span>
+            <span className="hidden sm:inline">
+              {coarse ? "APPUI LONG = LOUPE" : video ? "VIDEO" : "PHOTO"}
+            </span>
             {video && (
               <button
                 type="button"
                 onClick={togglePlay}
                 aria-pressed={!playing}
                 aria-label={playing ? "Pause de la vidéo" : "Lecture de la vidéo"}
-                className={`border-[3px] border-black px-[6px] py-[1px] ${
-                  playing ? "bg-white text-black" : "bg-black text-white"
-                }`}
+                className="u-mono u-bloc px-[6px]"
               >
                 {playing ? "PAUSE" : "LECTURE"}
               </button>
@@ -326,9 +553,7 @@ export function HybridMedia({
                 onClick={() => apply(m)}
                 aria-pressed={mode === m}
                 aria-label={`${m.toUpperCase()} : ${SPOKEN[m]}`}
-                className={`border-[3px] border-black px-[6px] py-[1px] ${
-                  mode === m ? "bg-black text-white" : "bg-white text-black"
-                }`}
+                className="u-mono u-bloc px-[6px]"
               >
                 {m.toUpperCase()}
               </button>
@@ -337,7 +562,8 @@ export function HybridMedia({
         </figcaption>
       )}
       <span className="sr-only" aria-live="polite">
-        {SPOKEN[mode]}
+        {SPOKEN[mode]} {spokenTune}
+        {spokenInk}
       </span>
     </figure>
   );
