@@ -132,7 +132,7 @@ export function ScrollRail() {
   const u = bitUnit(cell);
 
   useEffect(() => {
-    const set = () => setRows(Math.max(10, Math.floor((window.innerHeight - cell * 12) / (u * 2))));
+    const set = () => setRows(Math.max(10, Math.floor((window.innerHeight - cell * 16) / (u * 2))));
     set();
     window.addEventListener("resize", set);
     return () => window.removeEventListener("resize", set);
@@ -147,7 +147,12 @@ export function ScrollRail() {
       style={{ width: cell * 2, color: "#FFFFFF" }}
     >
       {/* compteur bitmap */}
-      <BitReadout text={pct(p)} className="shrink-0" />
+      {/* compteur bitmap, un glyphe par rang : a une cellule de haut, la ligne ne tient pas dans deux cellules de large */}
+      <div className="flex shrink-0 flex-col items-center" style={{ gap: u }}>
+        {[...pct(p)].map((ch, i) => (
+          <BitReadout key={i} text={ch} />
+        ))}
+      </div>
 
       {/* reglette : blocs pleins sur un pas u — vide u, pose 3u, repere 4u, tete 5u x 2u */}
       <div className="flex min-h-0 flex-1 flex-col justify-center py-cell" style={{ gap: u }}>
