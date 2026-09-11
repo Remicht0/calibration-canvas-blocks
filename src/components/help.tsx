@@ -2,13 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { CalibrationBand } from "@/components/bars";
 import { Bloc } from "@/components/bloc";
+import { projects } from "@/lib/projects";
 
 /** Raccourcis de la mire. Etiquettes en capitales sans accents (DESIGN.md §2). */
 const KEYS: Array<[string, string]> = [
   ["N", "INVERSER LE SIGNAL (NEGATIF / POSITIF)"],
   ["?", "OUVRIR OU FERMER CETTE FICHE"],
   ["ESC", "FERMER LA FICHE"],
-  ["FLECHES", "FEUILLETER LES PROJETS (PAGE PROJET)"],
+  ["FLECHES", "GAUCHE / DROITE : FEUILLETER LES PROJETS (PAGE PROJET)"],
+  ["HAUT / BAS", "TETE DE LECTURE SUR L'INDEX"],
+  [`1 - ${projects.length}`, "SAUT DIRECT AU PROJET N"],
   ["TAB", "PARCOURS CLAVIER, BLOC INVERSE"],
   ["SURVOL", "LOUPE DE MATIERE SUR UNE PLANCHE"],
   ["APPUI LONG", "LOUPE DE MATIERE (TACTILE)"],
