@@ -74,7 +74,8 @@ function ProjectPage() {
   const tag = (o: (typeof projects)[number]) =>
     o === prev ? "PRECEDENT" : o === next ? "SUIVANT" : "";
 
-  // fleches du clavier : precedent / suivant, comme on feuillette des planches
+  // fleches du clavier : precedent / suivant, comme on feuillette des planches ;
+  // un chiffre saute directement au projet N
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
@@ -85,6 +86,10 @@ function ProjectPage() {
         void navigate({ to: "/projet/$slug", params: { slug: prev.slug } });
       if (e.key === "ArrowRight")
         void navigate({ to: "/projet/$slug", params: { slug: next.slug } });
+      if (/^[1-9]$/.test(e.key)) {
+        const target = projects[Number(e.key) - 1];
+        if (target) void navigate({ to: "/projet/$slug", params: { slug: target.slug } });
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

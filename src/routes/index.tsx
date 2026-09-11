@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { BlockBackdrop, BlockType } from "@/components/mire";
 import { CalibrationBand, Ticker } from "@/components/bars";
@@ -32,7 +32,10 @@ export const Route = createFileRoute("/")({
 function Index() {
   const [hover, setHover] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
+  const [cursor, setCursor] = useState<number | null>(null);
   const items = useRef<Array<HTMLLIElement | null>>([]);
+  const index = useRef<HTMLElement>(null);
+  const navigate = useNavigate();
 
   // Tactile : pas de survol. Le projet le plus proche du centre de l'ecran
   // se compose de lui-meme en fond. Le scroll devient la tete de lecture.
@@ -70,6 +73,58 @@ function Index() {
       window.removeEventListener("resize", onScroll);
     };
   }, []);
+
+  // Clavier : HAUT / BAS deplacent une tete de lecture sur l'index (bloc plein,
+  // fond en negatif, saut sec dans l'ecran), ESC la relache, un chiffre saute
+  // au projet N. Les fleches ne sont prises que si l'index est a l'ecran ou
+  // porte le focus : ailleurs, la page defile.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (document.documentElement.classList.contains("mire-modal")) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+
+      if (/^[1-9]$/.test(e.key)) {
+        const p = projects[Number(e.key) - 1];
+        if (p) void navigate({ to: "/projet/$slug", params: { slug: p.slug } });
+        return;
+      }
+
+      const section = index.current;
+      if (!section) return;
+      const focused = section.contains(document.activeElement);
+      if (e.key === "Escape") {
+        if (cursor === null) return;
+        if (focused) (document.activeElement as HTMLElement | null)?.blur();
+        setCursor(null);
+        setActive(null);
+        setHover(null);
+        return;
+      }
+
+      const last = projects.length - 1;
+      let next: number;
+      if (e.key === "ArrowDown") next = cursor === null ? 0 : Math.min(last, cursor + 1);
+      else if (e.key === "ArrowUp") next = cursor === null ? 0 : Math.max(0, cursor - 1);
+      else if (e.key === "Home") next = 0;
+      else if (e.key === "End") next = last;
+      else return;
+
+      const r = section.getBoundingClientRect();
+      if (!focused && (r.bottom <= 0 || r.top >= window.innerHeight)) return;
+      e.preventDefault();
+      const p = projects[next];
+      if (!p) return;
+      setCursor(next);
+      setActive(p.slug);
+      const li = items.current[next];
+      li?.querySelector("a")?.focus({ preventScroll: true });
+      li?.scrollIntoView({ block: "center", behavior: "instant" });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cursor, navigate]);
 
   return (
     <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
@@ -117,14 +172,25 @@ function Index() {
       />
 
       {/* INDEX */}
-      <section data-mire="INDEX" className="on-black relative border-t-[10px] border-black">
+      <section
+        ref={index}
+        data-mire="INDEX"
+        className="on-black relative border-t-[10px] border-black"
+      >
         <BlockBackdrop src={hover} />
         <div
           className="relative"
           style={{ mixBlendMode: "difference", color: "#FFFFFF" }}
-          onMouseLeave={() => setHover(null)}
+          onMouseLeave={() => {
+            if (cursor === null) setHover(null);
+          }}
           onBlur={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget)) setHover(null);
+            if (e.currentTarget.contains(e.relatedTarget)) return;
+            setHover(null);
+            if (cursor !== null) {
+              setCursor(null);
+              setActive(null);
+            }
           }}
         >
           <div className="u-mono grid grid-cols-[4ch_1fr] gap-x-cell px-cell py-cell2">
