@@ -187,7 +187,8 @@ export function NegativeSwitch() {
       pressed={neg}
       aria-keyshortcuts="n"
       aria-label={neg ? "Revenir au positif, touche N" : "Passer en négatif, touche N"}
-      className="mire-noprint fixed right-0 top-1/2 z-[160] hidden h-auto w-cell2 -translate-y-1/2 px-0 py-cell md:inline-flex"
+      // en vertical-rl l'axe inline est vertical : px-cell / py-0 donnent haut-bas = 1 cellule, cotes = 0
+      className="mire-noprint fixed right-0 top-1/2 z-[160] hidden h-auto w-cell2 -translate-y-1/2 px-cell py-0 md:inline-flex"
       style={{ writingMode: "vertical-rl" }}
     >
       {neg ? "POSITIF [N]" : "NEGATIF [N]"}
