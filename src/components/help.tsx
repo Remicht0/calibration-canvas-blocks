@@ -3,6 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { CalibrationBand } from "@/components/bars";
 import { Bloc } from "@/components/bloc";
 import { projects } from "@/lib/projects";
+import { lockPage, unlockPage } from "@/lib/modal";
 
 /** Raccourcis de la mire. Etiquettes en capitales sans accents (DESIGN.md §2). */
 const KEYS: Array<[string, string]> = [
@@ -17,12 +18,10 @@ const KEYS: Array<[string, string]> = [
   ["APPUI LONG", "LOUPE DE MATIERE (TACTILE)"],
   ["- / +", "SEUIL OU PALIERS DE LA PLANCHE SURVOLEE"],
   ["A", "SEUIL AUTOMATIQUE (OTSU)"],
+  ["F", "PLEIN CADRE DE LA PLANCHE SURVOLEE"],
   ["DEFILEMENT", "LA LIGNE ROUGE LIT LES TITRES, COMPOSE LES PLANCHES"],
   ["CURSEUR", "USE LES TITRES EN BLOCS, ILS SE REPOSENT"],
 ];
-
-/** Ce qui devient inerte quand la fiche est ouverte : la page, la console, l'inverseur. */
-const INERT = ["#contenu", 'nav[aria-label="Console de navigation"]', "#inverseur"];
 
 /**
  * Fiche des raccourcis : masque plein ecran, noir plein, aucune transparence
@@ -55,21 +54,13 @@ export function KeyHelp() {
 
   useEffect(() => {
     if (!open) return;
-    const root = document.documentElement;
     const before = document.activeElement;
     const opener = openBtn.current;
-    const frozen = INERT.map((q) => document.querySelector<HTMLElement>(q)).filter(
-      (el): el is HTMLElement => el !== null,
-    );
-    frozen.forEach((el) => el.setAttribute("inert", ""));
-    root.classList.add("mire-modal");
-    root.style.overflow = "hidden";
+    lockPage();
     const raf = requestAnimationFrame(() => closeBtn.current?.focus());
     return () => {
       cancelAnimationFrame(raf);
-      frozen.forEach((el) => el.removeAttribute("inert"));
-      root.classList.remove("mire-modal");
-      root.style.overflow = "";
+      unlockPage();
       const back =
         before instanceof HTMLElement && before !== document.body && before.isConnected
           ? before
@@ -84,7 +75,7 @@ export function KeyHelp() {
         ref={openBtn}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="mire-noprint fixed bottom-cell right-cell z-[180] hidden md:inline-flex"
+        className="mire-chrome mire-noprint fixed bottom-cell right-cell z-[180] hidden md:inline-flex"
       >
         AIDE [?]
       </Bloc>

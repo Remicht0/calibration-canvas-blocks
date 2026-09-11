@@ -10,6 +10,8 @@ import {
   type Sampled,
   type Source,
 } from "@/lib/bitmap";
+import { Bloc } from "@/components/bloc";
+import { PleinCadre } from "@/components/plein";
 import { BitReadout } from "@/components/readout";
 
 /* Hors mire : ce que le lecteur d'ecran entend, en francais accentue. */
@@ -21,7 +23,7 @@ const SPOKEN: Record<BitMode, string> = {
 
 const CYCLE: BitMode[] = ["bin", "gris", "brut"];
 
-type Tune = { threshold: number; levels: number; gamma: number };
+export type Tune = { threshold: number; levels: number; gamma: number };
 
 /* Crans de reglage : seuil par 0,05 entre 0,20 et 0,70, paliers entiers de 2 a 8. */
 const clampTune = (t: Tune): Tune => ({
@@ -31,6 +33,9 @@ const clampTune = (t: Tune): Tune => ({
 });
 
 const frNumber = (v: number) => v.toFixed(2).replace(".", ",");
+
+/** Evenement emis par le plein cadre : a true les planches de la page s'arretent, a false elles reprennent. */
+export const MODAL_EVENT = "mire:modal";
 
 type KeyLike = {
   key: string;
@@ -43,7 +48,9 @@ type KeyLike = {
 /* ------------------------------------------------------------------ */
 /* Media hybride : photo ou video reduite a la grille de blocs.         */
 /* Trois lectures (BIN / GRIS / BRUT), seuil et paliers reglables,      */
-/* loupe de matiere au survol (souris) ou a l'appui long (tactile).     */
+/* loupe de matiere au survol (souris) ou a l'appui long (tactile),     */
+/* plein cadre : la meme source re-echantillonnee a la taille de        */
+/* l'ecran (la cellule ne change pas, l'image gagne des colonnes).      */
 /* ------------------------------------------------------------------ */
 
 export function HybridMedia({
@@ -57,26 +64,37 @@ export function HybridMedia({
   threshold = 0.45,
   lensRadius = 3.5,
   drive = "time",
+  fit = "ratio",
+  phase = "in",
   controls = true,
   onSample,
+  onDissolved,
+  onFull,
   className = "",
 }: {
   src: string;
   /** Description de l'image pour les lecteurs d'ecran : francais accentue, jamais en capitales. */
   alt: string;
   /** Etiquette visible sous la planche : capitales sans accents (regle de la mire). */
-  label?: string;
+  label?: string | undefined;
   ratio?: number;
   mode?: BitMode;
   levels?: number;
   gamma?: number;
   threshold?: number;
-  lensRadius?: number;
+  lensRadius?: number | undefined;
   /** time : la planche se compose a l'entree en ecran ; scroll : la chute suit le defilement */
   drive?: "time" | "scroll";
+  /** ratio : hauteur = colonnes x ratio ; viewport : la planche remplit son conteneur, en colonnes et en rangees */
+  fit?: "ratio" | "viewport";
+  /** out : les blocs tombent (progress 1 -> 0 en 600 ms, meme ordre), puis onDissolved */
+  phase?: "in" | "out";
   controls?: boolean;
   /** Trame echantillonnee, pour un instrument externe (video : au plus toutes les 600 ms) */
   onSample?: (s: Sampled) => void;
+  onDissolved?: () => void;
+  /** Appele a l'ouverture du plein cadre (bouton PLEIN ou touche F) */
+  onFull?: () => void;
   className?: string;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
@@ -84,33 +102,48 @@ export function HybridMedia({
   const modeRef = useRef<BitMode>(initial);
   const [mode, setMode] = useState<BitMode>(initial);
   const video = isVideo(src);
+  const viewport = fit === "viewport";
   // video : lecture automatique, sauf si le systeme demande moins de mouvement
   const playingRef = useRef(true);
   const [playing, setPlaying] = useState(true);
   const mediaRef = useRef<Source | null>(null);
   const restart = useRef<() => void>(() => {});
+  const dissolve = useRef<() => void>(() => {});
   const redraw = useRef<() => void>(() => {});
   const auto = useRef<() => void>(() => {});
   const sampleRef = useRef<((s: Sampled) => void) | undefined>(onSample);
   sampleRef.current = onSample;
+  const dissolvedRef = useRef<(() => void) | undefined>(onDissolved);
+  dissolvedRef.current = onDissolved;
+  const fullRef = useRef<(() => void) | undefined>(onFull);
+  fullRef.current = onFull;
   // reglages lus par draw() sans relancer l'effet : un changement redessine, ne refait pas tomber
   const tune = useRef<Tune>({ threshold, levels, gamma });
   const [shown, setShown] = useState<Tune>(tune.current);
-  // survol de la planche : les raccourcis - / + / A s'appliquent sans focus
+  // survol de la planche : les raccourcis - / + / A / F s'appliquent sans focus
   const hovered = useRef(false);
   const figure = useRef<HTMLElement>(null);
   // taux d'encrage mesure sur la trame, en pour cent
   const [ink, setInk] = useState<number | null>(null);
+  // format de la planche en cellules, pose a chaque composition
+  const [dims, setDims] = useState<{ cols: number; rows: number } | null>(null);
   const measure = useRef<() => void>(() => {});
   // pointeur grossier : la loupe s'ouvre a l'appui long, l'etiquette le dit
   const [coarse, setCoarse] = useState(false);
   useEffect(() => {
     setCoarse(window.matchMedia("(pointer: coarse)").matches);
   }, []);
+  // plein cadre : monte par cette planche, avec ses reglages et son mode courants
+  const [full, setFull] = useState(false);
+  const wasFull = useRef(false);
+  const fullBtn = useRef<HTMLButtonElement>(null);
+  const canFull = controls && !viewport;
 
+  // changement de mode : la trame est redessinee en place, les blocs poses ne retombent pas
   const apply = useCallback((m: BitMode) => {
     modeRef.current = m;
     setMode(m);
+    redraw.current();
     measure.current();
   }, []);
 
@@ -136,19 +169,35 @@ export function HybridMedia({
     [setTune],
   );
 
+  const openFull = useCallback(() => {
+    if (!canFull) return;
+    wasFull.current = true;
+    setFull(true);
+    fullRef.current?.();
+  }, [canFull]);
+
+  // a la fermeture, le focus revient au bouton PLEIN : la page n'est plus inerte
+  useEffect(() => {
+    if (full || !wasFull.current) return;
+    wasFull.current = false;
+    fullBtn.current?.focus();
+  }, [full]);
+
   const shortcut = useCallback(
     (e: KeyLike) => {
       if (e.altKey || e.ctrlKey || e.metaKey) return;
-      if (document.documentElement.classList.contains("mire-modal")) return;
+      // sous un masque, seule la planche du plein cadre garde ses raccourcis
+      if (!viewport && document.documentElement.classList.contains("mire-modal")) return;
       const m = modeRef.current;
-      if (m === "brut") return;
-      if (e.key === "-") step(-1);
+      if ((e.key === "f" || e.key === "F") && canFull) openFull();
+      else if (m === "brut") return;
+      else if (e.key === "-") step(-1);
       else if (e.key === "+" || e.key === "=") step(1);
       else if ((e.key === "a" || e.key === "A") && m === "bin") auto.current();
       else return;
       e.preventDefault();
     },
-    [step],
+    [step, openFull, canFull, viewport],
   );
 
   const togglePlay = useCallback(() => {
@@ -177,6 +226,10 @@ export function HybridMedia({
   }, [shortcut]);
 
   useEffect(() => {
+    if (phase === "out") dissolve.current();
+  }, [phase]);
+
+  useEffect(() => {
     const el = wrap.current;
     const cv = canvas.current;
     if (!el || !cv) return;
@@ -193,6 +246,8 @@ export function HybridMedia({
     const scrolled = drive === "scroll" && !video && !reduced;
     let progress = reduced ? 1 : 0;
     let visible = false;
+    // un plein cadre est ouvert au-dessus de la page : la planche s'arrete
+    let halted = false;
     let lens: { x: number; y: number; r: number } | null = null;
     let lastInk = -1;
     let inkAt = 0;
@@ -231,7 +286,10 @@ export function HybridMedia({
       if (!media || !isReady(media)) return;
       cell = cellSizeFor(window.innerWidth);
       cols = Math.max(6, Math.floor(el.clientWidth / cell));
-      rows = Math.max(4, Math.round(cols * ratio));
+      // viewport : la cellule reste la meme, la planche gagne des colonnes et des rangees
+      rows = viewport
+        ? Math.max(4, Math.floor(el.clientHeight / cell))
+        : Math.max(4, Math.round(cols * ratio));
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       cv.style.width = `${cols * cell}px`;
       cv.style.height = `${rows * cell}px`;
@@ -240,6 +298,7 @@ export function HybridMedia({
       order = fallOrder(cols, rows, cols * 5 + rows);
       data = sample(media, cols, rows);
       if (data) sampleRef.current?.(data);
+      setDims({ cols, rows });
       if (scrolled) progress = scrollProgress();
       draw();
       measure.current();
@@ -262,17 +321,29 @@ export function HybridMedia({
       });
     };
 
-    const compose = () => {
+    // mene progress de from a to en dur ms, sur le meme ordre de chute ; done une fois arrive.
+    // Une video continue d'etre echantillonnee tant qu'elle joue et que des blocs sont poses.
+    const run = (from: number, to: number, dur: number, done?: () => void) => {
       cancelAnimationFrame(raf);
       if (scrolled) {
         progress = scrollProgress();
         draw();
         return;
       }
-      const t0 = performance.now() - progress * 1000;
+      const t0 = performance.now();
+      let settled = false;
       const frame = (t: number) => {
-        if (dead || !visible) return;
-        progress = reduced ? 1 : Math.min(1, (t - t0) / 1000);
+        if (dead) return;
+        // planche a l'arret : rien a animer, mais une dissolution demandee aboutit tout de suite
+        if (!visible || halted) {
+          if (!settled) {
+            settled = true;
+            done?.();
+          }
+          return;
+        }
+        const k = reduced || dur <= 0 ? 1 : Math.min(1, (t - t0) / dur);
+        progress = from + (to - from) * k;
         const v = media instanceof HTMLVideoElement ? media : null;
         const live = v !== null && playingRef.current;
         if (v && live && isReady(v)) {
@@ -284,11 +355,21 @@ export function HybridMedia({
           }
         }
         draw();
-        if (progress < 1 || live) raf = requestAnimationFrame(frame);
+        if (k < 1) {
+          raf = requestAnimationFrame(frame);
+          return;
+        }
+        if (!settled) {
+          settled = true;
+          done?.();
+        }
+        if (live && progress > 0) raf = requestAnimationFrame(frame);
       };
       raf = requestAnimationFrame(frame);
     };
+    const compose = () => run(progress, 1, (1 - progress) * 1000);
     restart.current = compose;
+    dissolve.current = () => run(progress, 0, 600, () => dissolvedRef.current?.());
 
     // seuil d'Otsu sur la trame courante ; sur une image plate il tombe sur une borne, affichee telle quelle
     auto.current = () => {
@@ -324,25 +405,39 @@ export function HybridMedia({
       img.src = src;
     }
 
+    const resume = () => {
+      if (media instanceof HTMLVideoElement && playingRef.current)
+        void media.play().catch(() => {});
+      if (scrolled) window.addEventListener("scroll", onScroll, { passive: true });
+      compose();
+    };
+    const halt = () => {
+      cancelAnimationFrame(raf);
+      if (scrolled) window.removeEventListener("scroll", onScroll);
+      if (media instanceof HTMLVideoElement) media.pause();
+    };
+
     // Budget performance : hors viewport, le canvas et la video sont a l'arret.
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
           visible = e.isIntersecting;
           if (visible) {
-            if (media instanceof HTMLVideoElement && playingRef.current)
-              void media.play().catch(() => {});
-            if (scrolled) window.addEventListener("scroll", onScroll, { passive: true });
-            compose();
-          } else {
-            cancelAnimationFrame(raf);
-            if (scrolled) window.removeEventListener("scroll", onScroll);
-            if (media instanceof HTMLVideoElement) media.pause();
-          }
+            if (!halted) resume();
+          } else halt();
         }
       },
       { threshold: 0.12 },
     );
+
+    // plein cadre ouvert : la page est inerte, ses planches s'arretent aussi (le plein cadre lui-meme ne s'ecoute pas)
+    const onModal = (e: Event) => {
+      if (viewport) return;
+      halted = Boolean((e as CustomEvent<boolean>).detail);
+      if (halted) halt();
+      else if (visible) resume();
+    };
+    window.addEventListener(MODAL_EVENT, onModal);
 
     // loupe : un seul dessin par image, meme si le pointeur bouge plus vite
     let drawRaf = 0;
@@ -446,6 +541,7 @@ export function HybridMedia({
       cancelAnimationFrame(scrollRaf);
       cancelAnimationFrame(drawRaf);
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener(MODAL_EVENT, onModal);
       io.disconnect();
       ro.disconnect();
       cv.removeEventListener("pointerenter", onEnter);
@@ -459,7 +555,7 @@ export function HybridMedia({
       mediaRef.current = null;
       hovered.current = false;
     };
-  }, [src, ratio, lensRadius, video, drive, setTune]);
+  }, [src, ratio, lensRadius, video, drive, viewport, setTune]);
 
   const spokenTune =
     mode === "bin"
@@ -474,9 +570,14 @@ export function HybridMedia({
       ref={figure}
       tabIndex={0}
       onKeyDown={shortcut}
-      className={`min-w-0 max-w-full ${className}`}
+      className={`min-w-0 max-w-full ${viewport ? "flex h-full min-h-0 flex-col" : ""} ${className}`}
     >
-      <div ref={wrap} role="img" aria-label={alt} className="max-w-full">
+      <div
+        ref={wrap}
+        role="img"
+        aria-label={alt}
+        className={`max-w-full ${viewport ? "min-h-0 flex-1" : ""}`}
+      >
         <canvas
           ref={canvas}
           className="block max-w-full touch-pan-y select-none"
@@ -484,13 +585,18 @@ export function HybridMedia({
         />
       </div>
       {controls && (
-        <figcaption className="u-mono mt-[3px] flex flex-wrap items-center justify-between gap-x-cell gap-y-0 border-[3px] border-black px-[6px]">
+        <figcaption className="u-mono mt-[3px] flex shrink-0 flex-wrap items-center justify-between gap-x-cell gap-y-0 border-[3px] border-(--ink) px-[6px]">
           <span className="flex min-h-cell2 min-w-0 items-center gap-[6px]">
             {label && <span className="min-w-0 truncate">{label}</span>}
             {ink !== null && (
               <span className="flex shrink-0 items-center gap-[4px]">
                 <span>ENCRE</span>
                 <BitReadout text={`${ink}%`} />
+              </span>
+            )}
+            {dims && (
+              <span className="flex shrink-0 items-center pl-[10px]">
+                <BitReadout text={`${dims.cols} X ${dims.rows}`} />
               </span>
             )}
           </span>
@@ -563,6 +669,17 @@ export function HybridMedia({
                 {m.toUpperCase()}
               </button>
             ))}
+            {canFull && (
+              <Bloc
+                ref={fullBtn}
+                onClick={openFull}
+                aria-label="Plein cadre"
+                aria-keyshortcuts="f"
+                className="px-[6px]"
+              >
+                PLEIN<span className="hidden sm:inline">&nbsp;[F]</span>
+              </Bloc>
+            )}
           </span>
         </figcaption>
       )}
@@ -570,6 +687,19 @@ export function HybridMedia({
         {SPOKEN[mode]} {spokenTune}
         {spokenInk}
       </span>
+      {full && (
+        <PleinCadre
+          src={src}
+          alt={alt}
+          label={label}
+          mode={mode}
+          threshold={shown.threshold}
+          levels={shown.levels}
+          gamma={shown.gamma}
+          lensRadius={lensRadius}
+          onClose={() => setFull(false)}
+        />
+      )}
     </figure>
   );
 }
