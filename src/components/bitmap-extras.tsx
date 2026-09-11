@@ -1,31 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { cellSizeFor } from "@/lib/mire";
+import { drawText, textCols } from "@/lib/glyphs";
+import { bitUnit, cellSizeFor } from "@/lib/mire";
+import { BitReadout } from "@/components/readout";
 
 /* ------------------------------------------------------------------ */
-/* Horloge 1-bit : chiffres dessines en blocs (fonte 3x5 interne)      */
+/* Horloge 1-bit : chiffres dessines en blocs (fonte 3x5 de glyphs.ts) */
 /* ------------------------------------------------------------------ */
-
-const GLYPHS: Record<string, string[]> = {
-  "0": ["111", "101", "101", "101", "111"],
-  "1": ["010", "110", "010", "010", "111"],
-  "2": ["111", "001", "111", "100", "111"],
-  "3": ["111", "001", "111", "001", "111"],
-  "4": ["101", "101", "111", "001", "001"],
-  "5": ["111", "100", "111", "001", "111"],
-  "6": ["111", "100", "111", "101", "111"],
-  "7": ["111", "001", "010", "010", "010"],
-  "8": ["111", "101", "111", "101", "111"],
-  "9": ["111", "101", "111", "001", "111"],
-  ":": ["000", "010", "000", "010", "000"],
-  ".": ["000", "000", "000", "000", "010"],
-};
 
 export function BitmapClock({
   label = "HEURE ATELIER",
-  scale = 1,
+  size = "etiquette",
 }: {
   label?: string;
-  scale?: number;
+  /** etiquette : un glyphe = une cellule de haut ; display : un bloc = une cellule. */
+  size?: "etiquette" | "display";
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [txt, setTxt] = useState("00:00:00");
@@ -44,9 +32,9 @@ export function BitmapClock({
   useEffect(() => {
     const cv = canvas.current;
     if (!cv) return;
-    const chars = [...txt];
-    const cols = chars.length * 4 - 1;
+    const cols = textCols(txt);
     const rows = 5;
+    const cell = cellSizeFor(window.innerWidth);
     // le cadran ne depasse jamais la largeur disponible
     const avail = Math.max(
       120,
@@ -54,7 +42,7 @@ export function BitmapClock({
     );
     const unit = Math.max(
       2,
-      Math.min(Math.round((cellSizeFor(window.innerWidth) / 3) * scale), Math.floor(avail / cols)),
+      Math.min(size === "display" ? cell : bitUnit(cell), Math.floor(avail / cols)),
     );
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     cv.style.width = `${cols * unit}px`;
@@ -65,20 +53,17 @@ export function BitmapClock({
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cols * unit, rows * unit);
-    ctx.fillStyle = "currentColor";
     ctx.fillStyle = getComputedStyle(cv).color;
-    chars.forEach((ch, i) => {
-      const g = GLYPHS[ch] ?? GLYPHS["0"]!;
-      for (let y = 0; y < 5; y++)
-        for (let x = 0; x < 3; x++)
-          if (g[y]![x] === "1") ctx.fillRect((i * 4 + x) * unit, y * unit, unit, unit);
-    });
-  }, [txt, scale]);
+    drawText(ctx, txt, unit);
+  }, [txt, size]);
 
   return (
     <div className="u-mono flex min-w-0 max-w-full flex-wrap items-center gap-cell">
       <span className="shrink-0">{label}</span>
-      <canvas ref={canvas} className="block max-w-full" aria-hidden="true" />
+      {/* en etiquette, le cadran (une cellule) reste dans la ligne mono : le header garde sa hauteur */}
+      <span className={size === "etiquette" ? "flex h-[1lh] items-center" : "contents"}>
+        <canvas ref={canvas} className="block max-w-full" aria-hidden="true" />
+      </span>
       <span className="sr-only">{txt}</span>
     </div>
   );
@@ -224,7 +209,9 @@ export function BitmapBoard({ rows = 14 }: { rows?: number }) {
         <button type="button" className={btn} onClick={() => seed(0)}>
           EFFACER
         </button>
-        <span className="u-mono">GEN {String(gen).padStart(4, "0")}</span>
+        <span className="shrink-0">
+          <BitReadout text={`GEN ${String(gen).padStart(4, "0")}`} />
+        </span>
       </div>
     </div>
   );

@@ -10,6 +10,9 @@ export type Bits = {
 
 export const cellSizeFor = (width: number) => (width < 768 ? 16 : 20);
 
+/** Pas de la fonte 3x5 en etiquette : un glyphe fait une cellule de haut (4 px bureau, 3 px mobile). */
+export const bitUnit = (cell: number) => Math.round(cell / 5);
+
 /** Mouvement reduit demande par le systeme : tout se pose d'un coup, aucune chute. */
 export const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;

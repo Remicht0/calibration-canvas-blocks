@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { cellSizeFor } from "@/lib/mire";
+import { bitUnit, cellSizeFor } from "@/lib/mire";
 import { BitReadout } from "@/components/readout";
 
 /* ------------------------------------------------------------------ */
@@ -107,6 +107,18 @@ const toggleNegative = () => window.dispatchEvent(new KeyboardEvent("keydown", {
 
 const pct = (p: number) => `${String(Math.round(p * 100)).padStart(3, "0")}%`;
 
+/** Pas de grille courant, suivi au redimensionnement (valeur bureau avant montage). */
+function useCell() {
+  const [cell, setCell] = useState(20);
+  useEffect(() => {
+    const set = () => setCell(cellSizeFor(window.innerWidth));
+    set();
+    window.addEventListener("resize", set);
+    return () => window.removeEventListener("resize", set);
+  }, []);
+  return cell;
+}
+
 /* ------------------------------------------------------------------ */
 /* ORDINATEUR — reglette de defilement, lue comme une amorce de film    */
 /* ------------------------------------------------------------------ */
@@ -115,19 +127,16 @@ export function ScrollRail() {
   const p = useScrollProgress();
   const { tracks, index, current } = useTracks();
   const [rows, setRows] = useState(0);
-  const [cell, setCell] = useState(20);
+  const cell = useCell();
+  // pas de la reglette : un bloc de u, un vide de u
+  const u = bitUnit(cell);
 
   useEffect(() => {
-    const set = () => {
-      const c = cellSizeFor(window.innerWidth);
-      setCell(c);
-      // pas de la reglette : 6px de bloc, 3px de vide
-      setRows(Math.max(10, Math.floor((window.innerHeight - c * 12) / 9)));
-    };
+    const set = () => setRows(Math.max(10, Math.floor((window.innerHeight - cell * 12) / (u * 2))));
     set();
     window.addEventListener("resize", set);
     return () => window.removeEventListener("resize", set);
-  }, []);
+  }, [cell, u]);
 
   const head = Math.round(p * (rows - 1));
 
@@ -138,10 +147,10 @@ export function ScrollRail() {
       style={{ width: cell * 2, color: "#FFFFFF" }}
     >
       {/* compteur bitmap */}
-      <BitReadout text={pct(p)} unit={2} className="shrink-0" />
+      <BitReadout text={pct(p)} className="shrink-0" />
 
-      {/* reglette : blocs pleins, reperes de piste plus larges */}
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-[3px] py-cell">
+      {/* reglette : blocs pleins sur un pas u — vide u, pose 3u, repere 4u, tete 5u x 2u */}
+      <div className="flex min-h-0 flex-1 flex-col justify-center py-cell" style={{ gap: u }}>
         {Array.from({ length: rows }, (_, i) => {
           const on = i <= head;
           const isHead = i === head;
@@ -150,11 +159,9 @@ export function ScrollRail() {
             <div
               key={i}
               style={{
-                height: isHead ? 9 : 6,
-                width: isHead ? 22 : mark ? 18 : on ? 12 : 6,
-                background: on ? "#FFFFFF" : "transparent",
-                outline: on ? "none" : "1px solid rgba(255,255,255,0.45)",
-                outlineOffset: 0,
+                height: isHead ? u * 2 : u,
+                width: isHead ? u * 5 : mark ? u * 4 : on ? u * 3 : u,
+                background: "#FFFFFF",
               }}
             />
           );
@@ -188,6 +195,7 @@ export function MireConsole() {
   const p = useScrollProgress();
   const neg = useNegative();
   const { tracks, index, current } = useTracks();
+  const u = bitUnit(useCell());
   const steps = 20;
   const filled = Math.round(p * steps);
 
@@ -204,20 +212,19 @@ export function MireConsole() {
             ` ${String(index + 1).padStart(2, "0")}/${String(tracks.length).padStart(2, "0")}`}
         </span>
         <span className="shrink-0">
-          <BitReadout text={pct(p)} unit={2} />
+          <BitReadout text={pct(p)} />
         </span>
       </div>
 
-      {/* jauge : blocs pleins, un cran = 5 % */}
+      {/* jauge : blocs pleins, un cran = 5 % ; cran vide = socle de u px */}
       <div className="flex h-[14px] w-full items-end gap-[2px] border-b-[3px] border-black px-[4px] py-[2px]">
         {Array.from({ length: steps }, (_, i) => (
           <div
             key={i}
             className="flex-1"
             style={{
-              height: i % 5 === 0 ? "100%" : "60%",
-              background: i < filled ? "#000000" : "transparent",
-              outline: i < filled ? "none" : "1px solid rgba(0,0,0,0.28)",
+              height: i < filled ? (i % 5 === 0 ? "100%" : "60%") : u,
+              background: "#000000",
             }}
           />
         ))}
