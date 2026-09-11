@@ -43,7 +43,7 @@ type KeyLike = {
 /* ------------------------------------------------------------------ */
 /* Media hybride : photo ou video reduite a la grille de blocs.         */
 /* Trois lectures (BIN / GRIS / BRUT), seuil et paliers reglables,      */
-/* loupe de matiere au survol.                                          */
+/* loupe de matiere au survol (souris) ou a l'appui long (tactile).     */
 /* ------------------------------------------------------------------ */
 
 export function HybridMedia({
@@ -102,6 +102,11 @@ export function HybridMedia({
   // taux d'encrage mesure sur la trame, en pour cent
   const [ink, setInk] = useState<number | null>(null);
   const measure = useRef<() => void>(() => {});
+  // pointeur grossier : la loupe s'ouvre a l'appui long, l'etiquette le dit
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => {
+    setCoarse(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
 
   const apply = useCallback((m: BitMode) => {
     modeRef.current = m;
@@ -334,40 +339,117 @@ export function HybridMedia({
       { threshold: 0.12 },
     );
 
-    const onMove = (ev: PointerEvent) => {
+    // loupe : un seul dessin par image, meme si le pointeur bouge plus vite
+    let drawRaf = 0;
+    const requestDraw = () => {
+      if (drawRaf) return;
+      drawRaf = requestAnimationFrame(() => {
+        drawRaf = 0;
+        if (progress > 0 && !(media instanceof HTMLVideoElement && playingRef.current)) draw();
+      });
+    };
+    const lift = Math.ceil(lensRadius + 1);
+    const setLens = (ev: PointerEvent, touch: boolean) => {
       const r = cv.getBoundingClientRect();
+      const x = Math.floor(((ev.clientX - r.left) / r.width) * cols);
+      let y = Math.floor(((ev.clientY - r.top) / r.height) * rows);
+      // tactile : le disque se pose au-dessus du doigt, jamais dessous
+      if (touch) y = Math.max(Math.ceil(lensRadius), y - lift);
       lens = {
-        x: Math.floor(((ev.clientX - r.left) / r.width) * cols),
-        y: Math.floor(((ev.clientY - r.top) / r.height) * rows),
+        x: Math.min(cols - 1, Math.max(0, x)),
+        y: Math.min(rows - 1, Math.max(0, y)),
         r: lensRadius,
       };
-      if (progress >= 1 && !(media instanceof HTMLVideoElement && playingRef.current)) draw();
+    };
+
+    // appui long tactile : 220 ms sans bouger de plus de 6 px, sinon la page defile
+    let engaged = false;
+    let pressTimer = 0;
+    let press: { id: number; x: number; y: number } | null = null;
+    const disarm = () => {
+      clearTimeout(pressTimer);
+      pressTimer = 0;
+      press = null;
+    };
+    const onDown = (ev: PointerEvent) => {
+      if (ev.pointerType !== "touch") return;
+      disarm();
+      press = { id: ev.pointerId, x: ev.clientX, y: ev.clientY };
+      pressTimer = window.setTimeout(() => {
+        pressTimer = 0;
+        engaged = true;
+        try {
+          cv.setPointerCapture(ev.pointerId);
+        } catch {
+          /* pointeur deja releve */
+        }
+        navigator.vibrate?.(8);
+        setLens(ev, true);
+        requestDraw();
+      }, 220);
+    };
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerType === "touch") {
+        if (engaged) {
+          setLens(ev, true);
+          requestDraw();
+        } else if (
+          press &&
+          Math.max(Math.abs(ev.clientX - press.x), Math.abs(ev.clientY - press.y)) > 6
+        ) {
+          disarm();
+        }
+        return;
+      }
+      setLens(ev, false);
+      requestDraw();
+    };
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerType !== "touch") return;
+      disarm();
+      engaged = false;
+      lens = null;
+      requestDraw();
+    };
+    const onTouchMove = (ev: TouchEvent) => {
+      if (engaged) ev.preventDefault();
     };
     const onEnter = () => {
       hovered.current = true;
     };
-    const onLeave = () => {
+    const onLeave = (ev: PointerEvent) => {
       hovered.current = false;
+      if (ev.pointerType === "touch") return;
       lens = null;
-      if (progress >= 1 && !(media instanceof HTMLVideoElement && playingRef.current)) draw();
+      requestDraw();
     };
     cv.addEventListener("pointerenter", onEnter);
+    cv.addEventListener("pointerdown", onDown);
     cv.addEventListener("pointermove", onMove);
+    cv.addEventListener("pointerup", onUp);
+    cv.addEventListener("pointercancel", onUp);
     cv.addEventListener("pointerleave", onLeave);
+    cv.addEventListener("touchmove", onTouchMove, { passive: false });
 
     const ro = new ResizeObserver(() => build());
     ro.observe(el);
 
     return () => {
       dead = true;
+      disarm();
       cancelAnimationFrame(raf);
       cancelAnimationFrame(scrollRaf);
+      cancelAnimationFrame(drawRaf);
       window.removeEventListener("scroll", onScroll);
       io.disconnect();
       ro.disconnect();
       cv.removeEventListener("pointerenter", onEnter);
+      cv.removeEventListener("pointerdown", onDown);
       cv.removeEventListener("pointermove", onMove);
+      cv.removeEventListener("pointerup", onUp);
+      cv.removeEventListener("pointercancel", onUp);
       cv.removeEventListener("pointerleave", onLeave);
+      cv.removeEventListener("touchmove", onTouchMove);
       if (media instanceof HTMLVideoElement) media.pause();
       mediaRef.current = null;
       hovered.current = false;
@@ -390,7 +472,11 @@ export function HybridMedia({
       className={`min-w-0 max-w-full ${className}`}
     >
       <div ref={wrap} role="img" aria-label={alt} className="max-w-full">
-        <canvas ref={canvas} className="block max-w-full" />
+        <canvas
+          ref={canvas}
+          className="block max-w-full touch-pan-y select-none"
+          style={{ WebkitTouchCallout: "none" }}
+        />
       </div>
       {controls && (
         <figcaption className="u-mono mt-[3px] flex flex-wrap items-center justify-between gap-cell border-[3px] border-black px-[6px]">
@@ -446,7 +532,9 @@ export function HybridMedia({
             aria-label="Mode de lecture"
             className="ml-auto flex min-h-cell2 flex-1 items-center justify-end gap-[6px] sm:flex-none"
           >
-            <span className="hidden sm:inline">{video ? "VIDEO" : "PHOTO"}</span>
+            <span className="hidden sm:inline">
+              {coarse ? "APPUI LONG = LOUPE" : video ? "VIDEO" : "PHOTO"}
+            </span>
             {video && (
               <button
                 type="button"
