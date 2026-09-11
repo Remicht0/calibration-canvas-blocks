@@ -150,6 +150,7 @@ export function BlockType({
   loop = true,
   drive = "time",
   erodible = true,
+  negative = false,
 }: {
   text: string;
   className?: string;
@@ -158,6 +159,8 @@ export function BlockType({
   drive?: "time" | "scan";
   /** le curseur use les blocs (pointeur fin seulement), ils se reposent quand il part */
   erodible?: boolean;
+  /** blocs blancs sur fond noir (page d'erreur) */
+  negative?: boolean;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -215,7 +218,7 @@ export function BlockType({
         for (let y = 0; y < rows; y++) mix[y] = Math.min(seq, pr[y]!);
         progress = mix;
       }
-      drawBits(ctx, bits, order, { cell, progress, ...(erodes ? { wear } : {}) });
+      drawBits(ctx, bits, order, { cell, progress, negative, ...(erodes ? { wear } : {}) });
     };
 
     const build = () => {
@@ -314,6 +317,25 @@ export function BlockType({
     if (document.fonts?.ready) document.fonts.ready.then(start);
     else start();
 
+    // onglet cache : la boucle s'arrete, les horloges de phase reprennent la ou elles etaient
+    let hiddenAt = -1;
+    const onVisible = () => {
+      if (document.hidden) {
+        hiddenAt = performance.now();
+        cancelAnimationFrame(raf);
+        raf = 0;
+      } else {
+        if (hiddenAt >= 0) {
+          const gap = performance.now() - hiddenAt;
+          t0 += gap;
+          if (healT0 >= 0) healT0 += gap;
+          hiddenAt = -1;
+        }
+        schedule();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     const onScroll = () => {
       dirty = true;
       schedule();
@@ -346,10 +368,11 @@ export function BlockType({
       ro.disconnect();
       cv.removeEventListener("pointermove", onPointerMove);
       cv.removeEventListener("pointerleave", onPointerLeave);
+      document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [text, loop, drive, erodible]);
+  }, [text, loop, drive, erodible, negative]);
 
   return (
     <div ref={wrap} className={className}>

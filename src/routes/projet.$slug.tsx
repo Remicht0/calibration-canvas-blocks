@@ -78,6 +78,7 @@ function ProjectPage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (document.documentElement.classList.contains("mire-modal")) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (e.key === "ArrowLeft")
@@ -100,7 +101,7 @@ function ProjectPage() {
       <CalibrationBand height={5} seed={7} className="border-y-[10px] border-black" />
 
       {/* BLOC NOIR */}
-      <section data-mire="MESURES" className="bg-black px-cell py-cell4 text-white">
+      <section data-mire="MESURES" className="on-black bg-black px-cell py-cell4 text-white">
         <h2 className="sr-only">Mesures</h2>
         <div className="u-mono grid gap-y-cell2 md:grid-cols-4 md:gap-x-cell">
           <div>
@@ -141,7 +142,7 @@ function ProjectPage() {
       </section>
 
       {/* TEXTE COLONNE ETROITE */}
-      <section data-mire="NOTES" className="bg-black px-cell py-cell4 text-white">
+      <section data-mire="NOTES" className="on-black bg-black px-cell py-cell4 text-white">
         <h2 className="sr-only">Notes</h2>
         <div className="u-copy max-w-[54ch] space-y-cell2">
           {p.lines.map((l) => (
@@ -178,12 +179,15 @@ function ProjectPage() {
       </section>
 
       {/* SUITE : les autres projets, l'image du projet survole se compose en negatif */}
-      <section data-mire="SUITE" className="relative border-t-[10px] border-black">
+      <section data-mire="SUITE" className="on-black relative border-t-[10px] border-black">
         <BlockBackdrop src={hover} />
         <div
           className="relative px-cell py-cell2"
           style={{ mixBlendMode: "difference", color: "#FFFFFF" }}
           onMouseLeave={() => setHover(null)}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget)) setHover(null);
+          }}
         >
           <div className="u-mono mb-cell2 flex flex-wrap justify-between gap-cell">
             <h2>SUITE</h2>

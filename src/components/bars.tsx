@@ -8,11 +8,17 @@ import { cellSizeFor, prefersReducedMotion } from "@/lib/mire";
 export function CalibrationBand({
   height = 8,
   seed = 3,
+  negative = false,
+  still = false,
   className = "",
 }: {
   /** hauteur en cellules */
   height?: number;
   seed?: number;
+  /** fond noir, colonnes blanches : pour une bande posee sur un conteneur noir */
+  negative?: boolean;
+  /** une seule peinture, une rangee de blocs : ligne sans signal */
+  still?: boolean;
   className?: string;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
@@ -48,30 +54,35 @@ export function CalibrationBand({
       }
     };
 
-    const reduced = prefersReducedMotion();
+    const once = still || prefersReducedMotion();
     const paint = (t: number) => {
       if (dead) return;
       const ctx = cv.getContext("2d");
       if (ctx) {
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.fillStyle = "#FFFFFF";
+        ctx.fillStyle = negative ? "#000000" : "#FFFFFF";
         ctx.fillRect(0, 0, cols * cell, rows * cell);
-        ctx.fillStyle = "#000000";
+        ctx.fillStyle = negative ? "#FFFFFF" : "#000000";
         for (let x = 0; x < cols; x++) {
           // hauteur de colonne quantifiee : seuil dur, aucun degrade
           const v = (Math.sin(t / 900 + phase[x]! * width[x]!) + 1) / 2;
-          const h = Math.max(1, Math.round(v * rows));
+          const h = still ? 1 : Math.max(1, Math.round(v * rows));
           ctx.fillRect(x * cell, (rows - h) * cell, cell, h * cell);
         }
       }
-      // mouvement reduit : une seule pose, la bande ne respire pas
-      if (!reduced) raf = requestAnimationFrame(paint);
+      // ligne sans signal ou mouvement reduit : une seule pose, la bande ne respire pas
+      if (!once) raf = requestAnimationFrame(paint);
     };
 
     size();
-    raf = requestAnimationFrame(paint);
-    const ro = new ResizeObserver(size);
+    if (once) paint(0);
+    else raf = requestAnimationFrame(paint);
+    const ro = new ResizeObserver(() => {
+      size();
+      // le redimensionnement vide le canvas : une pose fixe doit etre repeinte
+      if (once) paint(0);
+    });
     ro.observe(el);
 
     return () => {
@@ -79,7 +90,7 @@ export function CalibrationBand({
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [height, seed]);
+  }, [height, seed, negative, still]);
 
   return (
     <div ref={wrap} className={`overflow-hidden ${className}`} aria-hidden="true">

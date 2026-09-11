@@ -117,12 +117,15 @@ function Index() {
       />
 
       {/* INDEX */}
-      <section data-mire="INDEX" className="relative border-t-[10px] border-black">
+      <section data-mire="INDEX" className="on-black relative border-t-[10px] border-black">
         <BlockBackdrop src={hover} />
         <div
           className="relative"
           style={{ mixBlendMode: "difference", color: "#FFFFFF" }}
           onMouseLeave={() => setHover(null)}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget)) setHover(null);
+          }}
         >
           <div className="u-mono grid grid-cols-[4ch_1fr] gap-x-cell px-cell py-cell2">
             <span>IDX</span>
@@ -144,7 +147,12 @@ function Index() {
                   className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_8ch_24ch]"
                 >
                   <span>
-                    {active === p.slug && <span aria-hidden="true">{"\u25A0"}</span>}
+                    {active === p.slug && (
+                      <i
+                        aria-hidden="true"
+                        className="mr-[6px] inline-block size-[10px] bg-current align-middle"
+                      />
+                    )}
                     {p.num}
                   </span>
                   <span className="min-w-0">
@@ -239,7 +247,7 @@ function Index() {
       {/* ATELIER — bloc noir plein */}
       <section
         data-mire="MANIFESTE"
-        className="border-t-[10px] border-black bg-black px-cell py-cell6 text-white"
+        className="on-black border-t-[10px] border-black bg-black px-cell py-cell6 text-white"
       >
         <h2 className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
           LE SITE NE

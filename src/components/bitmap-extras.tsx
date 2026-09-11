@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cellSizeFor } from "@/lib/mire";
+import { Bloc } from "@/components/bloc";
 
 /* ------------------------------------------------------------------ */
 /* Horloge 1-bit : chiffres dessines en blocs (fonte 3x5 interne)      */
@@ -194,8 +195,6 @@ export function BitmapBoard({ rows = 14 }: { rows?: number }) {
     paint();
   };
 
-  const btn = "u-mono border-[3px] border-black bg-white px-[8px] py-[2px] text-black";
-
   return (
     <div ref={wrap} className="max-w-full" role="group" aria-label="Table de composition">
       <p className="sr-only">
@@ -210,20 +209,11 @@ export function BitmapBoard({ rows = 14 }: { rows?: number }) {
         aria-hidden="true"
       />
       <div className="mt-[3px] flex flex-wrap items-center gap-[6px]">
-        <button
-          type="button"
-          className={btn}
-          onClick={() => setRunning((v) => !v)}
-          aria-pressed={running}
-        >
+        <Bloc onClick={() => setRunning((v) => !v)} pressed={running}>
           {running ? "ARRETER" : "PROPAGER"}
-        </button>
-        <button type="button" className={btn} onClick={() => seed(0.22)}>
-          BRUIT
-        </button>
-        <button type="button" className={btn} onClick={() => seed(0)}>
-          EFFACER
-        </button>
+        </Bloc>
+        <Bloc onClick={() => seed(0.22)}>BRUIT</Bloc>
+        <Bloc onClick={() => seed(0)}>EFFACER</Bloc>
         <span className="u-mono">GEN {String(gen).padStart(4, "0")}</span>
       </div>
     </div>

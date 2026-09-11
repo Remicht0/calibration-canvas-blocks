@@ -58,7 +58,7 @@ function Atelier() {
       {/* INSTRUMENT 02 — planche de bruit */}
       <section
         data-mire="BRUIT"
-        className="border-t-[10px] border-black bg-black px-cell py-cell4 text-white"
+        className="on-black border-t-[10px] border-black bg-black px-cell py-cell4 text-white"
       >
         <div className="u-mono mb-cell2 flex justify-between">
           <h2>INSTRUMENT 02 — PLANCHE DE BRUIT</h2>
