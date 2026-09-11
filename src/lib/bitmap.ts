@@ -75,7 +75,7 @@ export type PaintOpts = {
   /** relevement des noirs : baisse le contraste percu */
   gamma?: number;
   negative?: boolean;
-  /** loupe : cellule survolee + rayon en cellules, revele la matiere brute */
+  /** loupe : cellule survolee + rayon en cellules (carre de Tchebychev), revele la matiere brute */
   lens?: { x: number; y: number; r: number } | null;
 };
 
@@ -106,9 +106,10 @@ export function paintBlocks(
 
       let local: BitMode = mode;
       if (lens) {
-        const d = Math.hypot(x - lens.x, y - lens.y);
+        // voisinage carre (distance de Tchebychev) : aucune courbe sur la mire
+        const d = Math.max(Math.abs(x - lens.x), Math.abs(y - lens.y));
         if (d <= lens.r) local = "brut";
-        else if (d <= lens.r + 1.6 && mode !== "brut") local = "gris";
+        else if (d <= lens.r + 1 && mode !== "brut") local = "gris";
       }
 
       if (local === "brut") {
