@@ -136,10 +136,12 @@ export function BlockType({
   text,
   className = "",
   loop = true,
+  negative = false,
 }: {
   text: string;
   className?: string;
   loop?: boolean;
+  negative?: boolean;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -160,7 +162,7 @@ export function BlockType({
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       ctx.scale(dpr, dpr);
-      drawBits(ctx, bits, order, { cell, progress });
+      drawBits(ctx, bits, order, { cell, progress, negative });
     };
 
     const build = () => {
@@ -187,24 +189,46 @@ export function BlockType({
         ]
       : [{ d: 1200, from: 0, to: 1 }];
 
-    const run = () => {
-      let i = 0;
-      let t0 = performance.now();
-      const step = (t: number) => {
-        if (dead) return;
-        const ph = phases[i]!;
-        const k = Math.min(1, (t - t0) / ph.d);
-        paint(ph.from + (ph.to - ph.from) * k);
-        if (k >= 1) {
-          if (i < phases.length - 1) {
-            i++;
-            t0 = t;
-          } else return;
+    let i = 0;
+    let t0 = 0;
+    let running = false;
+    let held = -1; // temps deja ecoule dans la phase quand l'onglet a ete cache
+    const step = (t: number) => {
+      if (dead) return;
+      const ph = phases[i]!;
+      const k = Math.min(1, (t - t0) / ph.d);
+      paint(ph.from + (ph.to - ph.from) * k);
+      if (k >= 1) {
+        if (i < phases.length - 1) {
+          i++;
+          t0 = t;
+        } else {
+          running = false;
+          return;
         }
-        raf = requestAnimationFrame(step);
-      };
+      }
       raf = requestAnimationFrame(step);
     };
+    const run = () => {
+      i = 0;
+      t0 = performance.now();
+      running = true;
+      raf = requestAnimationFrame(step);
+    };
+    // onglet cache : la boucle s'arrete ; re-visible : elle reprend ou elle en etait
+    const onVisible = () => {
+      if (dead || !running) return;
+      if (document.hidden) {
+        if (held >= 0) return;
+        cancelAnimationFrame(raf);
+        held = performance.now() - t0;
+      } else if (held >= 0) {
+        t0 = performance.now() - held;
+        held = -1;
+        raf = requestAnimationFrame(step);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
     const start = () => {
       build();
@@ -224,9 +248,10 @@ export function BlockType({
     return () => {
       dead = true;
       cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", onVisible);
       ro.disconnect();
     };
-  }, [text, loop]);
+  }, [text, loop, negative]);
 
   return (
     <div ref={wrap} className={className}>

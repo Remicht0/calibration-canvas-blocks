@@ -7,12 +7,15 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { Component, useEffect, type ReactNode } from "react";
 
+import { CalibrationBand } from "@/components/bars";
+import { Bloc } from "@/components/bloc";
 import { BootSequence, GridCursor, NegativeSwitch, RouteWipe } from "@/components/boot";
+import { TopBar } from "@/components/chrome";
 import { MireConsole, ScrollRail } from "@/components/console";
 import { KeyHelp } from "@/components/help";
-import { ScanLine } from "@/components/mire";
+import { BlockType, ScanLine } from "@/components/mire";
 import { ogPath, siteOrigin, STUDIO } from "@/lib/site";
 
 import appCss from "../styles.css?url";
@@ -20,36 +23,49 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
-    <main
-      id="contenu"
-      tabIndex={-1}
-      className="flex min-h-screen flex-col justify-between bg-white px-cell py-cell2 text-black"
-    >
-      <div className="u-mono flex justify-between">
-        <span>MIRE / SIGNAL ABSENT</span>
-        <span>404</span>
-      </div>
-      <div>
-        <h1 className="u-display text-[26vw] leading-[0.82] md:text-[16vw]">
-          PAS DE
-          <br />
-          SIGNAL
-        </h1>
-        <p className="u-copy mt-cell2 max-w-[48ch]">
+    <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
+      <TopBar className="px-cell py-cell2" right="404" />
+
+      <section data-mire="SIGNAL ABSENT" className="px-cell pb-cell4">
+        <BlockType text="PAS DE SIGNAL" loop />
+      </section>
+
+      <CalibrationBand height={5} still className="border-y-[10px] border-black" />
+
+      <section className="px-cell py-cell4">
+        <p className="u-copy max-w-[48ch]">
           CETTE ADRESSE NE RENVOIE AUCUNE MIRE. LA PAGE A ETE DEPLACEE OU N&apos;A JAMAIS ETE
           CALIBREE.
         </p>
-      </div>
-      <div className="u-mono flex flex-wrap gap-cell2">
-        <Link to="/" className="border-[3px] border-black px-cell py-[3px]">
-          INDEX
-        </Link>
-        <Link to="/atelier" className="border-[3px] border-black px-cell py-[3px]">
-          ATELIER
-        </Link>
-      </div>
+        <div className="mt-cell2 flex flex-wrap gap-cell2">
+          <Bloc as={Link} to="/">
+            INDEX
+          </Bloc>
+          <Bloc as={Link} to="/atelier">
+            ATELIER
+          </Bloc>
+          <Bloc as={Link} to="/contact">
+            CONTACT
+          </Bloc>
+        </div>
+      </section>
     </main>
   );
+}
+
+/** Si le canvas du titre leve a son tour, un h1 HTML en display prend sa place. */
+class TitleFallback extends Component<{ text: string; children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  override render() {
+    if (this.state.failed)
+      return (
+        <h1 className="u-display text-[22vw] leading-[0.82] md:text-[13vw]">{this.props.text}</h1>
+      );
+    return this.props.children;
+  }
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
@@ -60,40 +76,36 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <main
-      id="contenu"
-      tabIndex={-1}
-      className="flex min-h-screen flex-col justify-between bg-black px-cell py-cell2 text-white"
-    >
-      <div className="u-mono flex justify-between">
-        <span>MIRE / DEFAUT DE LECTURE</span>
-        <span>ERR</span>
-      </div>
-      <div>
-        <h1 className="u-display text-[22vw] leading-[0.82] md:text-[13vw]">
-          SIGNAL
-          <br />
-          CORROMPU
-        </h1>
-        <p className="u-copy mt-cell2 max-w-[48ch]">
+    <main id="contenu" tabIndex={-1} className="on-black min-h-screen bg-black text-white">
+      <TopBar className="px-cell py-cell2" right="ERR" />
+
+      <section data-mire="DEFAUT DE LECTURE" className="px-cell pb-cell4">
+        <TitleFallback text="SIGNAL CORROMPU">
+          <BlockType text="SIGNAL CORROMPU" loop={false} negative />
+        </TitleFallback>
+      </section>
+
+      <CalibrationBand height={5} still negative className="border-y-[10px] border-white" />
+
+      <section className="px-cell py-cell4">
+        <p className="u-copy max-w-[48ch]">
           LA PAGE N&apos;A PAS PU ETRE COMPOSEE. RELANCER LA CALIBRATION OU REVENIR A L&apos;INDEX.
         </p>
-      </div>
-      <div className="u-mono flex flex-wrap gap-cell2">
-        <button
-          type="button"
-          onClick={() => {
-            router.invalidate();
-            reset();
-          }}
-          className="border-[3px] border-white px-cell py-[3px]"
-        >
-          RELANCER
-        </button>
-        <a href="/" className="border-[3px] border-white px-cell py-[3px]">
-          INDEX
-        </a>
-      </div>
+        <div className="mt-cell2 flex flex-wrap gap-cell2">
+          <Bloc
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
+          >
+            RELANCER
+          </Bloc>
+          {/* ancre brute : le rechargement complet est voulu apres une erreur */}
+          <Bloc as="a" href="/">
+            INDEX
+          </Bloc>
+        </div>
+      </section>
     </main>
   );
 }
