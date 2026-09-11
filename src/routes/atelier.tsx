@@ -94,7 +94,7 @@ function Atelier() {
           <span className="hidden md:inline">FONTE INTERNE 3 x 5 BLOCS</span>
         </div>
         <div className="border-[3px] border-black p-cell2">
-          <BitmapClock label="HEURE ATELIER" scale={2.2} />
+          <BitmapClock label="HEURE ATELIER" size="display" />
         </div>
       </section>
 

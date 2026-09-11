@@ -14,7 +14,8 @@ const KEYS: Array<[string, string]> = [
   ["APPUI LONG", "LOUPE DE MATIERE (TACTILE)"],
   ["- / +", "SEUIL OU PALIERS DE LA PLANCHE SURVOLEE"],
   ["A", "SEUIL AUTOMATIQUE (OTSU)"],
-  ["DEFILEMENT", "COMPOSE LES PLANCHES BLOC PAR BLOC"],
+  ["DEFILEMENT", "LA LIGNE ROUGE LIT LES TITRES, COMPOSE LES PLANCHES"],
+  ["CURSEUR", "USE LES TITRES EN BLOCS, ILS SE REPOSENT"],
 ];
 
 /** Ce qui devient inerte quand la fiche est ouverte : la page, la console, l'inverseur. */
