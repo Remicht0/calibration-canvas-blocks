@@ -47,8 +47,13 @@ La force vient du contraste et du vide, jamais de l'accumulation.
 - **Copie** : `.u-copy`, 13 px (14 px >= 768 px), line-height 1.75 / 1.8,
   tracking `0.02em`, mesure <= 46 caracteres. Reserve aux **paragraphes** :
   un texte courant ne doit jamais rester en `.u-mono`.
-- **Fonte bitmap 3x5** (`src/lib/glyphs.ts`) : chiffres et `%` dessines bloc
-  par bloc. Utilisee par `BitReadout`, l'horloge et les compteurs.
+- **Fonte bitmap 3x5** (`src/lib/glyphs.ts`) : la seule table de glyphes du
+  site (chiffres, capitales, ponctuation), dessinee bloc par bloc par
+  `drawText`. Deux corps seulement : **etiquette**, `bitUnit(cell)` =
+  `round(cell / 5)` (4 px bureau, 3 px mobile : un glyphe = une cellule de
+  haut), et **display**, un bloc = une cellule. `BitReadout` prend l'etiquette
+  par defaut et la suit au redimensionnement ; `BitmapClock` expose
+  `size="etiquette" | "display"`. Aucun autre corps, aucune table dupliquee.
 - Deux fontes maximum, une seule graisse par fonte. Texte en **français, en
   capitales, sans accents** dans l'interface (contrainte de mire).
 - Les deux fontes sont **auto-hébergées** (`public/fonts/*.woff2`, sous-ensemble
@@ -94,6 +99,24 @@ Deux pilotages pour une planche (`HybridMedia`, prop `drive`) :
 par le bas, 1 quand il atteint 45 % de la hauteur d'écran, et à rebours en
 remontant. Le banc d'essai et les planches 02 sont pilotés au scroll.
 
+Les titres en blocs (`BlockType`) ont deux pilotages de plus :
+- `drive="scan"` : **la ligne rouge lit le titre**. Les rangées que la
+  ScanLine a dépassées de plus de 6 cellules tombent ; celles encore sous la
+  ligne tiennent ; dans la bande de 6 cellules, `fallOrder` décide bloc par
+  bloc, colonne par colonne — jamais un front rectiligne. En remontant, la
+  ligne relit et le titre se recompose. Le seul élément coloré du site est
+  ainsi une vraie tête de lecture : ce qu'elle a lu disparaît. `drawBits`
+  accepte pour cela un `progress` par rangée ; `scanLineTop()` (`mire.ts`) est
+  la position de la ligne, partagée avec `ScanLine`. Titres des pages projet,
+  atelier, contact et index (après sa séquence d'entrée).
+- `erodible` (défaut) : **le curseur use les blocs**. Sur un pointeur fin, les
+  cellules d'un carré de 5 x 5 autour du curseur tombent une à une (usure par
+  temps de présence, les plus basses d'abord) ; quand il quitte le titre, les
+  blocs manquants se recomposent par ordre de chute en 700 ms. Voisinage
+  carré (Tchebychev), jamais un disque. Désactivé sous `pointer: coarse` et
+  `prefers-reduced-motion`. Un seul `requestAnimationFrame` par titre porte
+  la séquence, la lecture et l'usure ; il s'arrête quand l'onglet est caché.
+
 ### Chrome commun
 
 - `TopBar` (`chrome.tsx`) sur chaque page : `MIRE` puis `INDEX / ATELIER /
@@ -109,6 +132,37 @@ remontant. Le banc d'essai et les planches 02 sont pilotés au scroll.
 - Page projet : le bloc `SUITE` liste les autres projets avec le survol en
   négatif de l'index, `PRECEDENT` / `SUIVANT` étiquetés, et les flèches du
   clavier feuillettent les projets.
+- Réglette et console : blocs pleins sur le pas `u = bitUnit(cell)` (rang
+  vide u x u, posé 3u x u, repère de piste 4u x u, tête 5u x 2u ; cran de
+  jauge vide = socle plein de u px). Le compteur de la réglette empile ses
+  glyphes, un par rang. Plus aucun contour translucide nulle part.
+
+### Blocs et etats d'interaction (1 bit)
+
+- Tokens `--ink` / `--paper` (encre, papier). La classe `.on-black`, posee sur
+  tout conteneur a fond noir, les inverse : un composant ne connait jamais sa
+  couleur, il lit le token.
+- `.u-bloc` (composant `Bloc`, `bloc.tsx`) : tout bouton ou lien cadre. Cadre
+  3 px encre, hauteur 2 cellules, padding 1 cellule, mono. Survol
+  (`hover: hover`), `aria-pressed="true"`, `aria-current="page"` et focus =
+  inversion seche encre / papier. Aucune transition. Ne s'applique pas aux
+  lignes de l'INDEX ni de la SUITE (mix-blend-mode difference), ni aux onglets
+  de la console (grille pleine largeur, inversion par etat en place).
+- Focus visible : contour 3 px encre a 3 px du bord, sur tout element
+  focalisable. Jamais de rouge : le repere est unique, et un rouge sous
+  `invert(1)` donnerait du cyan.
+- Marqueur de page courante (TopBar, index) : un bloc de 10 px, jamais un
+  glyphe.
+- Fiche de commande ouverte : `#contenu`, la console et l'inverseur sont
+  `inert`, le focus est captif sur FERMER, la classe `mire-modal` sur `html`
+  suspend les raccourcis des autres composants (N, fleches, reglages).
+  Fermeture : ESC, `?`, changement de route.
+- `CalibrationBand` : `negative` (fond noir, colonnes blanches) pour un
+  conteneur noir ; `still` (une rangee de blocs, aucune animation) pour une
+  ligne sans signal. `BlockType` accepte `negative`.
+- 404 et erreur sont des mires : TopBar, titre en blocs (`PAS DE SIGNAL` en
+  boucle : le signal qui ne tient pas ; `SIGNAL CORROMPU` une fois), bande
+  `still`, copie, actions en `Bloc`. La page d'erreur est en `.on-black`.
 
 ### Transition de page (`RouteWipe`)
 
@@ -120,9 +174,19 @@ remontant. Le banc d'essai et les planches 02 sont pilotés au scroll.
 | Palier | 0,40 → 0,56 | ecran noir plein, un seul repere rouge balaye la surface |
 | Chute | 0,56 → 1 | les blocs se vident du bas vers le haut, `easeInOutCubic`, 6 % de cellules resistent |
 
-Un compteur `000 → 100` en display et la mention `MIRE / RECALIBRAGE`
-accompagnent la sequence. Aucun `mix-blend-mode` sur ce calque : il ferait
-apparaitre une couleur parasite au croisement du repere rouge.
+Tout est dessine dans le canvas du masque, jamais en HTML : le compteur
+`000 → 100` (fonte 3x5, un bloc = une cellule, en bas a droite) et la mention
+`MIRE / RECALIBRAGE` (une cellule de haut, en haut a gauche) sont peints en
+XOR par cellule — blanc sur une cellule noire, noir sur une cellule vide, rien
+sur la rangee rouge — et restent lisibles pendant les trois temps. **Le titre
+de la page de destination traverse la transition** (MIRE, ATELIER, CONTACT ou
+le titre du projet) : compose en blocs Anton pleine largeur, centre, avec son
+propre `fallOrder` (graine 13), il se compose avec le recouvrement, tient au
+palier et tombe avec le masque, en blanc uniquement sur les cellules noires.
+S'il depasse `rows - 6`, il est compose sur moins de colonnes plutot que
+coupe. Aucun `mix-blend-mode` ni opacite sur ce calque. Plan z : curseur 250
+> fiche de commande 240 > boot 200 > masque de transition 195 > bouton AIDE
+180 > inverseur 160 > ScanLine 50.
 
 ---
 
@@ -208,8 +272,13 @@ PNG : ils sont servis tels quels depuis `public/`.
 | `gris` | N paliers quantifiés (défaut 5) | **photos perso** : contraste doux, intégration propre |
 | `brut` | mosaïque couleur, 1 bloc = 1 pixel | matière assumée, vidéo |
 
-Loupe : au survol, un disque de cellules passe en `brut`, avec un anneau en
-`gris`. C'est le seul moyen de voir la matière réelle.
+Loupe : au survol (souris, stylet) ou a l'appui long (tactile : 220 ms sans
+bouger de plus de 6 px, puis le carre suit le doigt et se pose au-dessus de
+lui, la page ne defile plus tant qu'il est tenu), un **carre** de cellules
+(distance de Tchebychev, jamais un disque : aucune courbe) passe en `brut`,
+avec un anneau d'une cellule en `gris`. C'est le seul moyen de voir la matiere
+reelle. La loupe est dessinee des que `progress > 0`, en un seul rendu par
+image.
 
 ---
 
@@ -236,6 +305,16 @@ Loupe : au survol, un disque de cellules passe en `brut`, avec un anneau en
   (`inkRatio`, `bitmap.ts`) dans le mode courant : part des cellules encrées
   en BIN, noirceur moyenne des paliers en GRIS, de la matière en BRUT. C'est
   une mesure, pas une décoration : elle change avec le mode et avec la vidéo.
+- Chaque planche se regle sous son cartouche : `SEUIL` (mode BIN, crans de
+  0,05 entre 0,20 et 0,70, `AUTO` = seuil d'Otsu borne) ou `PALIERS` (mode
+  GRIS, entiers de 2 a 8) avec `-` / `+`. Les raccourcis `-`, `+` (ou `=`) et
+  `A` agissent sur la planche survolee ou focalisee. Un reglage redessine la
+  trame en place : les blocs poses ne retombent jamais, `ENCRE` est remesure.
+  Le seuil et les paliers vivent dans un ref lu par `draw()`, hors des
+  dependances de l'effet.
+- `onSample` recoit la trame echantillonnee (`Sampled`) a chaque composition
+  et, pour une video, au plus toutes les 600 ms ; `histogram()` (`bitmap.ts`)
+  en tire 20 tranches de luminance normalisees pour un instrument externe.
 - Photo douce / portrait / paysage → `mode="gris"`, `gamma` 0.7–0.85.
 - Image très graphique → `mode="bin"`, `threshold` 0.40–0.48.
 - Vidéo `.mp4` / `.webm` → détection automatique, lecture en boucle muette
@@ -292,7 +371,9 @@ Fait :
 - [x] Transition de page en trois temps (`RouteWipe`, 1500 ms, masque plein
       ecran, desactivee sous `prefers-reduced-motion`).
 - [x] Feuille `@media print` : noir seul, repere rouge et chrome retires.
-- [x] Focus visible en bloc (contour rouge de 3 px, aucun halo).
+- [x] Focus visible : contour encre 3 px (jamais rouge), blocs `.u-bloc`
+      inverses au survol / presse / courant / focus, tokens `--ink` /
+      `--paper` + `.on-black`.
 - [x] `prefers-reduced-motion` : la sequence de boot est sautee (comme la
       transition de page et le ticker).
 - [x] Instruments de defilement redessines : reglette bureau (compteur
@@ -328,6 +409,16 @@ Fait :
 - [x] Fiche de commande (`help.tsx`, `KeyHelp`) : masque noir plein liste des
       raccourcis (N, ?, fleches, tab, loupe), ouverture par `?` ou par le
       bouton `AIDE [?]` en bas a droite (bureau), fermeture par `ESC`.
+      Captive : `inert` sur la page, focus piege sur FERMER, `mire-modal`.
+- [x] 404 et erreur en mires (`still`, `negative`, titre en blocs).
+- [x] Titres en blocs : la ligne rouge lit les titres (`drive="scan"`), le
+      curseur use les blocs (`erodible`), un seul rAF par titre.
+- [x] Planches : seuil / paliers reglables sous chaque cartouche (- + AUTO,
+      raccourcis - + A), loupe carree, loupe a l'appui long sur tactile, prop
+      `onSample` et `histogram()`.
+- [x] Compteurs bitmap : une fonte, deux corps, plus aucun gris (reglette et
+      jauge en blocs pleins) ; compteur et titre de destination dessines dans
+      le canvas de la transition (XOR par cellule).
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
