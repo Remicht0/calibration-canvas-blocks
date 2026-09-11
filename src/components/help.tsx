@@ -8,6 +8,8 @@ const KEYS: Array<[string, string]> = [
   ["FLECHES", "FEUILLETER LES PROJETS (PAGE PROJET)"],
   ["TAB", "PARCOURS CLAVIER, CONTOUR ROUGE"],
   ["SURVOL", "LOUPE DE MATIERE SUR UNE PLANCHE"],
+  ["- / +", "SEUIL OU PALIERS DE LA PLANCHE SURVOLEE"],
+  ["A", "SEUIL AUTOMATIQUE (OTSU)"],
   ["DEFILEMENT", "COMPOSE LES PLANCHES BLOC PAR BLOC"],
 ];
 
@@ -52,7 +54,11 @@ export function KeyHelp() {
         >
           <div className="u-mono flex justify-between">
             <span>MIRE / FICHE DE COMMANDE</span>
-            <button type="button" onClick={() => setOpen(false)} className="border-[3px] border-white px-cell py-[3px]">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="border-[3px] border-white px-cell py-[3px]"
+            >
               FERMER [ESC]
             </button>
           </div>

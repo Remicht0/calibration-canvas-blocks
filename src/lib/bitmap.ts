@@ -148,4 +148,17 @@ export function inkRatio(
   return sum / n;
 }
 
+/** Histogramme de luminance : part normalisee par tranche (somme = 1), meme parcours qu'inkRatio. */
+export function histogram(s: Sampled, bins = 20): Float32Array {
+  const h = new Float32Array(bins);
+  const n = s.lum.length;
+  if (!n) return h;
+  for (let i = 0; i < n; i++) {
+    const b = Math.min(bins - 1, Math.max(0, Math.floor(s.lum[i]! * bins)));
+    h[b] = h[b]! + 1;
+  }
+  for (let b = 0; b < bins; b++) h[b] = h[b]! / n;
+  return h;
+}
+
 export const isVideo = (src: string) => /\.(mp4|webm|mov|m4v)(\?|$)/i.test(src);
