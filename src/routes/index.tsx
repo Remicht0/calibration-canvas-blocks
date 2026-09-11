@@ -88,7 +88,7 @@ function Index() {
         />
 
         <div>
-          <BlockType text="MIRE" />
+          <BlockType text="MIRE" drive="scan" />
           <p className="u-copy mt-cell2 max-w-[46ch]">
             IMAGE DE CALIBRATION — CHAQUE SURFACE EST REDUITE A DEUX VALEURS, NOIR PLEIN OU BLANC
             PLEIN, SUR UNE GRILLE DE BLOCS. LE SITE NE DECORE PAS. IL CALIBRE.

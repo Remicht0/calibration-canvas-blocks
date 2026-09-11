@@ -94,7 +94,7 @@ function ProjectPage() {
       <TopBar className="px-cell py-cell2" right={`${p.num} / ${p.year}`} />
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
-        <BlockType text={p.title} loop={false} />
+        <BlockType text={p.title} loop={false} drive="scan" />
       </section>
 
       <CalibrationBand height={5} seed={7} className="border-y-[10px] border-black" />
