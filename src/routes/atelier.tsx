@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BitmapBoard, BitmapClock, NoiseField } from "@/components/bitmap-extras";
+import { InstrumentSeuil } from "@/components/instruments";
 import { CalibrationBand, Ticker } from "@/components/bars";
 import { BlockType } from "@/components/mire";
 import { TopBar } from "@/components/chrome";
@@ -12,13 +13,13 @@ export const Route = createFileRoute("/atelier")({
       {
         name: "description",
         content:
-          "L'atelier de MIRE : horloge 1-bit, table de composition en blocs, planche de bruit. Le protocole de calibration du studio, manipulable directement.",
+          "L'atelier de MIRE : horloge 1-bit, table de composition en blocs, planche de bruit, histogramme et seuil. Le protocole de calibration du studio, manipulable directement.",
       },
       { property: "og:title", content: "Atelier — MIRE, banc de calibration" },
       {
         property: "og:description",
         content:
-          "Horloge en blocs, automate cellulaire, planche de bruit : les outils du studio MIRE en libre manipulation.",
+          "Horloge en blocs, automate cellulaire, planche de bruit, histogramme et seuil : les outils du studio MIRE en libre manipulation.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -35,7 +36,7 @@ function Atelier() {
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
         <BlockType text="ATELIER" loop={false} drive="scan" />
         <p className="u-copy mt-cell2 max-w-[56ch]">
-          TROIS INSTRUMENTS. AUCUNE DECORATION. CHACUN NE SAIT FAIRE QU&apos;UNE CHOSE : POSER UN
+          QUATRE INSTRUMENTS. AUCUNE DECORATION. CHACUN NE SAIT FAIRE QU&apos;UNE CHOSE : POSER UN
           BLOC, OU NE PAS LE POSER.
         </p>
       </section>
@@ -78,6 +79,7 @@ function Atelier() {
           "AUTOMATE 23/3",
           "HORLOGE 3x5",
           "BRUIT DETERMINISTE",
+          "HISTOGRAMME 20 TRANCHES",
           "PAS 16 / 20 PX",
           "TOUCHE [N] — INVERSER LE SIGNAL",
           "AUCUN DEGRADE",
@@ -96,6 +98,19 @@ function Atelier() {
         <div className="border-[3px] border-black p-cell2">
           <BitmapClock label="HEURE ATELIER" size="display" />
         </div>
+      </section>
+
+      {/* INSTRUMENT 04 — histogramme et seuil */}
+      <section data-mire="SEUIL" className="border-t-[10px] border-black bg-white px-cell py-cell4">
+        <div className="u-mono mb-cell2 flex justify-between">
+          <h2>INSTRUMENT 04 — SEUIL</h2>
+          <span className="hidden md:inline">LA COUPURE EST LA SEULE DECISION</span>
+        </div>
+        <InstrumentSeuil />
+        <p className="u-copy mt-cell2 max-w-[56ch]">
+          LA COUPURE EST LA SEULE DECISION. TOUT CE QUI EST A GAUCHE DEVIENT ENCRE, TOUT CE QUI EST
+          A DROITE DEVIENT PAPIER.
+        </p>
       </section>
 
       <section data-mire="NOTES" className="border-t-[10px] border-black bg-white px-cell py-cell4">
