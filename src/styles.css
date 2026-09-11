@@ -230,12 +230,12 @@
   cursor: none !important;
 }
 
-.mire-negative body {
-  filter: invert(1);
-}
-
-/* double inversion : le repere rouge reste rouge */
-.mire-negative .mire-keep {
+/* Inversion du signal : sur la page et sur le chrome fixe, jamais sur body
+   (un filtre sur body en ferait le bloc conteneur des elements fixes, qui
+   defileraient avec la page). Le repere rouge, le curseur, la reglette
+   (difference) et les masques noirs ne sont pas filtres. */
+.mire-negative main,
+.mire-negative .mire-chrome {
   filter: invert(1);
 }
 

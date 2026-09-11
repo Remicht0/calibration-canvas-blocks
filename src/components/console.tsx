@@ -207,7 +207,7 @@ export function MireConsole() {
   return (
     <nav
       aria-label="Console de navigation"
-      className="mire-noprint fixed inset-x-0 bottom-0 z-[140] border-t-[6px] border-black bg-white md:hidden"
+      className="mire-noprint mire-chrome fixed inset-x-0 bottom-0 z-[140] border-t-[6px] border-black bg-white md:hidden"
     >
       {/* piste courante + compteur bitmap */}
       <div className="u-mono flex items-center justify-between gap-cell border-b-[3px] border-black px-[6px] py-[4px]">

@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { drawText, mireText, textCols } from "@/lib/glyphs";
-import { bitUnit, blockifyText, cellSizeFor, fallOrder, textBlockHeight } from "@/lib/mire";
+import {
+  bitUnit,
+  blockifyText,
+  cellSizeFor,
+  fallOrder,
+  scanLineTop,
+  textBlockHeight,
+} from "@/lib/mire";
 import { bySlug } from "@/lib/projects";
 import { Bloc } from "@/components/bloc";
 
@@ -121,9 +128,16 @@ export function GridCursor() {
     let raf = 0;
     const draw = () => {
       raf = 0;
-      el.style.transform = `translate3d(${Math.floor(x / cell) * cell}px, ${
-        Math.floor(y / cell) * cell
-      }px, 0)`;
+      const cy = Math.floor(y / cell) * cell;
+      el.style.transform = `translate3d(${Math.floor(x / cell) * cell}px, ${cy}px, 0)`;
+      // sur la ligne rouge, la cellule en difference donnerait du cyan : elle s'efface
+      const line = scanLineTop(
+        cell,
+        window.scrollY,
+        window.innerHeight,
+        document.body.scrollHeight,
+      );
+      el.style.visibility = cy < line + 10 && cy + cell > line ? "hidden" : "visible";
     };
     const move = (e: PointerEvent) => {
       x = e.clientX;
@@ -190,7 +204,7 @@ export function NegativeSwitch() {
       aria-keyshortcuts="n"
       aria-label={neg ? "Revenir au positif, touche N" : "Passer en négatif, touche N"}
       // en vertical-rl l'axe inline est vertical : px-cell / py-0 donnent haut-bas = 1 cellule, cotes = 0
-      className="mire-noprint fixed right-0 top-1/2 z-[160] hidden h-auto w-cell2 -translate-y-1/2 px-cell py-0 md:inline-flex"
+      className="mire-noprint mire-chrome fixed right-0 top-1/2 z-[160] hidden h-auto w-cell2 -translate-y-1/2 px-cell py-0 md:inline-flex"
       style={{ writingMode: "vertical-rl" }}
     >
       {neg ? "POSITIF [N]" : "NEGATIF [N]"}

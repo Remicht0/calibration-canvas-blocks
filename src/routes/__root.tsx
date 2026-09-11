@@ -220,7 +220,7 @@ function RootComponent() {
       {/* lien d'evitement : invisible jusqu'au focus clavier, puis un bloc noir */}
       <a
         href="#contenu"
-        className="u-mono sr-only focus:not-sr-only focus:fixed focus:left-0 focus:top-0 focus:z-[300] focus:bg-black focus:px-cell focus:py-cell focus:text-white"
+        className="u-mono mire-chrome sr-only focus:not-sr-only focus:fixed focus:left-0 focus:top-0 focus:z-[300] focus:bg-black focus:px-cell focus:py-cell focus:text-white"
       >
         ALLER AU CONTENU
       </a>

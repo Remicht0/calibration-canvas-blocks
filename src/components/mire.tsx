@@ -515,7 +515,7 @@ export function ScanLine() {
   return (
     <div
       aria-hidden="true"
-      className="mire-keep pointer-events-none fixed left-0 z-50 h-[10px] w-full bg-mire-red"
+      className="mire-keep pointer-events-none fixed left-0 z-[130] h-[10px] w-full bg-mire-red"
       style={{ top }}
     />
   );
