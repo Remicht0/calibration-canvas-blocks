@@ -122,6 +122,11 @@ export function HybridMedia({
     measure.current();
   }, []);
 
+  // seuil pilote de l'exterieur (instrument) : resynchronise le ref, redessine en place
+  useEffect(() => {
+    if (tune.current.threshold !== threshold) setTune({ threshold });
+  }, [threshold, setTune]);
+
   const step = useCallback(
     (dir: -1 | 1) => {
       const m = modeRef.current;
