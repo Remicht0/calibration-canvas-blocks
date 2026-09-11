@@ -41,7 +41,7 @@ function Contact() {
       <TopBar className="px-cell py-cell2" right="FICHE 00" />
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
-        <BlockType text="CONTACT" loop={false} />
+        <BlockType text="CONTACT" loop={false} drive="scan" />
         <p className="u-copy mt-cell2 max-w-[52ch]">
           UN PROJET SE MESURE AVANT DE SE DESSINER. ECRIRE AVEC : NATURE, CALENDRIER, BUDGET,
           SUPPORTS. REPONSE SOUS 48 HEURES.

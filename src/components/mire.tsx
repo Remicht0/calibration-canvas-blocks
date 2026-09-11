@@ -4,8 +4,11 @@ import {
   blockifyText,
   cellSizeFor,
   drawBits,
+  erode,
   fallOrder,
+  heal,
   prefersReducedMotion,
+  scanLineTop,
   textBlockHeight,
   type Bits,
 } from "@/lib/mire";
@@ -132,14 +135,29 @@ export function BlockImage({
 
 const DISPLAY_FONT = "'Anton', sans-serif";
 
+/** Largeur de la bande, en cellules, ou la ligne rouge lit un titre bloc par bloc. */
+const SCAN_BAND = 6;
+/** Erosion sous le curseur : rayon du carre (cellules), usure par frame, duree de guerison. */
+const WEAR_R = 2;
+const WEAR_STEP = 0.12;
+const HEAL_MS = 700;
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
 export function BlockType({
   text,
   className = "",
   loop = true,
+  drive = "time",
+  erodible = true,
 }: {
   text: string;
   className?: string;
   loop?: boolean;
+  /** time : sequence temporelle ; scan : la ligne rouge efface ce qu'elle lit, recompose ce qu'elle relit */
+  drive?: "time" | "scan";
+  /** le curseur use les blocs (pointeur fin seulement), ils se reposent quand il part */
+  erodible?: boolean;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -151,31 +169,18 @@ export function BlockType({
     let bits: Bits | null = null;
     let order: Float32Array | null = null;
     let cell = cellSizeFor(window.innerWidth);
+    let cols = 0;
+    let rows = 0;
     let raf = 0;
     let dead = false;
+    const reduced = prefersReducedMotion();
+    const scan = drive === "scan" && !reduced;
+    const erodes = erodible && !reduced && !window.matchMedia("(pointer: coarse)").matches;
 
-    const paint = (progress: number) => {
-      const ctx = cv.getContext("2d");
-      if (!ctx || !bits || !order) return;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      ctx.scale(dpr, dpr);
-      drawBits(ctx, bits, order, { cell, progress });
-    };
-
-    const build = () => {
-      cell = cellSizeFor(window.innerWidth);
-      const w = el.clientWidth;
-      const cols = Math.max(8, Math.floor(w / cell));
-      const rows = Math.max(3, Math.round(textBlockHeight(text, DISPLAY_FONT, cols * cell) / cell));
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      cv.style.width = `${cols * cell}px`;
-      cv.style.height = `${rows * cell}px`;
-      cv.width = cols * cell * dpr;
-      cv.height = rows * cell * dpr;
-      bits = blockifyText(text, DISPLAY_FONT, cols, rows);
-      order = fallOrder(cols, rows, 13);
-    };
+    // usure sous le curseur : cellule survolee, puis guerison chronometree
+    let wear = new Float32Array(0);
+    let hot: { x: number; y: number } | null = null;
+    let healT0 = -1;
 
     // sequence : compose -> tient -> se dissout -> se recompose
     const phases = loop
@@ -186,47 +191,165 @@ export function BlockType({
           { d: 1200, from: 0, to: 1 },
         ]
       : [{ d: 1200, from: 0, to: 1 }];
+    let phase = -1;
+    let t0 = 0;
+    let seq = reduced ? 1 : 0;
 
-    const run = () => {
-      let i = 0;
-      let t0 = performance.now();
-      const step = (t: number) => {
-        if (dead) return;
-        const ph = phases[i]!;
-        const k = Math.min(1, (t - t0) / ph.d);
-        paint(ph.from + (ph.to - ph.from) * k);
-        if (k >= 1) {
-          if (i < phases.length - 1) {
-            i++;
-            t0 = t;
-          } else return;
-        }
-        raf = requestAnimationFrame(step);
-      };
-      raf = requestAnimationFrame(step);
+    // lecture par la ligne rouge : un progress par rangee, recalcule au defilement
+    let pr = new Float32Array(0);
+    let mix = new Float32Array(0);
+    let dirty = false;
+
+    const schedule = () => {
+      if (!raf && !dead) raf = requestAnimationFrame(tick);
     };
+
+    const paint = () => {
+      const ctx = cv.getContext("2d");
+      if (!ctx || !bits || !order) return;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      ctx.scale(dpr, dpr);
+      let progress: number | Float32Array = seq;
+      if (scan) {
+        for (let y = 0; y < rows; y++) mix[y] = Math.min(seq, pr[y]!);
+        progress = mix;
+      }
+      drawBits(ctx, bits, order, { cell, progress, ...(erodes ? { wear } : {}) });
+    };
+
+    const build = () => {
+      cell = cellSizeFor(window.innerWidth);
+      const w = el.clientWidth;
+      cols = Math.max(8, Math.floor(w / cell));
+      rows = Math.max(3, Math.round(textBlockHeight(text, DISPLAY_FONT, cols * cell) / cell));
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      cv.style.width = `${cols * cell}px`;
+      cv.style.height = `${rows * cell}px`;
+      cv.width = cols * cell * dpr;
+      cv.height = rows * cell * dpr;
+      bits = blockifyText(text, DISPLAY_FONT, cols, rows);
+      order = fallOrder(cols, rows, 13);
+      pr = new Float32Array(rows).fill(1);
+      mix = new Float32Array(rows);
+      wear = new Float32Array(cols * rows);
+      dirty = scan;
+    };
+
+    // Une rangee est lue quand la ligne rouge l'a depassee de SCAN_BAND cellules ;
+    // sous la ligne elle tient ; entre les deux, fallOrder decide bloc par bloc.
+    const readScan = () => {
+      const top = cv.getBoundingClientRect().top;
+      const line = scanLineTop(
+        cell,
+        window.scrollY,
+        window.innerHeight,
+        document.body.scrollHeight,
+      );
+      for (let y = 0; y < rows; y++)
+        pr[y] = clamp01((top + y * cell - line) / (SCAN_BAND * cell) + 1);
+    };
+
+    const tick = (t: number) => {
+      raf = 0;
+      if (dead) return;
+      let busy = false;
+      if (phase >= 0 && phase < phases.length) {
+        const ph = phases[phase]!;
+        const k = Math.min(1, (t - t0) / ph.d);
+        seq = ph.from + (ph.to - ph.from) * k;
+        if (k >= 1) {
+          phase++;
+          t0 = t;
+        }
+        busy = phase < phases.length;
+      }
+      if (dirty) {
+        dirty = false;
+        readScan();
+      }
+      if (erodes && order) {
+        if (hot) {
+          erode(wear, order, cols, rows, hot.x, hot.y, WEAR_R, WEAR_STEP);
+          busy = true;
+        } else if (healT0 >= 0) {
+          const k = Math.min(1, (t - healT0) / HEAL_MS);
+          heal(wear, order, k);
+          if (k >= 1) healT0 = -1;
+          else busy = true;
+        }
+      }
+      paint();
+      if (busy) schedule();
+    };
+
+    const onPointerMove = (ev: PointerEvent) => {
+      const r = cv.getBoundingClientRect();
+      hot = {
+        x: Math.floor(((ev.clientX - r.left) / r.width) * cols),
+        y: Math.floor(((ev.clientY - r.top) / r.height) * rows),
+      };
+      healT0 = -1;
+      schedule();
+    };
+    const onPointerLeave = () => {
+      hot = null;
+      healT0 = performance.now();
+      schedule();
+    };
+    if (erodes) {
+      cv.addEventListener("pointermove", onPointerMove);
+      cv.addEventListener("pointerleave", onPointerLeave);
+    }
 
     const start = () => {
       build();
-      if (prefersReducedMotion()) paint(1);
-      else run();
+      if (!reduced) {
+        phase = 0;
+        t0 = performance.now();
+      }
+      schedule();
     };
 
     if (document.fonts?.ready) document.fonts.ready.then(start);
     else start();
 
+    const onScroll = () => {
+      dirty = true;
+      schedule();
+    };
+    // hors ecran, la ligne rouge n'a rien a lire : aucune ecoute
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          window.addEventListener("scroll", onScroll, { passive: true });
+          window.addEventListener("resize", onScroll);
+          onScroll();
+        } else {
+          window.removeEventListener("scroll", onScroll);
+          window.removeEventListener("resize", onScroll);
+        }
+      }
+    });
+    if (scan) io.observe(el);
+
     const ro = new ResizeObserver(() => {
       build();
-      paint(1);
+      schedule();
     });
     ro.observe(el);
 
     return () => {
       dead = true;
       cancelAnimationFrame(raf);
+      io.disconnect();
       ro.disconnect();
+      cv.removeEventListener("pointermove", onPointerMove);
+      cv.removeEventListener("pointerleave", onPointerLeave);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
     };
-  }, [text, loop]);
+  }, [text, loop, drive, erodible]);
 
   return (
     <div ref={wrap} className={className}>
@@ -351,10 +474,7 @@ export function ScanLine() {
     let raf = 0;
     const update = () => {
       raf = 0;
-      const max = document.body.scrollHeight - window.innerHeight;
-      const p = max > 0 ? Math.min(1, window.scrollY / max) : 0;
-      const span = window.innerHeight - cell * 8;
-      setTop(Math.round((cell * 4 + p * span) / cell) * cell);
+      setTop(scanLineTop(cell, window.scrollY, window.innerHeight, document.body.scrollHeight));
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);

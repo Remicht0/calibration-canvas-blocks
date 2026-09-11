@@ -33,7 +33,7 @@ function Atelier() {
       <TopBar className="px-cell py-cell2" right={<BitmapClock label="ATELIER" />} />
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
-        <BlockType text="ATELIER" loop={false} />
+        <BlockType text="ATELIER" loop={false} drive="scan" />
         <p className="u-copy mt-cell2 max-w-[56ch]">
           TROIS INSTRUMENTS. AUCUNE DECORATION. CHACUN NE SAIT FAIRE QU&apos;UNE CHOSE : POSER UN
           BLOC, OU NE PAS LE POSER.
