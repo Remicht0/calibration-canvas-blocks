@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { cellSizeFor } from "@/lib/mire";
+import { Bloc } from "@/components/bloc";
 
 /* ------------------------------------------------------------------ */
 /* Sequence de mise en route : la mire se charge, bloc par bloc        */
@@ -151,7 +152,7 @@ export function GridCursor() {
     <div
       ref={box}
       aria-hidden="true"
-      className="pointer-events-none fixed left-0 top-0 z-[150] hidden bg-white mix-blend-difference md:block"
+      className="pointer-events-none fixed left-0 top-0 z-[250] hidden bg-white mix-blend-difference md:block"
     />
   );
 }
@@ -179,22 +180,17 @@ export function NegativeSwitch() {
   }, []);
 
   return (
-    <button
-      type="button"
+    <Bloc
+      id="inverseur"
       onClick={() => setNeg((v) => !v)}
-      aria-pressed={neg}
+      pressed={neg}
       aria-keyshortcuts="n"
       aria-label={neg ? "Revenir au positif, touche N" : "Passer en négatif, touche N"}
-      className="mire-noprint u-mono fixed right-0 top-1/2 z-[160] hidden -translate-y-1/2 border-[3px] px-[6px] py-cell md:block"
-      style={{
-        writingMode: "vertical-rl",
-        background: "#FFFFFF",
-        color: "#000000",
-        borderColor: "#000000",
-      }}
+      className="mire-noprint fixed right-0 top-1/2 z-[160] hidden h-auto w-cell2 -translate-y-1/2 px-0 py-cell md:inline-flex"
+      style={{ writingMode: "vertical-rl" }}
     >
       {neg ? "POSITIF [N]" : "NEGATIF [N]"}
-    </button>
+    </Bloc>
   );
 }
 

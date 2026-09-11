@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { CalibrationBand } from "@/components/bars";
+import { Bloc } from "@/components/bloc";
 
 /** Raccourcis de la mire. Etiquettes en capitales sans accents (DESIGN.md §2). */
 const KEYS: Array<[string, string]> = [
   ["N", "INVERSER LE SIGNAL (NEGATIF / POSITIF)"],
   ["?", "OUVRIR OU FERMER CETTE FICHE"],
   ["FLECHES", "FEUILLETER LES PROJETS (PAGE PROJET)"],
-  ["TAB", "PARCOURS CLAVIER, CONTOUR ROUGE"],
+  ["TAB", "PARCOURS CLAVIER, BLOC INVERSE"],
   ["SURVOL", "LOUPE DE MATIERE SUR UNE PLANCHE"],
   ["DEFILEMENT", "COMPOSE LES PLANCHES BLOC PAR BLOC"],
 ];
@@ -34,27 +35,24 @@ export function KeyHelp() {
 
   return (
     <>
-      <button
-        type="button"
+      <Bloc
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="u-mono fixed bottom-cell right-cell z-[190] hidden border-[3px] border-black bg-white px-cell py-[3px] text-black md:block"
+        className="mire-noprint fixed bottom-cell right-cell z-[190] hidden md:inline-flex"
       >
         AIDE [?]
-      </button>
+      </Bloc>
 
       {open && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label="Raccourcis clavier de la mire"
-          className="fixed inset-0 z-[240] flex flex-col justify-between bg-black px-cell py-cell2 text-white"
+          className="on-black fixed inset-0 z-[240] flex flex-col justify-between bg-black px-cell py-cell2 text-white"
         >
-          <div className="u-mono flex justify-between">
+          <div className="u-mono flex items-center justify-between">
             <span>MIRE / FICHE DE COMMANDE</span>
-            <button type="button" onClick={() => setOpen(false)} className="border-[3px] border-white px-cell py-[3px]">
-              FERMER [ESC]
-            </button>
+            <Bloc onClick={() => setOpen(false)}>FERMER [ESC]</Bloc>
           </div>
 
           <div>
