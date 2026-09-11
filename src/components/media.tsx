@@ -479,7 +479,7 @@ export function HybridMedia({
         />
       </div>
       {controls && (
-        <figcaption className="u-mono mt-[3px] flex flex-wrap items-center justify-between gap-cell border-[3px] border-black px-[6px]">
+        <figcaption className="u-mono mt-[3px] flex flex-wrap items-center justify-between gap-x-cell gap-y-0 border-[3px] border-black px-[6px]">
           <span className="flex min-h-cell2 min-w-0 items-center gap-[6px]">
             {label && <span className="min-w-0 truncate">{label}</span>}
             {ink !== null && (
