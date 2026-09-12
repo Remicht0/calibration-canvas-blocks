@@ -25,12 +25,14 @@ export function BootSequence() {
 
   useEffect(() => {
     if (sessionStorage.getItem(KEY)) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      sessionStorage.setItem(KEY, "1");
-      return;
-    }
     sessionStorage.setItem(KEY, "1");
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     setDone(false);
+  }, []);
+
+  // le canvas n'existe qu'une fois done a false : l'animation part au rendu suivant
+  useEffect(() => {
+    if (done) return;
     document.documentElement.style.overflow = "hidden";
 
     const cv = canvas.current;
@@ -86,7 +88,7 @@ export function BootSequence() {
       cancelAnimationFrame(raf);
       document.documentElement.style.overflow = "";
     };
-  }, []);
+  }, [done]);
 
   if (done) return null;
 
@@ -120,29 +122,40 @@ export function GridCursor() {
     if (window.matchMedia("(pointer: coarse)").matches) return;
     const el = box.current;
     if (!el) return;
-    const cell = cellSizeFor(window.innerWidth);
-    el.style.width = `${cell}px`;
-    el.style.height = `${cell}px`;
+    let cell = cellSizeFor(window.innerWidth);
     let x = -99;
     let y = -99;
     let raf = 0;
+    let wiping = false;
     const draw = () => {
       raf = 0;
+      cell = cellSizeFor(window.innerWidth);
+      el.style.width = `${cell}px`;
+      el.style.height = `${cell}px`;
       const cy = Math.floor(y / cell) * cell;
       el.style.transform = `translate3d(${Math.floor(x / cell) * cell}px, ${cy}px, 0)`;
-      // sur la ligne rouge, la cellule en difference donnerait du cyan : elle s'efface
+      // sur la ligne rouge (ou le balayage rouge de la transition), la cellule
+      // en difference donnerait du cyan : elle s'efface
       const line = scanLineTop(
         cell,
         window.scrollY,
         window.innerHeight,
         document.body.scrollHeight,
       );
-      el.style.visibility = cy < line + 10 && cy + cell > line ? "hidden" : "visible";
+      const onLine = cy < line + 10 && cy + cell > line;
+      el.style.visibility = onLine || wiping ? "hidden" : "visible";
+    };
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(draw);
     };
     const move = (e: PointerEvent) => {
       x = e.clientX;
       y = e.clientY;
-      if (!raf) raf = requestAnimationFrame(draw);
+      schedule();
+    };
+    const onWipe = (e: Event) => {
+      wiping = Boolean((e as CustomEvent<boolean>).detail);
+      schedule();
     };
     // sur un lien, la cellule se creuse : un cadre blanc, inverse par le mode
     // difference. Jamais de rouge ici : le repere est unique, et un rouge en
@@ -155,10 +168,16 @@ export function GridCursor() {
     };
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerover", over, { passive: true });
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    window.addEventListener("mire:wipe", onWipe);
     document.documentElement.classList.add("mire-nocursor");
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerover", over);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("mire:wipe", onWipe);
       document.documentElement.classList.remove("mire-nocursor");
       cancelAnimationFrame(raf);
     };
@@ -285,6 +304,7 @@ export function RouteWipe() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     setOn(true);
+    window.dispatchEvent(new CustomEvent("mire:wipe", { detail: true }));
     const cv = canvas.current;
     let raf = 0;
     let dead = false;
@@ -400,7 +420,10 @@ export function RouteWipe() {
         drawTextXor(ctx, count, cell, counterX, counterY, cell, ink);
       }
       if (k < 1) raf = requestAnimationFrame(step);
-      else setOn(false);
+      else {
+        setOn(false);
+        window.dispatchEvent(new CustomEvent("mire:wipe", { detail: false }));
+      }
     };
     raf = requestAnimationFrame(step);
     return () => {

@@ -33,6 +33,8 @@ function Index() {
   const [hover, setHover] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
   const [cursor, setCursor] = useState<number | null>(null);
+  // apres une butee, l'index a rendu la main : il ne reprend les fleches qu'une fois sorti de l'ecran
+  const released = useRef(false);
   const items = useRef<Array<HTMLLIElement | null>>([]);
   const index = useRef<HTMLElement>(null);
   const navigate = useNavigate();
@@ -105,14 +107,26 @@ function Index() {
 
       const last = projects.length - 1;
       let next: number;
-      if (e.key === "ArrowDown") next = cursor === null ? 0 : Math.min(last, cursor + 1);
-      else if (e.key === "ArrowUp") next = cursor === null ? 0 : Math.max(0, cursor - 1);
+      if (e.key === "ArrowDown") next = cursor === null ? 0 : cursor + 1;
+      else if (e.key === "ArrowUp") next = cursor === null ? 0 : cursor - 1;
       else if (e.key === "Home") next = 0;
       else if (e.key === "End") next = last;
       else return;
 
       const r = section.getBoundingClientRect();
-      if (!focused && (r.bottom <= 0 || r.top >= window.innerHeight)) return;
+      const visible = r.bottom > 0 && r.top < window.innerHeight;
+      if (!visible) released.current = false;
+      // premiere prise : seulement si l'index est a l'ecran et n'a pas deja rendu la main
+      if (cursor === null && !focused && (!visible || released.current)) return;
+      // butee : la tete de lecture rend la main, la page defile normalement
+      if (next < 0 || next > last) {
+        if (focused) (document.activeElement as HTMLElement | null)?.blur();
+        released.current = true;
+        setCursor(null);
+        setActive(null);
+        setHover(null);
+        return;
+      }
       e.preventDefault();
       const p = projects[next];
       if (!p) return;

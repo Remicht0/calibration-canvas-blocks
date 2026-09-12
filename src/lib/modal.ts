@@ -6,7 +6,13 @@
 /* n'est rendue qu'a la fermeture du dernier masque.                   */
 /* ------------------------------------------------------------------ */
 
-const INERT = ["#contenu", 'nav[aria-label="Console de navigation"]', "#inverseur"];
+const INERT = [
+  "#contenu",
+  "#evitement",
+  "#aide",
+  'nav[aria-label="Console de navigation"]',
+  "#inverseur",
+];
 
 let depth = 0;
 let frozen: HTMLElement[] = [];

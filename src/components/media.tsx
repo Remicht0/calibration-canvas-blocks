@@ -614,7 +614,7 @@ export function HybridMedia({
                 type="button"
                 onClick={() => step(-1)}
                 aria-label={mode === "bin" ? "Baisser le seuil" : "Moins de paliers"}
-                className="u-mono u-bloc min-w-cell2 px-[6px]"
+                className="u-mono u-bloc min-w-cell2"
               >
                 -
               </button>
@@ -622,7 +622,7 @@ export function HybridMedia({
                 type="button"
                 onClick={() => step(1)}
                 aria-label={mode === "bin" ? "Monter le seuil" : "Plus de paliers"}
-                className="u-mono u-bloc min-w-cell2 px-[6px]"
+                className="u-mono u-bloc min-w-cell2"
               >
                 +
               </button>
@@ -631,7 +631,7 @@ export function HybridMedia({
                   type="button"
                   onClick={() => auto.current()}
                   aria-label="Seuil automatique (Otsu)"
-                  className="u-mono u-bloc px-[6px]"
+                  className="u-mono u-bloc"
                 >
                   AUTO
                 </button>
@@ -652,7 +652,7 @@ export function HybridMedia({
                 onClick={togglePlay}
                 aria-pressed={!playing}
                 aria-label={playing ? "Pause de la vidéo" : "Lecture de la vidéo"}
-                className="u-mono u-bloc px-[6px]"
+                className="u-mono u-bloc"
               >
                 {playing ? "PAUSE" : "LECTURE"}
               </button>
@@ -664,19 +664,13 @@ export function HybridMedia({
                 onClick={() => apply(m)}
                 aria-pressed={mode === m}
                 aria-label={`${m.toUpperCase()} : ${SPOKEN[m]}`}
-                className="u-mono u-bloc px-[6px]"
+                className="u-mono u-bloc"
               >
                 {m.toUpperCase()}
               </button>
             ))}
             {canFull && (
-              <Bloc
-                ref={fullBtn}
-                onClick={openFull}
-                aria-label="Plein cadre"
-                aria-keyshortcuts="f"
-                className="px-[6px]"
-              >
+              <Bloc ref={fullBtn} onClick={openFull} aria-label="Plein cadre" aria-keyshortcuts="f">
                 PLEIN<span className="hidden lg:inline">&nbsp;[F]</span>
               </Bloc>
             )}

@@ -36,15 +36,17 @@ export function BitmapClock({
     const cols = textCols(txt);
     const rows = 5;
     const cell = cellSizeFor(window.innerWidth);
-    // le cadran ne depasse jamais la largeur disponible
-    const avail = Math.max(
-      120,
-      (cv.parentElement?.parentElement?.clientWidth ?? window.innerWidth) - 120,
-    );
-    const unit = Math.max(
-      2,
-      Math.min(size === "display" ? cell : bitUnit(cell), Math.floor(avail / cols)),
-    );
+    let unit = size === "display" ? cell : bitUnit(cell);
+    if (size === "display") {
+      // s'il ne tient pas dans son cadre, le cadran retombe sur le corps etiquette :
+      // jamais un corps intermediaire
+      const box = cv.parentElement?.parentElement?.parentElement;
+      if (box) {
+        const cs = getComputedStyle(box);
+        const avail = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        if (cols * cell > avail) unit = bitUnit(cell);
+      }
+    }
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     cv.style.width = `${cols * unit}px`;
     cv.style.height = `${rows * unit}px`;

@@ -273,8 +273,7 @@ export function BlockType({
       }
       if (erodes && order) {
         if (hot) {
-          erode(wear, order, cols, rows, hot.x, hot.y, WEAR_R, WEAR_STEP);
-          busy = true;
+          busy = erode(wear, order, cols, rows, hot.x, hot.y, WEAR_R, WEAR_STEP) || busy;
         } else if (healT0 >= 0) {
           const k = Math.min(1, (t - healT0) / HEAL_MS);
           heal(wear, order, k);
@@ -493,10 +492,10 @@ export function ScanLine() {
   const [top, setTop] = useState(0);
 
   useEffect(() => {
-    const cell = cellSizeFor(window.innerWidth);
     let raf = 0;
     const update = () => {
       raf = 0;
+      const cell = cellSizeFor(window.innerWidth);
       setTop(scanLineTop(cell, window.scrollY, window.innerHeight, document.body.scrollHeight));
     };
     const onScroll = () => {

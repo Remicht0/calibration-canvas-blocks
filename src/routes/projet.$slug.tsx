@@ -78,13 +78,14 @@ function ProjectPage() {
   // un chiffre saute directement au projet N
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
       if (document.documentElement.classList.contains("mire-modal")) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      if (e.key === "ArrowLeft")
+      // sur AZERTY un chiffre se tape avec Maj : seules les fleches refusent le modificateur
+      if (!e.shiftKey && e.key === "ArrowLeft")
         void navigate({ to: "/projet/$slug", params: { slug: prev.slug } });
-      if (e.key === "ArrowRight")
+      if (!e.shiftKey && e.key === "ArrowRight")
         void navigate({ to: "/projet/$slug", params: { slug: next.slug } });
       if (/^[1-9]$/.test(e.key)) {
         const target = projects[Number(e.key) - 1];

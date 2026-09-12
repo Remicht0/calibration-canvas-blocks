@@ -201,13 +201,19 @@ export function erode(
   cy: number,
   r: number,
   step: number,
-) {
+): boolean {
+  let changed = false;
   for (let y = Math.max(0, cy - r); y <= Math.min(rows - 1, cy + r); y++) {
     for (let x = Math.max(0, cx - r); x <= Math.min(cols - 1, cx + r); x++) {
       const i = y * cols + x;
-      wear[i] = Math.min(1, wear[i]! + step * (0.5 + order[i]!));
+      const next = Math.min(1, wear[i]! + step * (0.5 + order[i]!));
+      if (next !== wear[i]) {
+        wear[i] = next;
+        changed = true;
+      }
     }
   }
+  return changed;
 }
 
 /** Guerison par ordre de chute : a k = 1, plus aucune usure. */

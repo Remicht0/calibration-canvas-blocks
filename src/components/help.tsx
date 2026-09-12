@@ -41,7 +41,8 @@ export function KeyHelp() {
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
         e.preventDefault();
-        setOpen((v) => !v);
+        // un autre masque est ouvert : la fiche ne passe pas dessous
+        setOpen((v) => (!v && document.documentElement.classList.contains("mire-modal") ? v : !v));
       }
       if (e.key === "Escape") setOpen(false);
     };
@@ -75,6 +76,7 @@ export function KeyHelp() {
         ref={openBtn}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
+        id="aide"
         className="mire-chrome mire-noprint fixed bottom-cell right-cell z-[180] hidden md:inline-flex"
       >
         AIDE [?]

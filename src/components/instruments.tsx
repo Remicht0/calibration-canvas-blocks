@@ -236,23 +236,18 @@ export function InstrumentSeuil() {
           <Bloc
             onClick={() => manual(threshold - STEP)}
             aria-label="Baisser le seuil"
-            className="min-w-cell2 px-[6px]"
+            className="min-w-cell2"
           >
             -
           </Bloc>
           <Bloc
             onClick={() => manual(threshold + STEP)}
             aria-label="Monter le seuil"
-            className="min-w-cell2 px-[6px]"
+            className="min-w-cell2"
           >
             +
           </Bloc>
-          <Bloc
-            onClick={otsu}
-            pressed={auto}
-            aria-label="Seuil automatique (Otsu)"
-            className="px-[6px]"
-          >
+          <Bloc onClick={otsu} pressed={auto} aria-label="Seuil automatique (Otsu)">
             AUTO
           </Bloc>
         </div>
