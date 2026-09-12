@@ -604,7 +604,7 @@ export function HybridMedia({
             <span
               role="group"
               aria-label="Réglage de la planche"
-              className="flex min-h-cell2 basis-full items-center justify-end gap-[6px] sm:flex-1 sm:basis-auto"
+              className="flex min-h-cell2 min-w-0 basis-full flex-wrap items-center justify-end gap-[6px] sm:flex-1 sm:basis-auto"
             >
               <span>{mode === "bin" ? "SEUIL" : "PALIERS"}</span>
               <BitReadout
@@ -641,7 +641,7 @@ export function HybridMedia({
           <span
             role="group"
             aria-label="Mode de lecture"
-            className="ml-auto flex min-h-cell2 flex-1 flex-wrap items-center justify-end gap-[6px] sm:flex-none"
+            className="ml-auto flex min-h-cell2 flex-1 flex-wrap items-center justify-end gap-[6px] min-w-0 sm:flex-initial"
           >
             <span className="hidden sm:inline">
               {coarse ? "APPUI LONG = LOUPE" : video ? "VIDEO" : "PHOTO"}
