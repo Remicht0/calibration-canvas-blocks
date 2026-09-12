@@ -641,7 +641,7 @@ export function HybridMedia({
           <span
             role="group"
             aria-label="Mode de lecture"
-            className="ml-auto flex min-h-cell2 flex-1 items-center justify-end gap-[6px] sm:flex-none"
+            className="ml-auto flex min-h-cell2 flex-1 flex-wrap items-center justify-end gap-[6px] sm:flex-none"
           >
             <span className="hidden sm:inline">
               {coarse ? "APPUI LONG = LOUPE" : video ? "VIDEO" : "PHOTO"}
@@ -677,7 +677,7 @@ export function HybridMedia({
                 aria-keyshortcuts="f"
                 className="px-[6px]"
               >
-                PLEIN<span className="hidden sm:inline">&nbsp;[F]</span>
+                PLEIN<span className="hidden lg:inline">&nbsp;[F]</span>
               </Bloc>
             )}
           </span>
