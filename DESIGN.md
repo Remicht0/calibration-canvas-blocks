@@ -135,7 +135,8 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
 - Réglette et console : blocs pleins sur le pas `u = bitUnit(cell)` (rang
   vide u x u, posé 3u x u, repère de piste 4u x u, tête 5u x 2u ; cran de
   jauge vide = socle plein de u px). Le compteur de la réglette empile ses
-  glyphes, un par rang. Plus aucun contour translucide nulle part.
+  glyphes, un par rang. Plus aucun contour translucide nulle part. Un seul
+  des deux instruments est monté à la fois (`useIsMobile`, 768 px).
 
 ### Blocs et etats d'interaction (1 bit)
 
@@ -483,6 +484,25 @@ Fait :
 - [x] Negatif : filtre sur `main` et le chrome fixe, plus sur `body` (les
       elements fixes defilaient avec la page) ; repere au-dessus de la
       reglette ; curseur efface sur la ligne rouge.
+- [x] Revue adversariale (26 constats confirmes, corriges) : curseur
+      redessine au defilement et masque pendant le balayage rouge de la
+      transition ; horloge a deux corps seulement ; boot qui dessine ses
+      blocs ; index sans piege de fleches ; verrou de page complet ; page
+      de secours serveur en mire ; boucles rAF a l'ecran seulement (bandes,
+      bruit, titres) ; canvas de travail partage pour l'echantillonnage ;
+      region aria-live ecrite par le visiteur seulement ; figure nommee ;
+      CSS sans le kit shadcn ni tw-animate-css (78 Ko -> 20 Ko) ;
+      react-query retire.
+
+### Budget de rendu (regle)
+
+- Aucune boucle `requestAnimationFrame` ne tourne hors ecran, sous un masque
+  (`mire:modal`) ou dans un onglet cache : `IntersectionObserver` +
+  `visibilitychange`, comme `HybridMedia`, `CalibrationBand`, `BlockType`.
+- Ce qui ne change qu'avec le defilement se redessine au defilement
+  (`NoiseField`, `drive="scroll"`), jamais a chaque image.
+- Un canvas de travail hors DOM est reutilise (`sample()`), jamais alloue par
+  image ; un masque invisible libere son bitmap (`RouteWipe`).
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
