@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { cellSizeFor, fallOrder, prefersReducedMotion } from "@/lib/mire";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { cellSizeFor, fallOrder, otsuThreshold, prefersReducedMotion } from "@/lib/mire";
 import {
   inkRatio,
   isReady,
@@ -10,20 +10,47 @@ import {
   type Sampled,
   type Source,
 } from "@/lib/bitmap";
+import { Bloc } from "@/components/bloc";
+import { PleinCadre } from "@/components/plein";
 import { BitReadout } from "@/components/readout";
 
 /* Hors mire : ce que le lecteur d'ecran entend, en francais accentue. */
 const SPOKEN: Record<BitMode, string> = {
   bin: "Lecture binaire, seuil dur 1 bit.",
-  gris: "Lecture en gris, cinq paliers quantifiés.",
+  gris: "Lecture en gris, paliers quantifiés.",
   brut: "Lecture brute, mosaïque couleur, un bloc par pixel.",
 };
 
 const CYCLE: BitMode[] = ["bin", "gris", "brut"];
 
+export type Tune = { threshold: number; levels: number; gamma: number };
+
+/* Crans de reglage : seuil par 0,05 entre 0,20 et 0,70, paliers entiers de 2 a 8. */
+const clampTune = (t: Tune): Tune => ({
+  threshold: Math.min(0.7, Math.max(0.2, Math.round(t.threshold * 20) / 20)),
+  levels: Math.min(8, Math.max(2, Math.round(t.levels))),
+  gamma: t.gamma,
+});
+
+const frNumber = (v: number) => v.toFixed(2).replace(".", ",");
+
+/** Evenement emis par le plein cadre : a true les planches de la page s'arretent, a false elles reprennent. */
+export const MODAL_EVENT = "mire:modal";
+
+type KeyLike = {
+  key: string;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  preventDefault: () => void;
+};
+
 /* ------------------------------------------------------------------ */
 /* Media hybride : photo ou video reduite a la grille de blocs.         */
-/* Trois lectures (BIN / GRIS / BRUT) + loupe de matiere au survol.     */
+/* Trois lectures (BIN / GRIS / BRUT), seuil et paliers reglables,      */
+/* loupe de matiere au survol (souris) ou a l'appui long (tactile),     */
+/* plein cadre : la meme source re-echantillonnee a la taille de        */
+/* l'ecran (la cellule ne change pas, l'image gagne des colonnes).      */
 /* ------------------------------------------------------------------ */
 
 export function HybridMedia({
@@ -37,23 +64,37 @@ export function HybridMedia({
   threshold = 0.45,
   lensRadius = 3.5,
   drive = "time",
+  fit = "ratio",
+  phase = "in",
   controls = true,
+  onSample,
+  onDissolved,
+  onFull,
   className = "",
 }: {
   src: string;
   /** Description de l'image pour les lecteurs d'ecran : francais accentue, jamais en capitales. */
   alt: string;
   /** Etiquette visible sous la planche : capitales sans accents (regle de la mire). */
-  label?: string;
+  label?: string | undefined;
   ratio?: number;
   mode?: BitMode;
   levels?: number;
   gamma?: number;
   threshold?: number;
-  lensRadius?: number;
+  lensRadius?: number | undefined;
   /** time : la planche se compose a l'entree en ecran ; scroll : la chute suit le defilement */
   drive?: "time" | "scroll";
+  /** ratio : hauteur = colonnes x ratio ; viewport : la planche remplit son conteneur, en colonnes et en rangees */
+  fit?: "ratio" | "viewport";
+  /** out : les blocs tombent (progress 1 -> 0 en 600 ms, meme ordre), puis onDissolved */
+  phase?: "in" | "out";
   controls?: boolean;
+  /** Trame echantillonnee, pour un instrument externe (video : au plus toutes les 600 ms) */
+  onSample?: (s: Sampled) => void;
+  onDissolved?: () => void;
+  /** Appele a l'ouverture du plein cadre (bouton PLEIN ou touche F) */
+  onFull?: () => void;
   className?: string;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
@@ -61,20 +102,126 @@ export function HybridMedia({
   const modeRef = useRef<BitMode>(initial);
   const [mode, setMode] = useState<BitMode>(initial);
   const video = isVideo(src);
+  const viewport = fit === "viewport";
   // video : lecture automatique, sauf si le systeme demande moins de mouvement
   const playingRef = useRef(true);
   const [playing, setPlaying] = useState(true);
   const mediaRef = useRef<Source | null>(null);
   const restart = useRef<() => void>(() => {});
+  const dissolve = useRef<() => void>(() => {});
+  const redraw = useRef<() => void>(() => {});
+  const auto = useRef<() => void>(() => {});
+  const sampleRef = useRef<((s: Sampled) => void) | undefined>(onSample);
+  sampleRef.current = onSample;
+  const dissolvedRef = useRef<(() => void) | undefined>(onDissolved);
+  dissolvedRef.current = onDissolved;
+  const fullRef = useRef<(() => void) | undefined>(onFull);
+  fullRef.current = onFull;
+  // reglages lus par draw() sans relancer l'effet : un changement redessine, ne refait pas tomber
+  const tune = useRef<Tune>({ threshold, levels, gamma });
+  const [shown, setShown] = useState<Tune>(tune.current);
+  // survol de la planche : les raccourcis - / + / A / F s'appliquent sans focus
+  const hovered = useRef(false);
+  const figure = useRef<HTMLElement>(null);
   // taux d'encrage mesure sur la trame, en pour cent
   const [ink, setInk] = useState<number | null>(null);
-  const measure = useRef<() => void>(() => {});
-
-  const apply = useCallback((m: BitMode) => {
-    modeRef.current = m;
-    setMode(m);
-    measure.current();
+  // format de la planche en cellules, pose a chaque composition
+  const [dims, setDims] = useState<{ cols: number; rows: number } | null>(null);
+  const measure = useRef<() => number | null>(() => null);
+  // pointeur grossier : la loupe s'ouvre a l'appui long, l'etiquette le dit
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => {
+    setCoarse(window.matchMedia("(pointer: coarse)").matches);
   }, []);
+  // plein cadre : monte par cette planche, avec ses reglages et son mode courants
+  const [full, setFull] = useState(false);
+  const wasFull = useRef(false);
+  const fullBtn = useRef<HTMLButtonElement>(null);
+  const canFull = controls && !viewport;
+
+  // changement de mode : la trame est redessinee en place, les blocs poses ne retombent pas
+  // la region aria-live n'est ecrite que par une action du visiteur, jamais par une mesure
+  const [announce, setAnnounce] = useState("");
+  const say = useCallback(
+    (m: BitMode, t: Tune, inkNow: number | null) => {
+      const tuneText =
+        m === "bin"
+          ? `Seuil ${frNumber(t.threshold)}, `
+          : m === "gris"
+            ? `Paliers ${t.levels}, `
+            : "";
+      const inkText = inkNow !== null && !video ? `encrage ${inkNow} %.` : "";
+      setAnnounce(`${SPOKEN[m]} ${tuneText}${inkText}`);
+    },
+    [video],
+  );
+
+  const apply = useCallback(
+    (m: BitMode) => {
+      modeRef.current = m;
+      setMode(m);
+      redraw.current();
+      say(m, tune.current, measure.current());
+    },
+    [say],
+  );
+
+  const setTune = useCallback(
+    (patch: Partial<Tune>, silent = false) => {
+      const next = clampTune({ ...tune.current, ...patch });
+      tune.current = next;
+      setShown(next);
+      redraw.current();
+      const inkNow = measure.current();
+      if (!silent) say(modeRef.current, next, inkNow);
+    },
+    [say],
+  );
+
+  // seuil pilote de l'exterieur (instrument) : resynchronise le ref, redessine en place, sans annonce
+  useEffect(() => {
+    if (tune.current.threshold !== threshold) setTune({ threshold }, true);
+  }, [threshold, setTune]);
+
+  const step = useCallback(
+    (dir: -1 | 1) => {
+      const m = modeRef.current;
+      if (m === "bin") setTune({ threshold: tune.current.threshold + dir * 0.05 });
+      else if (m === "gris") setTune({ levels: tune.current.levels + dir });
+    },
+    [setTune],
+  );
+
+  const openFull = useCallback(() => {
+    if (!canFull) return;
+    wasFull.current = true;
+    setFull(true);
+    fullRef.current?.();
+  }, [canFull]);
+
+  // a la fermeture, le focus revient au bouton PLEIN : la page n'est plus inerte
+  useEffect(() => {
+    if (full || !wasFull.current) return;
+    wasFull.current = false;
+    fullBtn.current?.focus();
+  }, [full]);
+
+  const shortcut = useCallback(
+    (e: KeyLike) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      // sous un masque, seule la planche du plein cadre garde ses raccourcis
+      if (!viewport && document.documentElement.classList.contains("mire-modal")) return;
+      const m = modeRef.current;
+      if ((e.key === "f" || e.key === "F") && canFull) openFull();
+      else if (m === "brut") return;
+      else if (e.key === "-") step(-1);
+      else if (e.key === "+" || e.key === "=") step(1);
+      else if ((e.key === "a" || e.key === "A") && m === "bin") auto.current();
+      else return;
+      e.preventDefault();
+    },
+    [step, openFull, canFull, viewport],
+  );
 
   const togglePlay = useCallback(() => {
     const v = mediaRef.current;
@@ -89,6 +236,21 @@ export function HybridMedia({
       v.pause();
     }
   }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!hovered.current) return;
+      // la figure focalisee recoit deja l'evenement par onKeyDown
+      if (figure.current?.contains(e.target as Node)) return;
+      shortcut(e);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [shortcut]);
+
+  useEffect(() => {
+    if (phase === "out") dissolve.current();
+  }, [phase]);
 
   useEffect(() => {
     const el = wrap.current;
@@ -107,17 +269,20 @@ export function HybridMedia({
     const scrolled = drive === "scroll" && !video && !reduced;
     let progress = reduced ? 1 : 0;
     let visible = false;
+    // un plein cadre est ouvert au-dessus de la page : la planche s'arrete
+    let halted = false;
     let lens: { x: number; y: number; r: number } | null = null;
     let lastInk = -1;
     let inkAt = 0;
 
     measure.current = () => {
-      if (!data) return;
-      const v = Math.round(inkRatio(data, modeRef.current, { threshold, levels, gamma }) * 100);
+      if (!data) return null;
+      const v = Math.round(inkRatio(data, modeRef.current, tune.current) * 100);
       if (v !== lastInk) {
         lastInk = v;
         setInk(v);
       }
+      return v;
     };
 
     if (video && reduced) {
@@ -135,25 +300,39 @@ export function HybridMedia({
         mode: modeRef.current,
         progress,
         order,
-        threshold,
-        levels,
-        gamma,
+        ...tune.current,
         lens,
       });
     };
+    redraw.current = draw;
 
+    let lastCols = 0;
+    let lastRows = 0;
+    let lastCell = 0;
+    let lastDpr = 0;
     const build = () => {
       if (!media || !isReady(media)) return;
       cell = cellSizeFor(window.innerWidth);
       cols = Math.max(6, Math.floor(el.clientWidth / cell));
-      rows = Math.max(4, Math.round(cols * ratio));
+      // viewport : la cellule reste la meme, la planche gagne des colonnes et des rangees
+      rows = viewport
+        ? Math.max(4, Math.floor(el.clientHeight / cell))
+        : Math.max(4, Math.round(cols * ratio));
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // le ResizeObserver se redeclenche sur la hauteur que build() vient d'ecrire : pas de second echantillonnage
+      if (cols === lastCols && rows === lastRows && cell === lastCell && dpr === lastDpr) return;
+      lastCols = cols;
+      lastRows = rows;
+      lastCell = cell;
+      lastDpr = dpr;
       cv.style.width = `${cols * cell}px`;
       cv.style.height = `${rows * cell}px`;
       cv.width = cols * cell * dpr;
       cv.height = rows * cell * dpr;
       order = fallOrder(cols, rows, cols * 5 + rows);
       data = sample(media, cols, rows);
+      if (data) sampleRef.current?.(data);
+      setDims({ cols, rows });
       if (scrolled) progress = scrollProgress();
       draw();
       measure.current();
@@ -171,22 +350,36 @@ export function HybridMedia({
       if (scrollRaf) return;
       scrollRaf = requestAnimationFrame(() => {
         scrollRaf = 0;
-        progress = scrollProgress();
+        const p = scrollProgress();
+        if (p === progress) return;
+        progress = p;
         draw();
       });
     };
 
-    const compose = () => {
+    // mene progress de from a to en dur ms, sur le meme ordre de chute ; done une fois arrive.
+    // Une video continue d'etre echantillonnee tant qu'elle joue et que des blocs sont poses.
+    const run = (from: number, to: number, dur: number, done?: () => void) => {
       cancelAnimationFrame(raf);
       if (scrolled) {
         progress = scrollProgress();
         draw();
         return;
       }
-      const t0 = performance.now() - progress * 1000;
-      const step = (t: number) => {
-        if (dead || !visible) return;
-        progress = reduced ? 1 : Math.min(1, (t - t0) / 1000);
+      const t0 = performance.now();
+      let settled = false;
+      const frame = (t: number) => {
+        if (dead) return;
+        // planche a l'arret : rien a animer, mais une dissolution demandee aboutit tout de suite
+        if (!visible || halted) {
+          if (!settled) {
+            settled = true;
+            done?.();
+          }
+          return;
+        }
+        const k = reduced || dur <= 0 ? 1 : Math.min(1, (t - t0) / dur);
+        progress = from + (to - from) * k;
         const v = media instanceof HTMLVideoElement ? media : null;
         const live = v !== null && playingRef.current;
         if (v && live && isReady(v)) {
@@ -194,14 +387,31 @@ export function HybridMedia({
           if (t - inkAt > 600) {
             inkAt = t;
             measure.current();
+            if (data) sampleRef.current?.(data);
           }
         }
         draw();
-        if (progress < 1 || live) raf = requestAnimationFrame(step);
+        if (k < 1) {
+          raf = requestAnimationFrame(frame);
+          return;
+        }
+        if (!settled) {
+          settled = true;
+          done?.();
+        }
+        if (live && progress > 0) raf = requestAnimationFrame(frame);
       };
-      raf = requestAnimationFrame(step);
+      raf = requestAnimationFrame(frame);
     };
+    const compose = () => run(progress, 1, (1 - progress) * 1000);
     restart.current = compose;
+    dissolve.current = () => run(progress, 0, 600, () => dissolvedRef.current?.());
+
+    // seuil d'Otsu sur la trame courante ; sur une image plate il tombe sur une borne, affichee telle quelle
+    auto.current = () => {
+      if (!data) return;
+      setTune({ threshold: otsuThreshold(data.lum, 0.2, 0.7) });
+    };
 
     if (video) {
       const v = document.createElement("video");
@@ -231,90 +441,254 @@ export function HybridMedia({
       img.src = src;
     }
 
+    const resume = () => {
+      if (media instanceof HTMLVideoElement && playingRef.current)
+        void media.play().catch(() => {});
+      if (scrolled) window.addEventListener("scroll", onScroll, { passive: true });
+      compose();
+    };
+    const halt = () => {
+      cancelAnimationFrame(raf);
+      if (scrolled) window.removeEventListener("scroll", onScroll);
+      if (media instanceof HTMLVideoElement) media.pause();
+    };
+
     // Budget performance : hors viewport, le canvas et la video sont a l'arret.
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
           visible = e.isIntersecting;
           if (visible) {
-            if (media instanceof HTMLVideoElement && playingRef.current)
-              void media.play().catch(() => {});
-            if (scrolled) window.addEventListener("scroll", onScroll, { passive: true });
-            compose();
-          } else {
-            cancelAnimationFrame(raf);
-            if (scrolled) window.removeEventListener("scroll", onScroll);
-            if (media instanceof HTMLVideoElement) media.pause();
-          }
+            if (!halted) resume();
+          } else halt();
         }
       },
       { threshold: 0.12 },
     );
 
-    const onMove = (ev: PointerEvent) => {
+    // plein cadre ouvert : la page est inerte, ses planches s'arretent aussi (le plein cadre lui-meme ne s'ecoute pas)
+    const onModal = (e: Event) => {
+      if (viewport) return;
+      halted = Boolean((e as CustomEvent<boolean>).detail);
+      if (halted) halt();
+      else if (visible) resume();
+    };
+    window.addEventListener(MODAL_EVENT, onModal);
+
+    // loupe : un seul dessin par image, meme si le pointeur bouge plus vite
+    let drawRaf = 0;
+    const requestDraw = () => {
+      if (drawRaf) return;
+      drawRaf = requestAnimationFrame(() => {
+        drawRaf = 0;
+        if (progress > 0 && !(media instanceof HTMLVideoElement && playingRef.current)) draw();
+      });
+    };
+    const lift = Math.ceil(lensRadius + 1);
+    const setLens = (ev: PointerEvent, touch: boolean) => {
       const r = cv.getBoundingClientRect();
+      const x = Math.floor(((ev.clientX - r.left) / r.width) * cols);
+      let y = Math.floor(((ev.clientY - r.top) / r.height) * rows);
+      // tactile : le disque se pose au-dessus du doigt, jamais dessous
+      if (touch) y = Math.max(Math.ceil(lensRadius), y - lift);
       lens = {
-        x: Math.floor(((ev.clientX - r.left) / r.width) * cols),
-        y: Math.floor(((ev.clientY - r.top) / r.height) * rows),
+        x: Math.min(cols - 1, Math.max(0, x)),
+        y: Math.min(rows - 1, Math.max(0, y)),
         r: lensRadius,
       };
-      if (progress >= 1 && !(media instanceof HTMLVideoElement && playingRef.current)) draw();
     };
-    const onLeave = () => {
+
+    // appui long tactile : 220 ms sans bouger de plus de 6 px, sinon la page defile
+    let engaged = false;
+    let pressTimer = 0;
+    let press: { id: number; x: number; y: number } | null = null;
+    const disarm = () => {
+      clearTimeout(pressTimer);
+      pressTimer = 0;
+      press = null;
+    };
+    const onDown = (ev: PointerEvent) => {
+      if (ev.pointerType !== "touch") return;
+      disarm();
+      press = { id: ev.pointerId, x: ev.clientX, y: ev.clientY };
+      pressTimer = window.setTimeout(() => {
+        pressTimer = 0;
+        engaged = true;
+        try {
+          cv.setPointerCapture(ev.pointerId);
+        } catch {
+          /* pointeur deja releve */
+        }
+        navigator.vibrate?.(8);
+        setLens(ev, true);
+        requestDraw();
+      }, 220);
+    };
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerType === "touch") {
+        if (engaged) {
+          setLens(ev, true);
+          requestDraw();
+        } else if (
+          press &&
+          Math.max(Math.abs(ev.clientX - press.x), Math.abs(ev.clientY - press.y)) > 6
+        ) {
+          disarm();
+        }
+        return;
+      }
+      setLens(ev, false);
+      requestDraw();
+    };
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerType !== "touch") return;
+      disarm();
+      engaged = false;
       lens = null;
-      if (progress >= 1 && !(media instanceof HTMLVideoElement && playingRef.current)) draw();
+      requestDraw();
     };
+    const onTouchMove = (ev: TouchEvent) => {
+      if (engaged) ev.preventDefault();
+    };
+    const onEnter = () => {
+      hovered.current = true;
+    };
+    const onLeave = (ev: PointerEvent) => {
+      hovered.current = false;
+      if (ev.pointerType === "touch") return;
+      lens = null;
+      requestDraw();
+    };
+    cv.addEventListener("pointerenter", onEnter);
+    cv.addEventListener("pointerdown", onDown);
     cv.addEventListener("pointermove", onMove);
+    cv.addEventListener("pointerup", onUp);
+    cv.addEventListener("pointercancel", onUp);
     cv.addEventListener("pointerleave", onLeave);
+    cv.addEventListener("touchmove", onTouchMove, { passive: false });
 
     const ro = new ResizeObserver(() => build());
     ro.observe(el);
 
     return () => {
       dead = true;
+      disarm();
       cancelAnimationFrame(raf);
       cancelAnimationFrame(scrollRaf);
+      cancelAnimationFrame(drawRaf);
       window.removeEventListener("scroll", onScroll);
+      window.removeEventListener(MODAL_EVENT, onModal);
       io.disconnect();
       ro.disconnect();
+      cv.removeEventListener("pointerenter", onEnter);
+      cv.removeEventListener("pointerdown", onDown);
       cv.removeEventListener("pointermove", onMove);
+      cv.removeEventListener("pointerup", onUp);
+      cv.removeEventListener("pointercancel", onUp);
       cv.removeEventListener("pointerleave", onLeave);
+      cv.removeEventListener("touchmove", onTouchMove);
       if (media instanceof HTMLVideoElement) media.pause();
       mediaRef.current = null;
+      hovered.current = false;
     };
-  }, [src, ratio, levels, gamma, threshold, lensRadius, video, drive]);
+  }, [src, ratio, lensRadius, video, drive, viewport, setTune]);
+
+  const labelId = useId();
+  const named = controls && !!label;
 
   return (
-    <figure className={`min-w-0 max-w-full ${className}`}>
-      <div ref={wrap} role="img" aria-label={alt} className="max-w-full">
-        <canvas ref={canvas} className="block max-w-full" />
+    <figure
+      ref={figure}
+      tabIndex={0}
+      aria-labelledby={named ? labelId : undefined}
+      aria-label={named ? undefined : alt}
+      onKeyDown={shortcut}
+      className={`min-w-0 max-w-full ${viewport ? "flex h-full min-h-0 flex-col" : ""} ${className}`}
+    >
+      <div
+        ref={wrap}
+        role="img"
+        aria-label={alt}
+        className={`max-w-full ${viewport ? "min-h-0 flex-1" : ""}`}
+      >
+        <canvas
+          ref={canvas}
+          className="block max-w-full touch-pan-y select-none"
+          style={{ WebkitTouchCallout: "none" }}
+        />
       </div>
       {controls && (
-        <figcaption className="u-mono mt-[3px] flex flex-wrap items-center justify-between gap-x-cell gap-y-[3px] border-[3px] border-black px-[6px] py-[3px]">
-          <span className="flex min-w-0 items-center gap-[6px]">
-            {label && <span className="min-w-0 truncate">{label}</span>}
+        <figcaption className="u-mono mt-[3px] flex shrink-0 flex-wrap items-center justify-between gap-x-cell gap-y-0 border-[3px] border-(--ink) px-[6px]">
+          <span className="flex min-h-cell2 min-w-0 flex-wrap items-center gap-[6px]">
+            {label && (
+              <span id={labelId} className="min-w-0 truncate">
+                {label}
+              </span>
+            )}
             {ink !== null && (
               <span className="flex shrink-0 items-center gap-[4px]">
                 <span>ENCRE</span>
-                <BitReadout text={`${ink}%`} unit={2} />
+                <BitReadout text={`${ink}%`} />
+              </span>
+            )}
+            {dims && (
+              <span className="flex shrink-0 items-center pl-[10px]">
+                <BitReadout text={`${dims.cols} X ${dims.rows}`} />
               </span>
             )}
           </span>
+          {mode !== "brut" && (
+            <span
+              role="group"
+              aria-label="Réglage de la planche"
+              className="flex min-h-cell2 min-w-0 basis-full flex-wrap items-center justify-end gap-[6px] sm:flex-1 sm:basis-auto"
+            >
+              <span>{mode === "bin" ? "SEUIL" : "PALIERS"}</span>
+              <BitReadout
+                text={mode === "bin" ? shown.threshold.toFixed(2) : String(shown.levels)}
+              />
+              <button
+                type="button"
+                onClick={() => step(-1)}
+                aria-label={mode === "bin" ? "Baisser le seuil" : "Moins de paliers"}
+                className="u-mono u-bloc min-w-cell2"
+              >
+                -
+              </button>
+              <button
+                type="button"
+                onClick={() => step(1)}
+                aria-label={mode === "bin" ? "Monter le seuil" : "Plus de paliers"}
+                className="u-mono u-bloc min-w-cell2"
+              >
+                +
+              </button>
+              {mode === "bin" && (
+                <button
+                  type="button"
+                  onClick={() => auto.current()}
+                  aria-label="Seuil automatique (Otsu)"
+                  className="u-mono u-bloc"
+                >
+                  AUTO
+                </button>
+              )}
+            </span>
+          )}
           <span
             role="group"
             aria-label="Mode de lecture"
-            className="flex flex-1 items-center justify-end gap-[6px] sm:flex-none"
+            className="ml-auto flex min-h-cell2 flex-1 flex-wrap items-center justify-end gap-[6px] min-w-0 sm:flex-initial"
           >
-            <span className="hidden sm:inline">{video ? "VIDEO" : "PHOTO"}</span>
+            <span className="hidden sm:inline">
+              {coarse ? "APPUI LONG = LOUPE" : video ? "VIDEO" : "PHOTO"}
+            </span>
             {video && (
               <button
                 type="button"
                 onClick={togglePlay}
-                aria-pressed={!playing}
                 aria-label={playing ? "Pause de la vidéo" : "Lecture de la vidéo"}
-                className={`border-[3px] border-black px-[6px] py-[1px] ${
-                  playing ? "bg-white text-black" : "bg-black text-white"
-                }`}
+                className="u-mono u-bloc"
               >
                 {playing ? "PAUSE" : "LECTURE"}
               </button>
@@ -326,19 +700,37 @@ export function HybridMedia({
                 onClick={() => apply(m)}
                 aria-pressed={mode === m}
                 aria-label={`${m.toUpperCase()} : ${SPOKEN[m]}`}
-                className={`border-[3px] border-black px-[6px] py-[1px] ${
-                  mode === m ? "bg-black text-white" : "bg-white text-black"
-                }`}
+                className="u-mono u-bloc"
               >
                 {m.toUpperCase()}
               </button>
             ))}
+            {canFull && (
+              <Bloc ref={fullBtn} onClick={openFull} aria-label="Plein cadre" aria-keyshortcuts="f">
+                PLEIN<span className="hidden lg:inline">&nbsp;[F]</span>
+              </Bloc>
+            )}
           </span>
         </figcaption>
       )}
-      <span className="sr-only" aria-live="polite">
-        {SPOKEN[mode]}
-      </span>
+      {controls && (
+        <span className="sr-only" aria-live="polite">
+          {announce}
+        </span>
+      )}
+      {full && (
+        <PleinCadre
+          src={src}
+          alt={alt}
+          label={label}
+          mode={mode}
+          threshold={shown.threshold}
+          levels={shown.levels}
+          gamma={shown.gamma}
+          lensRadius={lensRadius}
+          onClose={() => setFull(false)}
+        />
+      )}
     </figure>
   );
 }

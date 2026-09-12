@@ -3,6 +3,7 @@ import { CalibrationBand, Ticker } from "@/components/bars";
 import { BlockType } from "@/components/mire";
 import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar } from "@/components/chrome";
+import { Bloc } from "@/components/bloc";
 import { Colophon } from "./index";
 
 export const Route = createFileRoute("/contact")({
@@ -41,7 +42,7 @@ function Contact() {
       <TopBar className="px-cell py-cell2" right="FICHE 00" />
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
-        <BlockType text="CONTACT" loop={false} />
+        <BlockType text="CONTACT" loop={false} drive="scan" />
         <p className="u-copy mt-cell2 max-w-[52ch]">
           UN PROJET SE MESURE AVANT DE SE DESSINER. ECRIRE AVEC : NATURE, CALENDRIER, BUDGET,
           SUPPORTS. REPONSE SOUS 48 HEURES.
@@ -50,7 +51,7 @@ function Contact() {
 
       <CalibrationBand height={5} seed={17} className="border-y-[10px] border-black" />
 
-      <section data-mire="COORDONNEES" className="bg-black px-cell py-cell4 text-white">
+      <section data-mire="COORDONNEES" className="on-black bg-black px-cell py-cell4 text-white">
         <div className="u-mono mb-cell2 flex flex-wrap justify-between gap-cell">
           <h2>FICHE DE CALIBRATION</h2>
           <BitmapClock label="HEURE STUDIO" />
@@ -63,13 +64,13 @@ function Contact() {
             </div>
           ))}
         </dl>
-        <div className="u-mono mt-cell4 flex flex-wrap gap-cell2">
-          <a href="mailto:studio@mire.fr" className="border-[3px] border-white px-cell py-[3px]">
+        <div className="mt-cell4 flex flex-wrap gap-cell2">
+          <Bloc as="a" href="mailto:studio@mire.fr">
             ECRIRE AU STUDIO
-          </a>
-          <a href="tel:+33100000000" className="border-[3px] border-white px-cell py-[3px]">
+          </Bloc>
+          <Bloc as="a" href="tel:+33100000000">
             APPELER
-          </a>
+          </Bloc>
         </div>
       </section>
 
@@ -90,13 +91,13 @@ function Contact() {
           <br />
           UNE MESURE.
         </h2>
-        <div className="u-mono mt-cell2 flex flex-wrap gap-cell2">
-          <Link to="/atelier" className="border-[3px] border-black px-cell py-[3px]">
+        <div className="mt-cell2 flex flex-wrap gap-cell2">
+          <Bloc as={Link} to="/atelier">
             ATELIER
-          </Link>
-          <Link to="/" className="border-[3px] border-black px-cell py-[3px]">
+          </Bloc>
+          <Bloc as={Link} to="/">
             INDEX DES PROJETS
-          </Link>
+          </Bloc>
         </div>
       </section>
 

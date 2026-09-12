@@ -1,29 +1,36 @@
+/* Page de secours servie quand le rendu serveur echoue : la meme mire que la
+   page d'erreur du routeur (fond noir, encre blanche, blocs cadres), sans
+   aucune dependance. Texte visible en capitales sans accents. */
 export function renderErrorPage(): string {
   return `<!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="utf-8" />
-    <title>This page didn't load</title>
+    <title>Signal corrompu — MIRE</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
     <style>
-      body { font: 15px/1.5 system-ui, -apple-system, sans-serif; background: #fafafa; color: #111; display: grid; place-items: center; min-height: 100vh; margin: 0; padding: 1.5rem; }
-      .card { max-width: 28rem; width: 100%; text-align: center; padding: 2rem; }
-      h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
-      p { color: #4b5563; margin: 0 0 1.5rem; }
-      .actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
-      a, button { padding: 0.5rem 1rem; border-radius: 0.375rem; font: inherit; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
-      .primary { background: #111; color: #fff; }
-      .secondary { background: #fff; color: #111; border-color: #d1d5db; }
+      html, body { margin: 0; background: #000000; color: #ffffff; }
+      body { min-height: 100vh; display: flex; flex-direction: column; justify-content: space-between; padding: 40px 20px; box-sizing: border-box; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12.5px; letter-spacing: 0.045em; text-transform: uppercase; line-height: 1.45; }
+      .top { display: flex; justify-content: space-between; }
+      h1 { font-family: "Anton", "Arial Narrow", sans-serif; font-weight: 400; font-size: 18vw; line-height: 0.82; letter-spacing: -0.02em; margin: 0; }
+      p { max-width: 48ch; margin: 40px 0 0; font-size: 14px; line-height: 1.8; letter-spacing: 0.02em; }
+      .actions { display: flex; gap: 40px; flex-wrap: wrap; }
+      a, button { display: inline-flex; align-items: center; height: 40px; padding: 0 20px; border: 3px solid #ffffff; background: #000000; color: #ffffff; font: inherit; letter-spacing: inherit; text-transform: inherit; text-decoration: none; cursor: pointer; border-radius: 0; }
+      a:hover, button:hover, a:focus-visible, button:focus-visible { background: #ffffff; color: #000000; outline: none; }
+      .band { height: 20px; border: 3px solid #ffffff; margin-top: 40px; }
     </style>
   </head>
   <body>
-    <div class="card">
-      <h1>This page didn't load</h1>
-      <p>Something went wrong on our end. You can try refreshing or head back home.</p>
-      <div class="actions">
-        <button class="primary" onclick="location.reload()">Try again</button>
-        <a class="secondary" href="/">Go home</a>
-      </div>
+    <div class="top"><span>MIRE / DEFAUT DE LECTURE</span><span>ERR</span></div>
+    <div>
+      <h1>SIGNAL<br />CORROMPU</h1>
+      <p>LA PAGE N'A PAS PU ETRE COMPOSEE. RELANCER LA CALIBRATION OU REVENIR A L'INDEX.</p>
+      <div class="band"></div>
+    </div>
+    <div class="actions">
+      <button type="button" onclick="location.reload()">RELANCER</button>
+      <a href="/">INDEX</a>
     </div>
   </body>
 </html>`;

@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
-@import "tw-animate-css";
+/* le kit shadcn du gabarit n'est utilise nulle part : il ne genere aucune classe */
+@source not "../src/components/ui";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -90,6 +91,8 @@
 :root {
   --radius: 0px;
   --cell: 16px;
+  --ink: #000000;
+  --paper: #ffffff;
   --mire-red: #ff0000;
   --background: oklch(1 0 0);
   --foreground: oklch(0 0 0);
@@ -228,12 +231,12 @@
   cursor: none !important;
 }
 
-.mire-negative body {
-  filter: invert(1);
-}
-
-/* double inversion : le repere rouge reste rouge */
-.mire-negative .mire-keep {
+/* Inversion du signal : sur la page et sur le chrome fixe, jamais sur body
+   (un filtre sur body en ferait le bloc conteneur des elements fixes, qui
+   defileraient avec la page). Le repere rouge, le curseur, la reglette
+   (difference) et les masques noirs ne sont pas filtres. */
+.mire-negative main,
+.mire-negative .mire-chrome {
   filter: invert(1);
 }
 
@@ -271,10 +274,45 @@ body {
   }
 }
 
-/* ---- Focus : un bloc, jamais un halo ---- */
+/* ---- Encre et papier : inverses sur les conteneurs a fond noir ---- */
+.on-black {
+  --ink: #ffffff;
+  --paper: #000000;
+}
+
+/* ---- Bloc : tout bouton ou lien cadre. Etats par inversion seche, jamais de teinte ---- */
+@layer components {
+  .u-bloc {
+    display: inline-flex;
+    align-items: center;
+    height: calc(var(--cell) * 2);
+    padding: 0 var(--cell);
+    border: 3px solid var(--ink);
+    color: var(--ink);
+    background: var(--paper);
+    text-decoration: none;
+    transition: none;
+  }
+
+  @media (hover: hover) {
+    .u-bloc:hover {
+      background: var(--ink);
+      color: var(--paper);
+    }
+  }
+
+  .u-bloc[aria-pressed="true"],
+  .u-bloc[aria-current="page"],
+  .u-bloc:focus-visible {
+    background: var(--ink);
+    color: var(--paper);
+  }
+}
+
+/* ---- Focus : un cadre encre, jamais un halo, jamais un second rouge ---- */
 :where(a, button, [tabindex]):focus-visible {
-  outline: 3px solid #ff0000;
-  outline-offset: 0;
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
 }
 
 /* ---- Impression : noir seul, aucun repere rouge ---- */

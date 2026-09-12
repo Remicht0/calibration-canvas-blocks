@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { BlockBackdrop, BlockType } from "@/components/mire";
 import { CalibrationBand, Ticker } from "@/components/bars";
@@ -32,7 +32,12 @@ export const Route = createFileRoute("/")({
 function Index() {
   const [hover, setHover] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
+  const [cursor, setCursor] = useState<number | null>(null);
+  // apres une butee, l'index a rendu la main : il ne reprend les fleches qu'une fois sorti de l'ecran
+  const released = useRef(false);
   const items = useRef<Array<HTMLLIElement | null>>([]);
+  const index = useRef<HTMLElement>(null);
+  const navigate = useNavigate();
 
   // Tactile : pas de survol. Le projet le plus proche du centre de l'ecran
   // se compose de lui-meme en fond. Le scroll devient la tete de lecture.
@@ -71,6 +76,70 @@ function Index() {
     };
   }, []);
 
+  // Clavier : HAUT / BAS deplacent une tete de lecture sur l'index (bloc plein,
+  // fond en negatif, saut sec dans l'ecran), ESC la relache, un chiffre saute
+  // au projet N. Les fleches ne sont prises que si l'index est a l'ecran ou
+  // porte le focus : ailleurs, la page defile.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (document.documentElement.classList.contains("mire-modal")) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+
+      if (/^[1-9]$/.test(e.key)) {
+        const p = projects[Number(e.key) - 1];
+        if (p) void navigate({ to: "/projet/$slug", params: { slug: p.slug } });
+        return;
+      }
+
+      const section = index.current;
+      if (!section) return;
+      const focused = section.contains(document.activeElement);
+      if (e.key === "Escape") {
+        if (cursor === null) return;
+        if (focused) (document.activeElement as HTMLElement | null)?.blur();
+        setCursor(null);
+        setActive(null);
+        setHover(null);
+        return;
+      }
+
+      const last = projects.length - 1;
+      let next: number;
+      if (e.key === "ArrowDown") next = cursor === null ? 0 : cursor + 1;
+      else if (e.key === "ArrowUp") next = cursor === null ? 0 : cursor - 1;
+      else if (e.key === "Home") next = 0;
+      else if (e.key === "End") next = last;
+      else return;
+
+      const r = section.getBoundingClientRect();
+      const visible = r.bottom > 0 && r.top < window.innerHeight;
+      if (!visible) released.current = false;
+      // premiere prise : seulement si l'index est a l'ecran et n'a pas deja rendu la main
+      if (cursor === null && !focused && (!visible || released.current)) return;
+      // butee : la tete de lecture rend la main, la page defile normalement
+      if (next < 0 || next > last) {
+        if (focused) (document.activeElement as HTMLElement | null)?.blur();
+        released.current = true;
+        setCursor(null);
+        setActive(null);
+        setHover(null);
+        return;
+      }
+      e.preventDefault();
+      const p = projects[next];
+      if (!p) return;
+      setCursor(next);
+      setActive(p.slug);
+      const li = items.current[next];
+      li?.querySelector("a")?.focus({ preventScroll: true });
+      li?.scrollIntoView({ block: "center", behavior: "instant" });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [cursor, navigate]);
+
   return (
     <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
       {/* ENTREE */}
@@ -88,7 +157,7 @@ function Index() {
         />
 
         <div>
-          <BlockType text="MIRE" />
+          <BlockType text="MIRE" drive="scan" />
           <p className="u-copy mt-cell2 max-w-[46ch]">
             IMAGE DE CALIBRATION — CHAQUE SURFACE EST REDUITE A DEUX VALEURS, NOIR PLEIN OU BLANC
             PLEIN, SUR UNE GRILLE DE BLOCS. LE SITE NE DECORE PAS. IL CALIBRE.
@@ -117,12 +186,26 @@ function Index() {
       />
 
       {/* INDEX */}
-      <section data-mire="INDEX" className="relative border-t-[10px] border-black">
+      <section
+        ref={index}
+        data-mire="INDEX"
+        className="on-black relative border-t-[10px] border-black"
+      >
         <BlockBackdrop src={hover} />
         <div
           className="relative"
           style={{ mixBlendMode: "difference", color: "#FFFFFF" }}
-          onMouseLeave={() => setHover(null)}
+          onMouseLeave={() => {
+            if (cursor === null) setHover(null);
+          }}
+          onBlur={(e) => {
+            if (e.currentTarget.contains(e.relatedTarget)) return;
+            setHover(null);
+            if (cursor !== null) {
+              setCursor(null);
+              setActive(null);
+            }
+          }}
         >
           <div className="u-mono grid grid-cols-[4ch_1fr] gap-x-cell px-cell py-cell2">
             <span>IDX</span>
@@ -144,7 +227,12 @@ function Index() {
                   className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_8ch_24ch]"
                 >
                   <span>
-                    {active === p.slug && <span aria-hidden="true">{"\u25A0"}</span>}
+                    {active === p.slug && (
+                      <i
+                        aria-hidden="true"
+                        className="mr-[6px] inline-block size-[10px] bg-current align-middle"
+                      />
+                    )}
                     {p.num}
                   </span>
                   <span className="min-w-0">
@@ -202,7 +290,8 @@ function Index() {
         </div>
         <p className="u-copy mt-cell2 max-w-[54ch]">
           LES PHOTOS ET VIDEOS NE SONT PAS COLLEES SUR LA MIRE : ELLES SONT ECHANTILLONNEES DANS SA
-          GRILLE. UN BLOC = UN PIXEL. LE SURVOL OUVRE UNE LOUPE DE MATIERE BRUTE.
+          GRILLE. UN BLOC = UN PIXEL. LE SURVOL, OU L&apos;APPUI LONG, OUVRE UNE LOUPE DE MATIERE
+          BRUTE.
         </p>
       </section>
 
@@ -239,7 +328,7 @@ function Index() {
       {/* ATELIER — bloc noir plein */}
       <section
         data-mire="MANIFESTE"
-        className="border-t-[10px] border-black bg-black px-cell py-cell6 text-white"
+        className="on-black border-t-[10px] border-black bg-black px-cell py-cell6 text-white"
       >
         <h2 className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
           LE SITE NE

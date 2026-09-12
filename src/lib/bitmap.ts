@@ -30,13 +30,18 @@ export const isReady = (src: Source) => {
 };
 
 /** Reduit une source (image ou video) a une grille cols x rows, recadrage cover. */
+// canvas de travail partage : une video est echantillonnee a chaque image,
+// un canvas neuf par appel ferait tourner le ramasse-miettes en continu
+let work: HTMLCanvasElement | null = null;
+
 export function sample(src: Source, cols: number, rows: number): Sampled | null {
   const { w: nw, h: nh } = srcSize(src);
   if (!nw || !nh) return null;
-  const off = document.createElement("canvas");
-  off.width = cols;
-  off.height = rows;
+  const off = (work ??= document.createElement("canvas"));
+  if (off.width !== cols) off.width = cols;
+  if (off.height !== rows) off.height = rows;
   const c = off.getContext("2d", { willReadFrequently: true })!;
+  c.clearRect(0, 0, cols, rows);
   c.imageSmoothingEnabled = true;
   const { sx, sy, sw, sh } = coverCrop(nw, nh, cols, rows);
   c.drawImage(src, sx, sy, sw, sh, 0, 0, cols, rows);
@@ -75,7 +80,7 @@ export type PaintOpts = {
   /** relevement des noirs : baisse le contraste percu */
   gamma?: number;
   negative?: boolean;
-  /** loupe : cellule survolee + rayon en cellules, revele la matiere brute */
+  /** loupe : cellule survolee + rayon en cellules (carre de Tchebychev), revele la matiere brute */
   lens?: { x: number; y: number; r: number } | null;
 };
 
@@ -106,9 +111,10 @@ export function paintBlocks(
 
       let local: BitMode = mode;
       if (lens) {
-        const d = Math.hypot(x - lens.x, y - lens.y);
+        // voisinage carre (distance de Tchebychev) : aucune courbe sur la mire
+        const d = Math.max(Math.abs(x - lens.x), Math.abs(y - lens.y));
         if (d <= lens.r) local = "brut";
-        else if (d <= lens.r + 1.6 && mode !== "brut") local = "gris";
+        else if (d <= lens.r + 1 && mode !== "brut") local = "gris";
       }
 
       if (local === "brut") {
@@ -146,6 +152,19 @@ export function inkRatio(
     else sum += 1 - l;
   }
   return sum / n;
+}
+
+/** Histogramme de luminance : part normalisee par tranche (somme = 1), meme parcours qu'inkRatio. */
+export function histogram(s: Sampled, bins = 20): Float32Array {
+  const h = new Float32Array(bins);
+  const n = s.lum.length;
+  if (!n) return h;
+  for (let i = 0; i < n; i++) {
+    const b = Math.min(bins - 1, Math.max(0, Math.floor(s.lum[i]! * bins)));
+    h[b] = h[b]! + 1;
+  }
+  for (let b = 0; b < bins; b++) h[b] = h[b]! / n;
+  return h;
 }
 
 export const isVideo = (src: string) => /\.(mp4|webm|mov|m4v)(\?|$)/i.test(src);

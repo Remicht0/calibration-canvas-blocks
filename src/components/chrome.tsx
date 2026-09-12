@@ -32,7 +32,12 @@ export function TopBar({ right, className = "" }: { right?: ReactNode; className
               aria-current={active ? "page" : undefined}
               className="hidden shrink-0 md:inline"
             >
-              {active && <span aria-hidden="true">{"■ "}</span>}
+              {active && (
+                <i
+                  aria-hidden="true"
+                  className="mr-[6px] inline-block size-[10px] bg-current align-middle"
+                />
+              )}
               {t.label}
             </Link>
           );

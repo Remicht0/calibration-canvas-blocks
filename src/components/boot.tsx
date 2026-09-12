@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { cellSizeFor } from "@/lib/mire";
+import { drawText, mireText, textCols } from "@/lib/glyphs";
+import {
+  bitUnit,
+  blockifyText,
+  cellSizeFor,
+  fallOrder,
+  scanLineTop,
+  textBlockHeight,
+} from "@/lib/mire";
+import { bySlug } from "@/lib/projects";
+import { Bloc } from "@/components/bloc";
 
 /* ------------------------------------------------------------------ */
 /* Sequence de mise en route : la mire se charge, bloc par bloc        */
@@ -15,12 +25,14 @@ export function BootSequence() {
 
   useEffect(() => {
     if (sessionStorage.getItem(KEY)) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      sessionStorage.setItem(KEY, "1");
-      return;
-    }
     sessionStorage.setItem(KEY, "1");
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     setDone(false);
+  }, []);
+
+  // le canvas n'existe qu'une fois done a false : l'animation part au rendu suivant
+  useEffect(() => {
+    if (done) return;
     document.documentElement.style.overflow = "hidden";
 
     const cv = canvas.current;
@@ -76,7 +88,7 @@ export function BootSequence() {
       cancelAnimationFrame(raf);
       document.documentElement.style.overflow = "";
     };
-  }, []);
+  }, [done]);
 
   if (done) return null;
 
@@ -110,22 +122,40 @@ export function GridCursor() {
     if (window.matchMedia("(pointer: coarse)").matches) return;
     const el = box.current;
     if (!el) return;
-    const cell = cellSizeFor(window.innerWidth);
-    el.style.width = `${cell}px`;
-    el.style.height = `${cell}px`;
+    let cell = cellSizeFor(window.innerWidth);
     let x = -99;
     let y = -99;
     let raf = 0;
+    let wiping = false;
     const draw = () => {
       raf = 0;
-      el.style.transform = `translate3d(${Math.floor(x / cell) * cell}px, ${
-        Math.floor(y / cell) * cell
-      }px, 0)`;
+      cell = cellSizeFor(window.innerWidth);
+      el.style.width = `${cell}px`;
+      el.style.height = `${cell}px`;
+      const cy = Math.floor(y / cell) * cell;
+      el.style.transform = `translate3d(${Math.floor(x / cell) * cell}px, ${cy}px, 0)`;
+      // sur la ligne rouge (ou le balayage rouge de la transition), la cellule
+      // en difference donnerait du cyan : elle s'efface
+      const line = scanLineTop(
+        cell,
+        window.scrollY,
+        window.innerHeight,
+        document.body.scrollHeight,
+      );
+      const onLine = cy < line + 10 && cy + cell > line;
+      el.style.visibility = onLine || wiping ? "hidden" : "visible";
+    };
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(draw);
     };
     const move = (e: PointerEvent) => {
       x = e.clientX;
       y = e.clientY;
-      if (!raf) raf = requestAnimationFrame(draw);
+      schedule();
+    };
+    const onWipe = (e: Event) => {
+      wiping = Boolean((e as CustomEvent<boolean>).detail);
+      schedule();
     };
     // sur un lien, la cellule se creuse : un cadre blanc, inverse par le mode
     // difference. Jamais de rouge ici : le repere est unique, et un rouge en
@@ -138,10 +168,16 @@ export function GridCursor() {
     };
     window.addEventListener("pointermove", move, { passive: true });
     window.addEventListener("pointerover", over, { passive: true });
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    window.addEventListener("mire:wipe", onWipe);
     document.documentElement.classList.add("mire-nocursor");
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerover", over);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("mire:wipe", onWipe);
       document.documentElement.classList.remove("mire-nocursor");
       cancelAnimationFrame(raf);
     };
@@ -151,7 +187,7 @@ export function GridCursor() {
     <div
       ref={box}
       aria-hidden="true"
-      className="pointer-events-none fixed left-0 top-0 z-[150] hidden bg-white mix-blend-difference md:block"
+      className="pointer-events-none fixed left-0 top-0 z-[250] hidden bg-white mix-blend-difference md:block"
     />
   );
 }
@@ -170,6 +206,7 @@ export function NegativeSwitch() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (document.documentElement.classList.contains("mire-modal")) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (e.key === "n" || e.key === "N") setNeg((v) => !v);
@@ -179,22 +216,18 @@ export function NegativeSwitch() {
   }, []);
 
   return (
-    <button
-      type="button"
+    <Bloc
+      id="inverseur"
       onClick={() => setNeg((v) => !v)}
-      aria-pressed={neg}
+      pressed={neg}
       aria-keyshortcuts="n"
       aria-label={neg ? "Revenir au positif, touche N" : "Passer en négatif, touche N"}
-      className="mire-noprint u-mono fixed right-0 top-1/2 z-[160] hidden -translate-y-1/2 border-[3px] px-[6px] py-cell md:block"
-      style={{
-        writingMode: "vertical-rl",
-        background: "#FFFFFF",
-        color: "#000000",
-        borderColor: "#000000",
-      }}
+      // en vertical-rl l'axe inline est vertical : px-cell / py-0 donnent haut-bas = 1 cellule, cotes = 0
+      className="mire-noprint mire-chrome fixed right-0 top-1/2 z-[160] hidden h-auto w-cell2 -translate-y-1/2 px-cell py-0 md:inline-flex"
+      style={{ writingMode: "vertical-rl" }}
     >
       {neg ? "POSITIF [N]" : "NEGATIF [N]"}
-    </button>
+    </Bloc>
   );
 }
 
@@ -206,11 +239,61 @@ const easeOutCubic = (k: number) => 1 - Math.pow(1 - k, 3);
 const easeInOutCubic = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
 const seg = (k: number, a: number, b: number) => Math.min(1, Math.max(0, (k - a) / (b - a)));
 
+const DISPLAY_FONT = "'Anton', sans-serif";
+
+/** Titre de la page de destination, lu sur le chemin deja change au declenchement. */
+function titleFor(path: string): string {
+  if (path === "/") return "MIRE";
+  if (path.startsWith("/atelier")) return "ATELIER";
+  if (path.startsWith("/contact")) return "CONTACT";
+  const m = /^\/projet\/([^/]+)/.exec(path);
+  return (m && bySlug(m[1]!)?.title) || "MIRE";
+}
+
+/**
+ * Texte 3x5 en XOR par cellule : chaque bloc de glyphe est blanc si la cellule du
+ * masque sous lui est noire, noir sinon, et rien n'est peint sur la rangee rouge.
+ * Deux passes de drawText sous un decoupage rectangulaire : aucun demi-bloc.
+ */
+function drawTextXor(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  unit: number,
+  ox: number,
+  oy: number,
+  cell: number,
+  ink: (gx: number, gy: number) => boolean | null,
+) {
+  const white = new Path2D();
+  const black = new Path2D();
+  const chars = text.length;
+  for (let i = 0; i < chars; i++) {
+    for (let y = 0; y < 5; y++) {
+      for (let x = 0; x < 3; x++) {
+        const px = ox + (i * 4 + x) * unit;
+        const py = oy + y * unit;
+        const on = ink(Math.floor(px / cell), Math.floor(py / cell));
+        if (on === null) continue;
+        (on ? white : black).rect(px, py, unit, unit);
+      }
+    }
+  }
+  ctx.save();
+  ctx.clip(white);
+  ctx.fillStyle = "#FFFFFF";
+  drawText(ctx, text, unit, ox, oy);
+  ctx.restore();
+  ctx.save();
+  ctx.clip(black);
+  ctx.fillStyle = "#000000";
+  drawText(ctx, text, unit, ox, oy);
+  ctx.restore();
+}
+
 export function RouteWipe() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const canvas = useRef<HTMLCanvasElement>(null);
   const [on, setOn] = useState(false);
-  const [label, setLabel] = useState(0);
   const first = useRef(true);
 
   useEffect(() => {
@@ -221,6 +304,7 @@ export function RouteWipe() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     setOn(true);
+    window.dispatchEvent(new CustomEvent("mire:wipe", { detail: true }));
     const cv = canvas.current;
     let raf = 0;
     let dead = false;
@@ -264,38 +348,87 @@ export function RouteWipe() {
       cv.style.height = `${rows * cell}px`;
     }
 
+    // etat du masque ce frame : 1 = cellule noire
+    const state = new Uint8Array(n);
+    const u = bitUnit(cell);
+    const MENTION = "MIRE / RECALIBRAGE";
+    // compteur cale sur la grille visible, a une cellule des bords bas et droit
+    const counterX = (Math.floor(window.innerWidth / cell) - 1 - textCols("000")) * cell;
+    const counterY = (Math.floor(window.innerHeight / cell) - 1 - 5) * cell;
+
+    // titre de destination, compose pleine largeur et centre ; s'il depasse la
+    // hauteur d'ecran, on reduit sa largeur plutot que de le couper
+    const title = mireText(titleFor(path));
+    const rowsMax = Math.max(1, rows - 6);
+    const needed = Math.ceil(textBlockHeight(title, DISPLAY_FONT, cols * cell) / cell);
+    const rowsTitle = Math.min(needed, rowsMax);
+    const colsTitle = needed > rowsMax ? Math.max(1, Math.floor((cols * rowsMax) / needed)) : cols;
+    const titleBits = blockifyText(title, DISPLAY_FONT, colsTitle, rowsTitle);
+    const titleOrder = fallOrder(colsTitle, rowsTitle, 13);
+    const titleX = Math.floor((cols - colsTitle) / 2);
+    const titleY = Math.floor((rows - rowsTitle) / 2);
+
     const step = (t: number) => {
       if (dead) return;
       const k = Math.min(1, (t - t0) / DUR);
-      setLabel(Math.round(easeInOutCubic(k) * 100));
       const ctx = cv?.getContext("2d");
       if (ctx) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, cols * cell, rows * cell);
-        ctx.fillStyle = "#000000";
 
+        let red = -1;
         if (k < A) {
           const p = easeOutCubic(seg(k, 0, A));
-          for (let i = 0; i < n; i++) {
-            if (cover[i]! > p) continue;
-            ctx.fillRect((i % cols) * cell, Math.floor(i / cols) * cell, cell, cell);
-          }
+          for (let i = 0; i < n; i++) state[i] = cover[i]! <= p ? 1 : 0;
         } else if (k < B) {
-          ctx.fillRect(0, 0, cols * cell, rows * cell);
+          state.fill(1);
           // palier : un seul repere rouge balaye la surface noire
-          const y = Math.floor(seg(k, A, B) * (rows - 1));
-          ctx.fillStyle = "#FF0000";
-          ctx.fillRect(0, y * cell, cols * cell, cell);
+          red = Math.floor(seg(k, A, B) * (rows - 1));
         } else {
           const p = easeInOutCubic(seg(k, B, 1));
-          for (let i = 0; i < n; i++) {
-            if (fall[i]! <= p) continue;
-            ctx.fillRect((i % cols) * cell, Math.floor(i / cols) * cell, cell, cell);
+          for (let i = 0; i < n; i++) state[i] = fall[i]! > p ? 1 : 0;
+        }
+
+        ctx.fillStyle = "#000000";
+        for (let i = 0; i < n; i++) {
+          if (!state[i]) continue;
+          ctx.fillRect((i % cols) * cell, Math.floor(i / cols) * cell, cell, cell);
+        }
+        if (red >= 0) {
+          ctx.fillStyle = "#FF0000";
+          ctx.fillRect(0, red * cell, cols * cell, cell);
+        }
+
+        // titre : se compose avec le masque, tient au palier, tombe avec lui
+        const pTitle = k < A ? easeOutCubic(seg(k, 0, A)) : 1;
+        ctx.fillStyle = "#FFFFFF";
+        for (let y = 0; y < rowsTitle; y++) {
+          const gy = titleY + y;
+          if (gy === red) continue;
+          for (let x = 0; x < colsTitle; x++) {
+            const i = y * colsTitle + x;
+            if (!titleBits.data[i] || titleOrder[i]! > pTitle) continue;
+            const gx = titleX + x;
+            if (!state[gy * cols + gx]) continue;
+            ctx.fillRect(gx * cell, gy * cell, cell, cell);
           }
         }
+
+        const ink = (gx: number, gy: number) => (gy === red ? null : state[gy * cols + gx] === 1);
+        drawTextXor(ctx, MENTION, u, cell, cell, cell, ink);
+        const count = String(Math.round(easeInOutCubic(k) * 100)).padStart(3, "0");
+        drawTextXor(ctx, count, cell, counterX, counterY, cell, ink);
       }
       if (k < 1) raf = requestAnimationFrame(step);
-      else setOn(false);
+      else {
+        // le masque est invisible entre deux navigations : son bitmap n'a pas a rester alloue
+        if (cv) {
+          cv.width = 0;
+          cv.height = 0;
+        }
+        setOn(false);
+        window.dispatchEvent(new CustomEvent("mire:wipe", { detail: false }));
+      }
     };
     raf = requestAnimationFrame(step);
     return () => {
@@ -306,20 +439,11 @@ export function RouteWipe() {
 
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-[190] overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-[195] overflow-hidden"
       style={{ visibility: on ? "visible" : "hidden" }}
       aria-hidden="true"
     >
       <canvas ref={canvas} className="block" />
-      <div
-        className="u-mono absolute inset-0 flex flex-col justify-between p-cell text-white"
-        style={{ opacity: on ? 1 : 0 }}
-      >
-        <span>MIRE / RECALIBRAGE</span>
-        <span className="u-display self-end text-[18vw] leading-[0.78] md:text-[8vw]">
-          {String(label).padStart(3, "0")}
-        </span>
-      </div>
     </div>
   );
 }

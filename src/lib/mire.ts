@@ -10,6 +10,9 @@ export type Bits = {
 
 export const cellSizeFor = (width: number) => (width < 768 ? 16 : 20);
 
+/** Pas de la fonte 3x5 en etiquette : un glyphe fait une cellule de haut (4 px bureau, 3 px mobile). */
+export const bitUnit = (cell: number) => Math.round(cell / 5);
+
 /** Mouvement reduit demande par le systeme : tout se pose d'un coup, aucune chute. */
 export const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -169,12 +172,63 @@ export function fallOrder(cols: number, rows: number, seed = 1): Float32Array {
   return out;
 }
 
+/**
+ * Position de la ligne rouge (ScanLine) : 4 cellules du haut en tete de page,
+ * 4 cellules du bas en fin de page, toujours calee sur le pas de grille.
+ */
+export function scanLineTop(
+  cell: number,
+  scrollY: number,
+  innerHeight: number,
+  scrollHeight: number,
+): number {
+  const max = scrollHeight - innerHeight;
+  const p = max > 0 ? Math.min(1, scrollY / max) : 0;
+  const span = innerHeight - cell * 8;
+  return Math.round((cell * 4 + p * span) / cell) * cell;
+}
+
+/**
+ * Usure sous le curseur : un voisinage CARRE de rayon r (jamais un disque),
+ * les cellules a ordre de chute eleve (le bas des lettres) cedent d'abord.
+ */
+export function erode(
+  wear: Float32Array,
+  order: Float32Array,
+  cols: number,
+  rows: number,
+  cx: number,
+  cy: number,
+  r: number,
+  step: number,
+): boolean {
+  let changed = false;
+  for (let y = Math.max(0, cy - r); y <= Math.min(rows - 1, cy + r); y++) {
+    for (let x = Math.max(0, cx - r); x <= Math.min(cols - 1, cx + r); x++) {
+      const i = y * cols + x;
+      const next = Math.min(1, wear[i]! + step * (0.5 + order[i]!));
+      if (next !== wear[i]) {
+        wear[i] = next;
+        changed = true;
+      }
+    }
+  }
+  return changed;
+}
+
+/** Guerison par ordre de chute : a k = 1, plus aucune usure. */
+export function heal(wear: Float32Array, order: Float32Array, k: number) {
+  for (let i = 0; i < wear.length; i++) if (order[i]! <= k) wear[i] = 0;
+}
+
 export type DrawOpts = {
   cell: number;
-  /** 0 = rien de posé, 1 = image complète */
-  progress: number;
+  /** 0 = rien de posé, 1 = image complète ; un tableau = un progress par rangée */
+  progress: number | Float32Array;
   /** true = blocs blancs sur fond noir */
   negative?: boolean;
+  /** usure par cellule 0..1 : a 1, le bloc est parti (erosion sous le curseur) */
+  wear?: Float32Array;
 };
 
 /** Dessine la grille : les blocs se posent selon l'inverse de l'ordre de chute. */
@@ -182,17 +236,19 @@ export function drawBits(
   ctx: CanvasRenderingContext2D,
   bits: Bits,
   order: Float32Array,
-  { cell, progress, negative = false }: DrawOpts,
+  { cell, progress, negative = false, wear }: DrawOpts,
 ) {
   const { cols, rows, data } = bits;
   ctx.fillStyle = negative ? "#000000" : "#FFFFFF";
   ctx.fillRect(0, 0, cols * cell, rows * cell);
   ctx.fillStyle = negative ? "#FFFFFF" : "#000000";
   for (let y = 0; y < rows; y++) {
+    const p = typeof progress === "number" ? progress : progress[y]!;
     for (let x = 0; x < cols; x++) {
       const i = y * cols + x;
       if (!data[i]) continue;
-      if (order[i]! > progress) continue;
+      if (order[i]! > p) continue;
+      if (wear && wear[i]! >= 1) continue;
       ctx.fillRect(x * cell, y * cell, cell, cell);
     }
   }

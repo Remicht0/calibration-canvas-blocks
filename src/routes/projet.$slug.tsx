@@ -74,16 +74,23 @@ function ProjectPage() {
   const tag = (o: (typeof projects)[number]) =>
     o === prev ? "PRECEDENT" : o === next ? "SUIVANT" : "";
 
-  // fleches du clavier : precedent / suivant, comme on feuillette des planches
+  // fleches du clavier : precedent / suivant, comme on feuillette des planches ;
+  // un chiffre saute directement au projet N
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (document.documentElement.classList.contains("mire-modal")) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      if (e.key === "ArrowLeft")
+      // sur AZERTY un chiffre se tape avec Maj : seules les fleches refusent le modificateur
+      if (!e.shiftKey && e.key === "ArrowLeft")
         void navigate({ to: "/projet/$slug", params: { slug: prev.slug } });
-      if (e.key === "ArrowRight")
+      if (!e.shiftKey && e.key === "ArrowRight")
         void navigate({ to: "/projet/$slug", params: { slug: next.slug } });
+      if (/^[1-9]$/.test(e.key)) {
+        const target = projects[Number(e.key) - 1];
+        if (target) void navigate({ to: "/projet/$slug", params: { slug: target.slug } });
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -94,13 +101,13 @@ function ProjectPage() {
       <TopBar className="px-cell py-cell2" right={`${p.num} / ${p.year}`} />
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
-        <BlockType text={p.title} loop={false} />
+        <BlockType text={p.title} loop={false} drive="scan" />
       </section>
 
       <CalibrationBand height={5} seed={7} className="border-y-[10px] border-black" />
 
       {/* BLOC NOIR */}
-      <section data-mire="MESURES" className="bg-black px-cell py-cell4 text-white">
+      <section data-mire="MESURES" className="on-black bg-black px-cell py-cell4 text-white">
         <h2 className="sr-only">Mesures</h2>
         <div className="u-mono grid gap-y-cell2 md:grid-cols-4 md:gap-x-cell">
           <div>
@@ -129,6 +136,7 @@ function ProjectPage() {
         <div className="u-mono mb-cell flex justify-between">
           <h2>PLANCHE 01 — MATIERE</h2>
           <span className="hidden md:inline">SURVOL = LOUPE / MATIERE BRUTE</span>
+          <span className="md:hidden">APPUI LONG = LOUPE</span>
         </div>
         <HybridMedia
           src={p.image}
@@ -141,7 +149,7 @@ function ProjectPage() {
       </section>
 
       {/* TEXTE COLONNE ETROITE */}
-      <section data-mire="NOTES" className="bg-black px-cell py-cell4 text-white">
+      <section data-mire="NOTES" className="on-black bg-black px-cell py-cell4 text-white">
         <h2 className="sr-only">Notes</h2>
         <div className="u-copy max-w-[54ch] space-y-cell2">
           {p.lines.map((l) => (
@@ -178,12 +186,15 @@ function ProjectPage() {
       </section>
 
       {/* SUITE : les autres projets, l'image du projet survole se compose en negatif */}
-      <section data-mire="SUITE" className="relative border-t-[10px] border-black">
+      <section data-mire="SUITE" className="on-black relative border-t-[10px] border-black">
         <BlockBackdrop src={hover} />
         <div
           className="relative px-cell py-cell2"
           style={{ mixBlendMode: "difference", color: "#FFFFFF" }}
           onMouseLeave={() => setHover(null)}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget)) setHover(null);
+          }}
         >
           <div className="u-mono mb-cell2 flex flex-wrap justify-between gap-cell">
             <h2>SUITE</h2>
