@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
-@import "tw-animate-css";
+/* le kit shadcn du gabarit n'est utilise nulle part : il ne genere aucune classe */
+@source not "../src/components/ui";
 
 @custom-variant dark (&:is(.dark *));
 

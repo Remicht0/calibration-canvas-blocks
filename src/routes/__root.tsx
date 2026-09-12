@@ -1,8 +1,7 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
-  createRootRouteWithContext,
+  createRootRoute,
   useRouter,
   HeadContent,
   Scripts,
@@ -14,6 +13,7 @@ import { Bloc } from "@/components/bloc";
 import { BootSequence, GridCursor, NegativeSwitch, RouteWipe } from "@/components/boot";
 import { TopBar } from "@/components/chrome";
 import { MireConsole, ScrollRail } from "@/components/console";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { KeyHelp } from "@/components/help";
 import { BlockType, ScanLine } from "@/components/mire";
 import { ogPath, siteOrigin, STUDIO } from "@/lib/site";
@@ -110,7 +110,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+export const Route = createRootRoute({
   // origine absolue du site : les cartes de partage et le canonical l'exigent
   loader: () => ({ origin: siteOrigin() }),
   head: ({ loaderData, matches }) => {
@@ -213,10 +213,11 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function RootComponent() {
-  const { queryClient } = Route.useRouteContext();
+  // un seul instrument de defilement a la fois : la reglette (bureau) ou la console (mobile)
+  const mobile = useIsMobile();
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
       {/* lien d'evitement : invisible jusqu'au focus clavier, puis un bloc noir */}
       <a
         id="evitement"
@@ -230,11 +231,11 @@ function RootComponent() {
       <NegativeSwitch />
       <BootSequence />
       <RouteWipe />
-      <ScrollRail />
+      {!mobile && <ScrollRail />}
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
-      <MireConsole />
+      {mobile && <MireConsole />}
       <KeyHelp />
-    </QueryClientProvider>
+    </>
   );
 }

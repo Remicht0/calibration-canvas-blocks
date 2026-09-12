@@ -242,6 +242,7 @@ export function NoiseField({ rows = 10, seed = 5 }: { rows?: number; seed?: numb
     };
 
     const paint = () => {
+      raf = 0;
       if (dead) return;
       const ctx = cv.getContext("2d");
       if (ctx) {
@@ -265,17 +266,39 @@ export function NoiseField({ rows = 10, seed = 5 }: { rows?: number; seed?: numb
           }
         }
       }
-      raf = requestAnimationFrame(paint);
     };
+    // le bruit ne change qu'avec la position dans l'ecran : rendu au defilement, a l'ecran seulement
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(paint);
+    };
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          window.addEventListener("scroll", schedule, { passive: true });
+          window.addEventListener("resize", schedule);
+          schedule();
+        } else {
+          window.removeEventListener("scroll", schedule);
+          window.removeEventListener("resize", schedule);
+        }
+      }
+    });
 
     size();
-    raf = requestAnimationFrame(paint);
-    const ro = new ResizeObserver(size);
+    schedule();
+    io.observe(el);
+    const ro = new ResizeObserver(() => {
+      size();
+      schedule();
+    });
     ro.observe(el);
     return () => {
       dead = true;
       cancelAnimationFrame(raf);
+      io.disconnect();
       ro.disconnect();
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
     };
   }, [rows, seed]);
 

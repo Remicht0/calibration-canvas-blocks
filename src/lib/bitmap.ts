@@ -30,13 +30,18 @@ export const isReady = (src: Source) => {
 };
 
 /** Reduit une source (image ou video) a une grille cols x rows, recadrage cover. */
+// canvas de travail partage : une video est echantillonnee a chaque image,
+// un canvas neuf par appel ferait tourner le ramasse-miettes en continu
+let work: HTMLCanvasElement | null = null;
+
 export function sample(src: Source, cols: number, rows: number): Sampled | null {
   const { w: nw, h: nh } = srcSize(src);
   if (!nw || !nh) return null;
-  const off = document.createElement("canvas");
-  off.width = cols;
-  off.height = rows;
+  const off = (work ??= document.createElement("canvas"));
+  if (off.width !== cols) off.width = cols;
+  if (off.height !== rows) off.height = rows;
   const c = off.getContext("2d", { willReadFrequently: true })!;
+  c.clearRect(0, 0, cols, rows);
   c.imageSmoothingEnabled = true;
   const { sx, sy, sw, sh } = coverCrop(nw, nh, cols, rows);
   c.drawImage(src, sx, sy, sw, sh, 0, 0, cols, rows);

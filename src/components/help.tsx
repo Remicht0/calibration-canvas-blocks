@@ -75,7 +75,8 @@ export function KeyHelp() {
       <Bloc
         ref={openBtn}
         onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-keyshortcuts="?"
         id="aide"
         className="mire-chrome mire-noprint fixed bottom-cell right-cell z-[180] hidden md:inline-flex"
       >

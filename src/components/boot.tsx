@@ -421,6 +421,11 @@ export function RouteWipe() {
       }
       if (k < 1) raf = requestAnimationFrame(step);
       else {
+        // le masque est invisible entre deux navigations : son bitmap n'a pas a rester alloue
+        if (cv) {
+          cv.width = 0;
+          cv.height = 0;
+        }
         setOn(false);
         window.dispatchEvent(new CustomEvent("mire:wipe", { detail: false }));
       }

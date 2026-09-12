@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { cellSizeFor, fallOrder, otsuThreshold, prefersReducedMotion } from "@/lib/mire";
 import {
   inkRatio,
@@ -127,7 +127,7 @@ export function HybridMedia({
   const [ink, setInk] = useState<number | null>(null);
   // format de la planche en cellules, pose a chaque composition
   const [dims, setDims] = useState<{ cols: number; rows: number } | null>(null);
-  const measure = useRef<() => void>(() => {});
+  const measure = useRef<() => number | null>(() => null);
   // pointeur grossier : la loupe s'ouvre a l'appui long, l'etiquette le dit
   const [coarse, setCoarse] = useState(false);
   useEffect(() => {
@@ -140,24 +140,47 @@ export function HybridMedia({
   const canFull = controls && !viewport;
 
   // changement de mode : la trame est redessinee en place, les blocs poses ne retombent pas
-  const apply = useCallback((m: BitMode) => {
-    modeRef.current = m;
-    setMode(m);
-    redraw.current();
-    measure.current();
-  }, []);
+  // la region aria-live n'est ecrite que par une action du visiteur, jamais par une mesure
+  const [announce, setAnnounce] = useState("");
+  const say = useCallback(
+    (m: BitMode, t: Tune, inkNow: number | null) => {
+      const tuneText =
+        m === "bin"
+          ? `Seuil ${frNumber(t.threshold)}, `
+          : m === "gris"
+            ? `Paliers ${t.levels}, `
+            : "";
+      const inkText = inkNow !== null && !video ? `encrage ${inkNow} %.` : "";
+      setAnnounce(`${SPOKEN[m]} ${tuneText}${inkText}`);
+    },
+    [video],
+  );
 
-  const setTune = useCallback((patch: Partial<Tune>) => {
-    const next = clampTune({ ...tune.current, ...patch });
-    tune.current = next;
-    setShown(next);
-    redraw.current();
-    measure.current();
-  }, []);
+  const apply = useCallback(
+    (m: BitMode) => {
+      modeRef.current = m;
+      setMode(m);
+      redraw.current();
+      say(m, tune.current, measure.current());
+    },
+    [say],
+  );
 
-  // seuil pilote de l'exterieur (instrument) : resynchronise le ref, redessine en place
+  const setTune = useCallback(
+    (patch: Partial<Tune>, silent = false) => {
+      const next = clampTune({ ...tune.current, ...patch });
+      tune.current = next;
+      setShown(next);
+      redraw.current();
+      const inkNow = measure.current();
+      if (!silent) say(modeRef.current, next, inkNow);
+    },
+    [say],
+  );
+
+  // seuil pilote de l'exterieur (instrument) : resynchronise le ref, redessine en place, sans annonce
   useEffect(() => {
-    if (tune.current.threshold !== threshold) setTune({ threshold });
+    if (tune.current.threshold !== threshold) setTune({ threshold }, true);
   }, [threshold, setTune]);
 
   const step = useCallback(
@@ -253,12 +276,13 @@ export function HybridMedia({
     let inkAt = 0;
 
     measure.current = () => {
-      if (!data) return;
+      if (!data) return null;
       const v = Math.round(inkRatio(data, modeRef.current, tune.current) * 100);
       if (v !== lastInk) {
         lastInk = v;
         setInk(v);
       }
+      return v;
     };
 
     if (video && reduced) {
@@ -282,6 +306,10 @@ export function HybridMedia({
     };
     redraw.current = draw;
 
+    let lastCols = 0;
+    let lastRows = 0;
+    let lastCell = 0;
+    let lastDpr = 0;
     const build = () => {
       if (!media || !isReady(media)) return;
       cell = cellSizeFor(window.innerWidth);
@@ -291,6 +319,12 @@ export function HybridMedia({
         ? Math.max(4, Math.floor(el.clientHeight / cell))
         : Math.max(4, Math.round(cols * ratio));
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // le ResizeObserver se redeclenche sur la hauteur que build() vient d'ecrire : pas de second echantillonnage
+      if (cols === lastCols && rows === lastRows && cell === lastCell && dpr === lastDpr) return;
+      lastCols = cols;
+      lastRows = rows;
+      lastCell = cell;
+      lastDpr = dpr;
       cv.style.width = `${cols * cell}px`;
       cv.style.height = `${rows * cell}px`;
       cv.width = cols * cell * dpr;
@@ -316,7 +350,9 @@ export function HybridMedia({
       if (scrollRaf) return;
       scrollRaf = requestAnimationFrame(() => {
         scrollRaf = 0;
-        progress = scrollProgress();
+        const p = scrollProgress();
+        if (p === progress) return;
+        progress = p;
         draw();
       });
     };
@@ -557,18 +593,15 @@ export function HybridMedia({
     };
   }, [src, ratio, lensRadius, video, drive, viewport, setTune]);
 
-  const spokenTune =
-    mode === "bin"
-      ? `Seuil ${frNumber(shown.threshold)}, `
-      : mode === "gris"
-        ? `Paliers ${shown.levels}, `
-        : "";
-  const spokenInk = ink !== null && !video ? `encrage ${ink} %.` : "";
+  const labelId = useId();
+  const named = controls && !!label;
 
   return (
     <figure
       ref={figure}
       tabIndex={0}
+      aria-labelledby={named ? labelId : undefined}
+      aria-label={named ? undefined : alt}
       onKeyDown={shortcut}
       className={`min-w-0 max-w-full ${viewport ? "flex h-full min-h-0 flex-col" : ""} ${className}`}
     >
@@ -587,7 +620,11 @@ export function HybridMedia({
       {controls && (
         <figcaption className="u-mono mt-[3px] flex shrink-0 flex-wrap items-center justify-between gap-x-cell gap-y-0 border-[3px] border-(--ink) px-[6px]">
           <span className="flex min-h-cell2 min-w-0 flex-wrap items-center gap-[6px]">
-            {label && <span className="min-w-0 truncate">{label}</span>}
+            {label && (
+              <span id={labelId} className="min-w-0 truncate">
+                {label}
+              </span>
+            )}
             {ink !== null && (
               <span className="flex shrink-0 items-center gap-[4px]">
                 <span>ENCRE</span>
@@ -650,7 +687,6 @@ export function HybridMedia({
               <button
                 type="button"
                 onClick={togglePlay}
-                aria-pressed={!playing}
                 aria-label={playing ? "Pause de la vidéo" : "Lecture de la vidéo"}
                 className="u-mono u-bloc"
               >
@@ -677,10 +713,11 @@ export function HybridMedia({
           </span>
         </figcaption>
       )}
-      <span className="sr-only" aria-live="polite">
-        {SPOKEN[mode]} {spokenTune}
-        {spokenInk}
-      </span>
+      {controls && (
+        <span className="sr-only" aria-live="polite">
+          {announce}
+        </span>
+      )}
       {full && (
         <PleinCadre
           src={src}

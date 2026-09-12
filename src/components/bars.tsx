@@ -55,6 +55,8 @@ export function CalibrationBand({
     };
 
     const once = still || prefersReducedMotion();
+    let visible = false;
+    let modal = false;
     const paint = (t: number) => {
       if (dead) return;
       const ctx = cv.getContext("2d");
@@ -72,12 +74,32 @@ export function CalibrationBand({
         }
       }
       // ligne sans signal ou mouvement reduit : une seule pose, la bande ne respire pas
-      if (!once) raf = requestAnimationFrame(paint);
+      raf = 0;
+      if (!once && visible && !modal) raf = requestAnimationFrame(paint);
     };
 
     size();
     if (once) paint(0);
-    else raf = requestAnimationFrame(paint);
+    // la bande ne respire qu'a l'ecran et hors masque : sinon la boucle s'arrete
+    const sync = () => {
+      if (once) return;
+      if (visible && !modal) {
+        if (!raf) raf = requestAnimationFrame(paint);
+      } else {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    };
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) visible = e.isIntersecting;
+      sync();
+    });
+    io.observe(el);
+    const onModal = (e: Event) => {
+      modal = Boolean((e as CustomEvent<boolean>).detail);
+      sync();
+    };
+    window.addEventListener("mire:modal", onModal);
     const ro = new ResizeObserver(() => {
       size();
       // le redimensionnement vide le canvas : une pose fixe doit etre repeinte
@@ -87,6 +109,8 @@ export function CalibrationBand({
 
     return () => {
       dead = true;
+      io.disconnect();
+      window.removeEventListener("mire:modal", onModal);
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
