@@ -103,7 +103,7 @@ export function KeyHelp() {
 
           <div>
             <h2 className="u-display text-[18vw] leading-[0.82] md:text-[9vw]">COMMANDES</h2>
-            <ul className="mt-cell2 max-w-[62ch] border-t-[3px] border-white">
+            <ul className="mt-cell2 max-w-[62ch] border-t-[3px] border-white md:grid md:max-w-none md:grid-cols-2 md:gap-x-cell2">
               {KEYS.map(([k, d]) => (
                 <li
                   key={k}
