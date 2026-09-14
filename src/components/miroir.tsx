@@ -42,8 +42,15 @@ const MAX_PIXELS = 50_000_000;
 /* 1600 px sur le grand cote : ~16 pixels source par cellule, meme en plein cadre. */
 const MAX_COTE = 1600;
 
-/* Canvas de travail partages, comme sample() : une reduction par moities
-   successives allouerait sinon un canvas par passe. */
+/* Rapport de reduction encore bon marche en une seule passe. Mesure sur ce
+   navigateur, source 8000 x 6000 vers 1600 x 1200 (rapport 5) : une passe
+   coute 30 ms de fil principal, trois passes par moities en coutent 573 —
+   ce sont les canvas intermediaires de 48 et 24 Mo qui gelent la page, pas
+   le reechantillonnage. Les moities ne redeviennent utiles qu'au-dela. */
+const FACTEUR = 6;
+
+/* Canvas de travail partages, comme sample() : un canvas neuf par appel
+   ferait tourner le ramasse-miettes. */
 let passeA: HTMLCanvasElement | null = null;
 let passeB: HTMLCanvasElement | null = null;
 
@@ -67,9 +74,12 @@ function reduirePasse(
 
 /**
  * Valide par decodage (jamais sur file.type ni sur l'extension : un texte
- * renomme .png arrive avec le type image/png) puis reduit par bonds de
- * facteur 2 au plus. Une reduction 114:1 en un seul drawImage coute ~900 ms
- * sur le fil principal, et sample() est rappele a chaque redimensionnement.
+ * renomme .png arrive avec le type image/png) puis reduit a 1600 px une fois
+ * pour toutes. Le decodage de createImageBitmap est hors fil principal
+ * (~560 ms de travail, 17 ms de gel mesures sur une photo de 48 Mpx) ; la
+ * reduction, elle, est synchrone, d'ou le plafond de FACTEUR par passe.
+ * Reduire une seule fois est indispensable : sample() rappelle la source a
+ * chaque redimensionnement, a chaque bascule 16 / 20 px et a chaque plein cadre.
  */
 async function preparer(file: File): Promise<string> {
   const bmp = await createImageBitmap(file);
@@ -84,9 +94,9 @@ async function preparer(file: File): Promise<string> {
     let sw = bmp.width;
     let sh = bmp.height;
     let cible = passeA;
-    while (sw > tw * 2 && sh > th * 2) {
-      const dw = Math.round(sw / 2);
-      const dh = Math.round(sh / 2);
+    while (sw > tw * FACTEUR || sh > th * FACTEUR) {
+      const dw = Math.max(tw, Math.round(sw / 2));
+      const dh = Math.max(th, Math.round(sh / 2));
       reduirePasse(source, sw, sh, dw, dh, cible);
       source = cible;
       sw = dw;
