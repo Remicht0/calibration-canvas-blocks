@@ -298,8 +298,10 @@ export function HybridMedia({
       return v;
     };
 
-    // Une source vivante n'est pas du mouvement decoratif : elle joue meme sous
-    // mouvement reduit, sinon le voyant de la camera reste allume sur une trame noire.
+    // Une source vivante demarre toujours : aux metadonnees, la seule trame
+    // disponible est noire, et figer la planche dessus laisserait le voyant de
+    // la camera allume sur un rectangle vide. Sous mouvement reduit elle se
+    // fige des la premiere trame reelle (figerReduit), jamais avant.
     if (live) {
       playingRef.current = true;
       setPlaying(true);
@@ -446,10 +448,24 @@ export function HybridMedia({
         build();
         io.observe(el);
       };
+      // mouvement reduit : le direct se pose sur sa premiere trame reelle et
+      // s'arrete la, comme toute autre planche video. Le bloc REPRENDRE le
+      // relance. loadeddata est le premier instant ou la trame n'est plus noire.
+      const figerReduit = () => {
+        if (dead || !media) return;
+        playingRef.current = false;
+        setPlaying(false);
+        v.pause();
+        if (!isReady(v)) return;
+        data = sample(v, cols, rows);
+        draw();
+        measure.current();
+      };
       if (stream) {
         // flux : jamais de v.src a cote de srcObject, et loadeddata n'arrive qu'apres play()
         v.srcObject = stream;
         v.onloadedmetadata = pret;
+        if (reduced) v.onloadeddata = figerReduit;
         void v.play().catch(() => {});
       } else {
         v.src = src;
