@@ -34,6 +34,19 @@ export const isReady = (src: Source) => {
 // un canvas neuf par appel ferait tourner le ramasse-miettes en continu
 let work: HTMLCanvasElement | null = null;
 
+/**
+ * Rend le bitmap du canvas de travail. La derniere trame echantillonnee y
+ * reste sinon pour la duree de l'onglet : sur le miroir, c'est le visage du
+ * visiteur, lisible par n'importe quel script de la page longtemps apres
+ * « SOURCE FERMEE ». Mettre la largeur a 0 vide le backing store sans
+ * detruire le canvas partage — sample() le redimensionne au prochain appel.
+ */
+export function releaseSampleBuffer() {
+  if (!work) return;
+  work.width = 0;
+  work.height = 0;
+}
+
 export function sample(src: Source, cols: number, rows: number): Sampled | null {
   const { w: nw, h: nh } = srcSize(src);
   if (!nw || !nh) return null;

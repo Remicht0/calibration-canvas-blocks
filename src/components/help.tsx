@@ -19,6 +19,7 @@ const KEYS: Array<[string, string]> = [
   ["- / +", "SEUIL OU PALIERS DE LA PLANCHE SURVOLEE"],
   ["A", "SEUIL AUTOMATIQUE (OTSU)"],
   ["F", "PLEIN CADRE DE LA PLANCHE SURVOLEE"],
+  ["CTRL+V", "COLLER UNE IMAGE DANS LE MIROIR (ATELIER)"],
   ["DEFILEMENT", "LA LIGNE ROUGE LIT LES TITRES, COMPOSE LES PLANCHES"],
   ["CURSEUR", "USE LES TITRES EN BLOCS, ILS SE REPOSENT"],
 ];
@@ -57,6 +58,9 @@ export function KeyHelp() {
     if (!open) return;
     const before = document.activeElement;
     const opener = openBtn.current;
+    // lockPage emet mire:modal : sous ce masque noir plein, aucune planche de
+    // la page ne continue a echantillonner — le miroir tenait sinon la camera
+    // du visiteur a 60 im/s derriere un aplat opaque
     lockPage();
     const raf = requestAnimationFrame(() => closeBtn.current?.focus());
     return () => {

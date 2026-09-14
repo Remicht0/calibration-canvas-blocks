@@ -303,9 +303,40 @@ body {
 
   .u-bloc[aria-pressed="true"],
   .u-bloc[aria-current="page"],
-  .u-bloc:focus-visible {
+  .u-bloc:focus-visible,
+  /* un bloc-etiquette qui enveloppe un champ en sr-only (choix de fichier) :
+     le focus est sur le champ, l'inversion doit rester sur le cadre */
+  .u-bloc:has(:focus-visible) {
     background: var(--ink);
     color: var(--paper);
+  }
+}
+
+/* ---- Miroir : le creux reserve la planche ET son cartouche ---- */
+/* Une hauteur calculee en JS n'est connue qu'apres la premiere peinture : la
+   section grandirait de 500 px juste apres l'hydratation, et tout ce qui la
+   suit descendrait d'autant. La meme geometrie — colonnes x 0,62, plus le
+   cartouche de la planche — tient en requete de conteneur des le rendu
+   serveur. La mesure JS ne fait ensuite que l'aligner sur le pas de grille et
+   sur la hauteur reelle du cartouche, qui gagne des rangees en etroit (le
+   groupe de reglage passe en basis-full sous 640 px). */
+.mire-creux {
+  container-type: inline-size;
+}
+
+.mire-creux > .mire-creux-cadre {
+  height: calc(62cqw + var(--cell) * 2 + 9px);
+}
+
+@media (max-width: 1099px) {
+  .mire-creux > .mire-creux-cadre {
+    height: calc(62cqw + var(--cell) * 4 + 9px);
+  }
+}
+
+@media (max-width: 639px) {
+  .mire-creux > .mire-creux-cadre {
+    height: calc(62cqw + var(--cell) * 8 + 9px);
   }
 }
 
