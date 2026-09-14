@@ -51,6 +51,21 @@ const ALT_IMAGE = "Votre image, échantillonnée en blocs noirs et blancs.";
 /* Hauteur de la planche : colonnes x RATIO, comme toute planche du site. */
 const RATIO = 0.62;
 
+/* Le creux reserve la planche ET son cartouche : sans lui, tout ce qui suit
+   la section remonte d'une cinquantaine de pixels des que la camera s'arrete,
+   et redescend a la reouverture. Le cartouche est mesure sur la planche
+   montee (sa hauteur depend de ce qui tient sur une ligne) ; avant toute
+   mesure, ces estimations par largeur, les memes que la reserve CSS de
+   .mire-creux-cadre. Marge mt-[3px] + deux filets de 3 px = 9 px. */
+const FILETS = 9;
+const MARGE = 3;
+const RANGS: Array<[number, number]> = [
+  [640, 8],
+  [1100, 4],
+  [Infinity, 2],
+];
+const cellulesCartouche = (largeur: number) => RANGS.find(([w]) => largeur < w)![1];
+
 /* Au-dela, un canvas rend du vide sans lever d'erreur sur iOS (~16,7 Mpx d'aire utile). */
 const MAX_PIXELS = 50_000_000;
 /* 1600 px sur le grand cote : ~16 pixels source par cellule, meme en plein cadre. */
@@ -223,9 +238,16 @@ export function Miroir() {
     setEtat(e);
   }, []);
 
-  /* Le cadre de repos a la taille exacte de la planche qui va le remplacer :
-     aucun saut de mise en page a l'ouverture, et la hauteur reste un multiple
-     de la cellule — la meme geometrie que build() dans HybridMedia. */
+  /* Le cadre de repos a la taille exacte de la planche qui va le remplacer,
+     cartouche compris : aucun saut de mise en page a l'ouverture ni a l'arret,
+     et la hauteur reste un multiple de la cellule — la meme geometrie que
+     build() dans HybridMedia. */
+
+  /* Hauteur reelle du cartouche, lue sur la planche montee et retenue pour le
+     creux suivant : elle depend de ce qui tient sur une ligne, pas d'un point
+     de rupture. Le cartouche appartient a la planche, donc au creux. */
+  const [cartouche, setCartouche] = useState(0);
+
   const [creux, setCreux] = useState(0);
   useEffect(() => {
     const el = zone.current;
@@ -233,13 +255,15 @@ export function Miroir() {
     const mesure = () => {
       const cell = cellSizeFor(window.innerWidth);
       const cols = Math.max(6, Math.floor(el.clientWidth / cell));
-      setCreux(Math.max(4, Math.round(cols * RATIO)) * cell);
+      const rows = Math.max(4, Math.round(cols * RATIO));
+      const bas = cartouche || cellulesCartouche(window.innerWidth) * cell + FILETS;
+      setCreux(rows * cell + bas);
     };
     mesure();
     const ro = new ResizeObserver(mesure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [cartouche]);
 
   useEffect(() => {
     setCoarse(window.matchMedia("(pointer: coarse)").matches);
@@ -653,6 +677,20 @@ export function Miroir() {
      Il reste monte pendant la demande : sinon il se demonte sous le doigt, et
      sous le focus, a chaque bascule. */
   const bascule = (ouverte || enVol) && nbCams > 1;
+  /* Lecture du cartouche de la planche montee : sa hauteur nourrit le creux
+     qui la remplacera. L'effet passe apres celui de la planche (React libere
+     et monte les enfants d'abord), donc apres onCanvas. */
+  useEffect(() => {
+    if (!posee) return;
+    const cap = planche.current?.closest("figure")?.querySelector("figcaption");
+    if (!cap) return;
+    const lire = () => setCartouche(Math.round(cap.getBoundingClientRect().height) + MARGE);
+    lire();
+    const ro = new ResizeObserver(lire);
+    ro.observe(cap);
+    return () => ro.disconnect();
+  }, [posee]);
+
   const nomSource = ouverte ? "CAMERA" : etat === "image" ? nom || "IMAGE" : "AUCUNE";
   /* Le jeton alterne une espace insecable en fin de message : deux annonces
      de texte identique doivent muter le noeud, sinon React le laisse tel quel
@@ -675,6 +713,7 @@ export function Miroir() {
     >
       <div
         ref={zone}
+        className="mire-creux"
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
@@ -700,8 +739,8 @@ export function Miroir() {
           />
         ) : (
           <div
-            style={creux ? { height: creux } : undefined}
-            className="flex min-h-[calc(var(--cell)*14)] flex-col items-center justify-center gap-cell border-[3px] border-(--ink) px-cell py-cell2 text-center"
+            style={creux ? { height: `${creux}px` } : undefined}
+            className="mire-creux-cadre flex min-h-[calc(var(--cell)*14)] flex-col items-center justify-center gap-cell border-[3px] border-(--ink) px-cell py-cell2 text-center"
           >
             <span className="u-mono">{enVol ? "AUTORISATION EN COURS" : avis}</span>
             {detail && <span className="u-mono max-w-[52ch]">{detail}</span>}
@@ -710,10 +749,14 @@ export function Miroir() {
         )}
       </div>
 
+      {/* Le banc de commandes garde sa hauteur : sous 640 px il passe de deux
+          blocs a trois et gagnerait une rangee a chaque ouverture, poussant
+          d'autant tout ce qui suit la section. Deux rangees sont reservees, les
+          blocs restent centres dedans. */}
       <div
         role="group"
         aria-label="Source du miroir"
-        className="mt-cell flex flex-wrap items-center gap-[6px]"
+        className="mt-cell flex min-h-[calc(var(--cell)*4+6px)] flex-wrap content-center items-center gap-[6px] sm:min-h-cell2"
       >
         {apiOk && !ouverte && (
           <Bloc

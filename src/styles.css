@@ -312,6 +312,34 @@ body {
   }
 }
 
+/* ---- Miroir : le creux reserve la planche ET son cartouche ---- */
+/* Une hauteur calculee en JS n'est connue qu'apres la premiere peinture : la
+   section grandirait de 500 px juste apres l'hydratation, et tout ce qui la
+   suit descendrait d'autant. La meme geometrie — colonnes x 0,62, plus le
+   cartouche de la planche — tient en requete de conteneur des le rendu
+   serveur. La mesure JS ne fait ensuite que l'aligner sur le pas de grille et
+   sur la hauteur reelle du cartouche, qui gagne des rangees en etroit (le
+   groupe de reglage passe en basis-full sous 640 px). */
+.mire-creux {
+  container-type: inline-size;
+}
+
+.mire-creux > .mire-creux-cadre {
+  height: calc(62cqw + var(--cell) * 2 + 9px);
+}
+
+@media (max-width: 1099px) {
+  .mire-creux > .mire-creux-cadre {
+    height: calc(62cqw + var(--cell) * 4 + 9px);
+  }
+}
+
+@media (max-width: 639px) {
+  .mire-creux > .mire-creux-cadre {
+    height: calc(62cqw + var(--cell) * 8 + 9px);
+  }
+}
+
 /* ---- Focus : un cadre encre, jamais un halo, jamais un second rouge ---- */
 :where(a, button, [tabindex]):focus-visible {
   outline: 3px solid var(--ink);
