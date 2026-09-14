@@ -13,6 +13,7 @@ import {
 import { Bloc } from "@/components/bloc";
 import { PleinCadre } from "@/components/plein";
 import { BitReadout } from "@/components/readout";
+import { MODAL_EVENT } from "@/lib/modal";
 
 /* Hors mire : ce que le lecteur d'ecran entend, en francais accentue. */
 const SPOKEN: Record<BitMode, string> = {
@@ -34,9 +35,6 @@ const clampTune = (t: Tune): Tune => ({
 
 const frNumber = (v: number) => v.toFixed(2).replace(".", ",");
 
-/** Evenement emis par le plein cadre : a true les planches de la page s'arretent, a false elles reprennent. */
-export const MODAL_EVENT = "mire:modal";
-
 type KeyLike = {
   key: string;
   altKey: boolean;
@@ -54,7 +52,8 @@ type KeyLike = {
 /* ------------------------------------------------------------------ */
 
 export function HybridMedia({
-  src,
+  src = "",
+  stream = null,
   alt,
   label,
   ratio = 0.62,
@@ -70,9 +69,13 @@ export function HybridMedia({
   onSample,
   onDissolved,
   onFull,
+  onCanvas,
   className = "",
 }: {
-  src: string;
+  /** URL d'une image ou d'une video de fichier. Vide quand la source est un flux. */
+  src?: string | undefined;
+  /** Source vivante (camera). La planche ne fait que la consommer : elle n'arrete jamais les pistes. */
+  stream?: MediaStream | null | undefined;
   /** Description de l'image pour les lecteurs d'ecran : francais accentue, jamais en capitales. */
   alt: string;
   /** Etiquette visible sous la planche : capitales sans accents (regle de la mire). */
@@ -95,13 +98,17 @@ export function HybridMedia({
   onDissolved?: () => void;
   /** Appele a l'ouverture du plein cadre (bouton PLEIN ou touche F) */
   onFull?: () => void;
+  /** Canvas de la planche, pour un enregistrement exterieur ; null au demontage */
+  onCanvas?: ((c: HTMLCanvasElement | null) => void) | undefined;
   className?: string;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const modeRef = useRef<BitMode>(initial);
   const [mode, setMode] = useState<BitMode>(initial);
-  const video = isVideo(src);
+  // une source vivante est une video, quelle que soit l'URL : isVideo reste le test du fichier
+  const live = !!stream;
+  const video = live || isVideo(src);
   const viewport = fit === "viewport";
   // video : lecture automatique, sauf si le systeme demande moins de mouvement
   const playingRef = useRef(true);
@@ -117,6 +124,8 @@ export function HybridMedia({
   dissolvedRef.current = onDissolved;
   const fullRef = useRef<(() => void) | undefined>(onFull);
   fullRef.current = onFull;
+  const canvasCb = useRef<((c: HTMLCanvasElement | null) => void) | undefined>(onCanvas);
+  canvasCb.current = onCanvas;
   // reglages lus par draw() sans relancer l'effet : un changement redessine, ne refait pas tomber
   const tune = useRef<Tune>({ threshold, levels, gamma });
   const [shown, setShown] = useState<Tune>(tune.current);
@@ -240,6 +249,8 @@ export function HybridMedia({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!hovered.current) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       // la figure focalisee recoit deja l'evenement par onKeyDown
       if (figure.current?.contains(e.target as Node)) return;
       shortcut(e);
@@ -256,6 +267,8 @@ export function HybridMedia({
     const el = wrap.current;
     const cv = canvas.current;
     if (!el || !cv) return;
+
+    canvasCb.current?.(cv);
 
     let dead = false;
     let raf = 0;
@@ -285,7 +298,14 @@ export function HybridMedia({
       return v;
     };
 
-    if (video && reduced) {
+    // Une source vivante demarre toujours : aux metadonnees, la seule trame
+    // disponible est noire, et figer la planche dessus laisserait le voyant de
+    // la camera allume sur un rectangle vide. Sous mouvement reduit elle se
+    // fige des la premiere trame reelle (figerReduit), jamais avant.
+    if (live) {
+      playingRef.current = true;
+      setPlaying(true);
+    } else if (video && reduced) {
       playingRef.current = false;
       setPlaying(false);
     }
@@ -331,7 +351,9 @@ export function HybridMedia({
       cv.height = rows * cell * dpr;
       order = fallOrder(cols, rows, cols * 5 + rows);
       data = sample(media, cols, rows);
-      if (data) sampleRef.current?.(data);
+      // sur un flux, la trame disponible aux metadonnees est presque toujours noire :
+      // les instruments exterieurs n'en recoivent que les echantillons de la boucle
+      if (data && !live) sampleRef.current?.(data);
       setDims({ cols, rows });
       if (scrolled) progress = scrollProgress();
       draw();
@@ -413,20 +435,44 @@ export function HybridMedia({
       setTune({ threshold: otsuThreshold(data.lum, 0.2, 0.7) });
     };
 
+    let element: HTMLVideoElement | null = null;
     if (video) {
       const v = document.createElement("video");
-      v.src = src;
+      element = v;
       v.muted = true;
-      v.loop = true;
       v.playsInline = true;
-      v.crossOrigin = "anonymous";
-      v.onloadeddata = () => {
+      const pret = () => {
         if (dead) return;
         media = v;
         mediaRef.current = v;
         build();
         io.observe(el);
       };
+      // mouvement reduit : le direct se pose sur sa premiere trame reelle et
+      // s'arrete la, comme toute autre planche video. Le bloc REPRENDRE le
+      // relance. loadeddata est le premier instant ou la trame n'est plus noire.
+      const figerReduit = () => {
+        if (dead || !media) return;
+        playingRef.current = false;
+        setPlaying(false);
+        v.pause();
+        if (!isReady(v)) return;
+        data = sample(v, cols, rows);
+        draw();
+        measure.current();
+      };
+      if (stream) {
+        // flux : jamais de v.src a cote de srcObject, et loadeddata n'arrive qu'apres play()
+        v.srcObject = stream;
+        v.onloadedmetadata = pret;
+        if (reduced) v.onloadeddata = figerReduit;
+        void v.play().catch(() => {});
+      } else {
+        v.src = src;
+        v.loop = true;
+        v.crossOrigin = "anonymous";
+        v.onloadeddata = pret;
+      }
       media = null;
     } else {
       const img = new Image();
@@ -587,11 +633,18 @@ export function HybridMedia({
       cv.removeEventListener("pointercancel", onUp);
       cv.removeEventListener("pointerleave", onLeave);
       cv.removeEventListener("touchmove", onTouchMove);
-      if (media instanceof HTMLVideoElement) media.pause();
+      if (element) {
+        element.onloadeddata = null;
+        element.onloadedmetadata = null;
+        element.pause();
+        // le flux appartient a l'appelant : on detache le puits, on n'arrete jamais ses pistes
+        element.srcObject = null;
+      }
       mediaRef.current = null;
+      canvasCb.current?.(null);
       hovered.current = false;
     };
-  }, [src, ratio, lensRadius, video, drive, viewport, setTune]);
+  }, [src, stream, live, ratio, lensRadius, video, drive, viewport, setTune]);
 
   const labelId = useId();
   const named = controls && !!label;
@@ -681,16 +734,24 @@ export function HybridMedia({
             className="ml-auto flex min-h-cell2 flex-1 flex-wrap items-center justify-end gap-[6px] min-w-0 sm:flex-initial"
           >
             <span className="hidden sm:inline">
-              {coarse ? "APPUI LONG = LOUPE" : video ? "VIDEO" : "PHOTO"}
+              {coarse ? "APPUI LONG = LOUPE" : live ? "DIRECT" : video ? "VIDEO" : "PHOTO"}
             </span>
             {video && (
               <button
                 type="button"
                 onClick={togglePlay}
-                aria-label={playing ? "Pause de la vidéo" : "Lecture de la vidéo"}
+                aria-label={
+                  live
+                    ? playing
+                      ? "Figer la trame en cours"
+                      : "Reprendre le direct"
+                    : playing
+                      ? "Pause de la vidéo"
+                      : "Lecture de la vidéo"
+                }
                 className="u-mono u-bloc"
               >
-                {playing ? "PAUSE" : "LECTURE"}
+                {playing ? (live ? "FIGER" : "PAUSE") : live ? "REPRENDRE" : "LECTURE"}
               </button>
             )}
             {CYCLE.map((m) => (
@@ -721,6 +782,7 @@ export function HybridMedia({
       {full && (
         <PleinCadre
           src={src}
+          stream={stream}
           alt={alt}
           label={label}
           mode={mode}

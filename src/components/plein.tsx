@@ -8,7 +8,7 @@ import {
 import { createPortal } from "react-dom";
 import { useRouterState } from "@tanstack/react-router";
 import { Bloc } from "@/components/bloc";
-import { HybridMedia, MODAL_EVENT } from "@/components/media";
+import { HybridMedia } from "@/components/media";
 import { lockPage, unlockPage } from "@/lib/modal";
 import type { BitMode } from "@/lib/bitmap";
 
@@ -24,6 +24,7 @@ const FOCUSABLE = 'button:not([disabled]), [tabindex="0"]';
 
 export function PleinCadre({
   src,
+  stream = null,
   alt,
   label,
   mode,
@@ -33,7 +34,9 @@ export function PleinCadre({
   lensRadius,
   onClose,
 }: {
-  src: string;
+  src?: string | undefined;
+  /** Source vivante : les deux planches consomment le meme flux, sans seconde acquisition. */
+  stream?: MediaStream | null | undefined;
   alt: string;
   label?: string | undefined;
   mode: BitMode;
@@ -67,8 +70,8 @@ export function PleinCadre({
   }, [path]);
 
   useEffect(() => {
+    // lockPage emet mire:modal : les planches de la page s'arretent sous le masque
     lockPage();
-    window.dispatchEvent(new CustomEvent(MODAL_EVENT, { detail: true }));
 
     // plein ecran systeme quand il existe (pas sur iOS : le masque fixe est le rendu)
     let entered = false;
@@ -109,7 +112,6 @@ export function PleinCadre({
         pushed.current = false;
         history.back();
       }
-      window.dispatchEvent(new CustomEvent(MODAL_EVENT, { detail: false }));
       unlockPage();
     };
   }, [request]);
@@ -144,6 +146,7 @@ export function PleinCadre({
       <div className="min-h-0 flex-1 px-cell pb-cell">
         <HybridMedia
           src={src}
+          stream={stream}
           alt={alt}
           label={label}
           mode={mode}

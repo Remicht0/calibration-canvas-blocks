@@ -250,6 +250,7 @@ src/
     plein.tsx          PleinCadre — une planche a la taille de l'ecran (portail)
     instruments.tsx    Histogramme (20 tranches x 8 rangs, plein / cadre),
                        InstrumentSeuil (planche BIN pilotee par l'histogramme)
+    miroir.tsx         Miroir — la camera ou une image du visiteur, en local
     bloc.tsx           Bloc — bouton / lien cadre 1 bit (.u-bloc)
     chrome.tsx         TopBar — barre haute commune
     help.tsx           KeyHelp — fiche de commande (raccourcis)
@@ -360,6 +361,12 @@ image.
   en fonte bitmap : c'est une mesure, elle change avec la largeur disponible
   et en plein cadre. Un changement de mode redessine la trame en place, comme
   un reglage : les blocs poses ne retombent jamais.
+- Une source **vivante** passe par la prop `stream` (un `MediaStream`) au lieu
+  de `src` : `HybridMedia` pose `srcObject`, attend `loadedmetadata` et
+  echantillonne chaque image. Il ne possede jamais le flux : il ne coupe aucune
+  piste, c'est l'appelant qui ouvre et qui ferme. Le cartouche lit `DIRECT`, et
+  `FIGER` / `REPRENDRE` remplace `PAUSE` / `LECTURE`. Sous
+  `prefers-reduced-motion`, la planche se fige des la premiere trame obtenue.
 - Le seuil peut etre pilote de l'exterieur : la prop `threshold` est
   resynchronisee dans le ref de reglage a chaque changement. L'instrument 04
   de l'atelier (`InstrumentSeuil`) relie ainsi une planche en BIN
@@ -421,8 +428,7 @@ Fait :
       manifeste, colophon.
 - [x] Pages projet avec planches hybrides et bloc « SUITE ».
 - [x] `/atelier` : automate 23/3, planche de bruit, horloge en blocs,
-      histogramme et seuil (instrument 04 : plein / cadre, clic, glisser,
-      clavier, AUTO Otsu ; la planche se re-seuille en place).
+      histogramme et seuil (instrument 04), miroir (instrument 05).
 - [x] `/contact` : fiche de calibration + `head()` dedie.
 - [x] 404 et page d'erreur redessinees en mire (aucun style shadcn residuel).
 - [x] Passe responsive 393 / 820 / 1440 px, aucun debordement horizontal.
@@ -481,6 +487,10 @@ Fait :
       (`modal.ts`), format de la planche en cellules dans le cartouche.
 - [x] Tete de lecture clavier sur l'index (HAUT / BAS, HOME / END, ESC) et
       saut par chiffre 1 - N.
+- [x] Instrument 05 — MIROIR : camera ou image locale du visiteur, en direct
+      dans la grille, tout en local, avec enregistrement de la trame en PNG.
+      Relu par quatre relecteurs adversariaux (vie privee, regles, code,
+      accessibilite) ; 23 constats corriges, 85 tests de navigateur.
 - [x] Negatif : filtre sur `main` et le chrome fixe, plus sur `body` (les
       elements fixes defilaient avec la page) ; repere au-dessus de la
       reglette ; curseur efface sur la ligne rouge.
@@ -493,6 +503,40 @@ Fait :
       region aria-live ecrite par le visiteur seulement ; figure nommee ;
       CSS sans le kit shadcn ni tw-animate-css (78 Ko -> 20 Ko) ;
       react-query retire.
+
+### Le miroir (instrument 05)
+
+Le site cesse de calibrer des images de demonstration : il calibre le visiteur.
+Sa camera, ou une image qu'il depose, choisit ou colle, est echantillonnee en
+direct dans la grille, avec le meme noyau que toute autre planche — les trois
+lectures, le seuil et Otsu, la loupe, l'encrage, le plein cadre. Il peut
+enregistrer la trame obtenue en PNG.
+
+Regles propres a cet instrument, non negociables :
+
+- **Rien ne sort de l'appareil.** Aucune requete, aucun stockage (ni
+  `localStorage`, ni `sessionStorage`, ni `IndexedDB`), aucune copie qui
+  survive a la fermeture. La phrase ecrite au visiteur est un engagement :
+  « RIEN N'EST ENVOYE. LA MIRE EST CALCULEE DANS VOTRE NAVIGATEUR, LA SOURCE NE
+  QUITTE JAMAIS VOTRE APPAREIL. »
+- **Aucun chemin ne laisse la camera allumee.** Les pistes sont arretees au
+  demontage, au changement de route, quand la section sort de l'ecran, quand
+  l'onglet est cache, sur `pagehide`, au retour de `bfcache`, a FERMER, au
+  remplacement de source — et meme quand la demande d'acces est encore en vol :
+  une autorisation qui arrive apres la sortie est coupee a l'arrivee. L'etat
+  affiche correspond toujours a l'etat reel du flux.
+- **Aucun message brut du navigateur.** Un refus, une camera absente, occupee ou
+  perdue s'ecrivent dans l'alphabet de la mire (`SIGNAL REFUSE`, `AUCUNE
+  CAMERA`, `CAMERA OCCUPEE`, `SIGNAL PERDU`), et le depot d'image reste
+  toujours propose.
+- **Le creux reserve la place exacte** de la planche a venir, cartouche compris :
+  ouvrir ou fermer une source ne fait jamais sauter la page.
+- **Le clavier ne perd jamais le fil** : aucune commande ne disparait sous le
+  focus, il est explicitement rendu a la commande equivalente a chaque
+  changement d'etat.
+- Sur pointeur grossier, aucun geste impossible n'est propose (ni glisser-deposer
+  ni raccourci) ; `CAMERA SUIVANTE` n'apparait que s'il y a vraiment plusieurs
+  capteurs.
 
 ### Budget de rendu (regle)
 
