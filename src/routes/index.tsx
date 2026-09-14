@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { BlockBackdrop, BlockType } from "@/components/mire";
 import { CalibrationBand, Ticker } from "@/components/bars";
+import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
 import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar } from "@/components/chrome";
@@ -291,14 +292,11 @@ function Index() {
         <p className="u-copy mt-cell2 max-w-[54ch]">
           LES PHOTOS ET VIDEOS NE SONT PAS COLLEES SUR LA MIRE : ELLES SONT ECHANTILLONNEES DANS SA
           GRILLE. UN BLOC = UN PIXEL. LE SURVOL, OU L&apos;APPUI LONG, OUVRE UNE LOUPE DE MATIERE
-          BRUTE.{" "}
-          <Link
-            to="/atelier"
-            className="underline underline-offset-[3px] hover:bg-(--ink) hover:text-(--paper)"
-          >
-            CALIBREZ VOTRE PROPRE IMAGE DANS L&apos;ATELIER.
-          </Link>
+          BRUTE.
         </p>
+        <Bloc as={Link} to="/atelier" className="mt-cell2">
+          CALIBREZ VOTRE PROPRE IMAGE DANS L&apos;ATELIER
+        </Bloc>
       </section>
 
       {/* PROCEDE — trois planches de mesure */}

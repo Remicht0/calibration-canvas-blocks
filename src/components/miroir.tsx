@@ -33,8 +33,13 @@ type Etat = "repos" | "demande" | "lecture" | "camera" | "image";
 
 /* Dans la mire : capitales sans accents (DESIGN.md §2). */
 const AUCUNE = "AUCUNE SOURCE";
-const DEPOT = "OU DEPOSER UNE IMAGE ICI — OU COLLER AVEC CTRL+V";
-const REPLI = "LE DEPOT D'UNE IMAGE RESTE POSSIBLE.";
+/* Le raccourci nomme est celui du clavier du visiteur : CTRL+V n'existe pas
+   sur un Mac, et une mire n'affiche pas une touche qui ne repond pas. */
+const depot = (pomme: boolean) =>
+  `OU DEPOSER UNE IMAGE ICI — OU COLLER AVEC ${pomme ? "CMD" : "CTRL"}+V`;
+/* Pointeur grossier : ni depot ni raccourci clavier, seul le bloc existe. */
+const DEPOT_TACTILE = "OU CHOISIR UNE IMAGE CI-DESSOUS.";
+const REPLI = "LE CHOIX D'UNE IMAGE RESTE POSSIBLE.";
 const CONFIDENTIALITE =
   "RIEN N'EST ENVOYE. LA MIRE EST CALCULEE DANS VOTRE NAVIGATEUR, LA SOURCE NE QUITTE JAMAIS VOTRE APPAREIL.";
 
@@ -190,6 +195,7 @@ export function Miroir() {
   const [nbCams, setNbCams] = useState(0);
   const [numCam, setNumCam] = useState(1);
   const [coarse, setCoarse] = useState(false);
+  const [pomme, setPomme] = useState(false);
   const [apiOk, setApiOk] = useState(true);
   /* Un jeton par annonce : deux ENREGISTRER de suite envoient deux fois le
      meme texte, React abandonne le rendu sur l'egalite et le noeud n'est pas
@@ -267,6 +273,7 @@ export function Miroir() {
 
   useEffect(() => {
     setCoarse(window.matchMedia("(pointer: coarse)").matches);
+    setPomme(/Mac|iPhone|iPad|iPod/.test(navigator.platform || ""));
     // sur une origine non securisee, mediaDevices vaut undefined : aucune
     // exception a attraper, et un bouton mort serait un mensonge de mire
     setApiOk(typeof navigator.mediaDevices?.getUserMedia === "function");
@@ -743,8 +750,8 @@ export function Miroir() {
             className="mire-creux-cadre flex min-h-[calc(var(--cell)*14)] flex-col items-center justify-center gap-cell border-[3px] border-(--ink) px-cell py-cell2 text-center"
           >
             <span className="u-mono">{enVol ? "AUTORISATION EN COURS" : avis}</span>
-            {detail && <span className="u-mono max-w-[52ch]">{detail}</span>}
-            <span className="u-mono max-w-[64ch]">{DEPOT}</span>
+            {detail && <span className="u-copy max-w-[52ch]">{detail}</span>}
+            <span className="u-copy max-w-[52ch]">{coarse ? DEPOT_TACTILE : depot(pomme)}</span>
           </div>
         )}
       </div>
@@ -780,7 +787,9 @@ export function Miroir() {
             // sur le <label> l'attribut serait ignore (aucun role ARIA) et le
             // nom accessible retomberait sur les capitales de la mire
             aria-label="Choisir une image sur cet appareil"
-            accept="image/png,image/jpeg,image/webp,image/avif"
+            // le depot et le collage ne filtrent rien et la validation se fait
+            // par decodage : un selecteur plus etroit masquerait des HEIC
+            accept="image/*"
             className="sr-only"
             onChange={(e) => {
               const f = e.target.files?.[0];
