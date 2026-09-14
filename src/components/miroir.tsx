@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
@@ -37,6 +37,12 @@ const DEPOT = "OU DEPOSER UNE IMAGE ICI — OU COLLER AVEC CTRL+V";
 const REPLI = "LE DEPOT D'UNE IMAGE RESTE POSSIBLE.";
 const CONFIDENTIALITE =
   "RIEN N'EST ENVOYE. LA MIRE EST CALCULEE DANS VOTRE NAVIGATEUR, LA SOURCE NE QUITTE JAMAIS VOTRE APPAREIL.";
+
+/* Le rattrapage de focus doit tenir dans la meme commit que le demontage :
+   un effet passif laisse une image peinte ou plus rien n'est focalise, et un
+   lecteur d'ecran peut la lire. Effet de disposition cote navigateur, effet
+   ordinaire au rendu serveur (ou il ne s'execute jamais). */
+const useCommit = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /* Hors mire : francais accentue, bas de casse (lecteurs d'ecran). */
 const ALT_CAMERA = "Votre caméra, échantillonnée en blocs noirs et blancs.";
@@ -170,11 +176,17 @@ export function Miroir() {
   const [numCam, setNumCam] = useState(1);
   const [coarse, setCoarse] = useState(false);
   const [apiOk, setApiOk] = useState(true);
-  const [annonce, setAnnonce] = useState("");
+  /* Un jeton par annonce : deux ENREGISTRER de suite envoient deux fois le
+     meme texte, React abandonne le rendu sur l'egalite et le noeud n'est pas
+     mute — aucun lecteur d'ecran ne dit rien. Le jeton force la mutation. */
+  const [annonce, setAnnonce] = useState({ n: 0, texte: "" });
 
+  const racine = useRef<HTMLDivElement>(null);
   const zone = useRef<HTMLDivElement>(null);
   const planche = useRef<HTMLCanvasElement | null>(null);
   const fichier = useRef<HTMLInputElement>(null);
+  const ouvrirBtn = useRef<HTMLButtonElement>(null);
+  const fermerBtn = useRef<HTMLButtonElement>(null);
   const fluxRef = useRef<MediaStream | null>(null);
   const urlRef = useRef<string | null>(null);
   const visible = useRef(false);
@@ -182,9 +194,34 @@ export function Miroir() {
   const idxCam = useRef(0);
   const facing = useRef<"user" | "environment">("user");
   const demande = useRef(0);
+  /* Le focus est-il dans l'instrument, et un changement d'etat vient-il de
+     retirer la commande qui le portait ? (voir le rattrapage plus bas) */
+  const dedans = useRef(false);
+  const rendre = useRef(false);
 
   const path = useRouterState({ select: (s) => s.location.pathname });
   const origine = useRef(path);
+
+  const dire = useCallback((texte: string) => setAnnonce((a) => ({ n: a.n + 1, texte })), []);
+
+  /* La region live ne reste pas lisible au curseur virtuel : une fois
+     annoncee, elle se vide — sinon un visiteur qui parcourt la page lit
+     « Caméra arrêtée » en plein milieu alors que rien ne se passe. */
+  useEffect(() => {
+    if (!annonce.texte) return;
+    const t = window.setTimeout(
+      () => setAnnonce((a) => (a.n === annonce.n ? { n: a.n, texte: "" } : a)),
+      4000,
+    );
+    return () => clearTimeout(t);
+  }, [annonce]);
+
+  /* Tout changement d'etat peut retirer la commande active : le rattrapage de
+     focus s'arme ici, une seule fois, pour les sept chemins. */
+  const aller = useCallback((e: Etat) => {
+    rendre.current = true;
+    setEtat(e);
+  }, []);
 
   /* Le cadre de repos a la taille exacte de la planche qui va le remplacer :
      aucun saut de mise en page a l'ouverture, et la hauteur reste un multiple
@@ -239,18 +276,35 @@ export function Miroir() {
       // bfcache : pagehide a coupe les pistes, l'etat React a survecu tel quel
       if (!avait && etatRef.current !== "demande" && etatRef.current !== "camera") return;
       setFlux(null);
-      setEtat("repos");
+      setNbCams(0);
+      aller("repos");
       setAvis(a);
       setDetail(d);
-      setAnnonce(dit);
+      dire(dit);
     },
-    [couper],
+    [aller, couper, dire],
   );
 
   const couperRef = useRef(couper);
   couperRef.current = couper;
   const arreterRef = useRef(arreter);
   arreterRef.current = arreter;
+
+  /* Rattrapage du focus. Les commandes se montent et se demontent avec
+     l'etat : celle qui disparait sous le focus laisse le focus sur <body>, et
+     le Tab suivant repart du lien d'evitement — toute la page a retraverser
+     pour atteindre FERMER. Des qu'un changement d'etat a lache le fil, il est
+     rendu a la commande equivalente du nouvel etat (DESIGN.md §2 tient ce fil
+     partout ailleurs : « le focus revient au bloc PLEIN a la fermeture »). */
+  useCommit(() => {
+    if (!rendre.current) return;
+    rendre.current = false;
+    if (!dedans.current) return;
+    const a = document.activeElement;
+    if (a && a !== document.body && a.isConnected) return;
+    const cible = etat === "repos" ? (ouvrirBtn.current ?? fichier.current) : fermerBtn.current;
+    cible?.focus();
+  }, [etat]);
 
   /* Sept sorties. L'IntersectionObserver a une hysteresis : un defilement au
      doigt ne doit pas couper puis rallumer le voyant sans arret. */
@@ -350,16 +404,19 @@ export function Miroir() {
     );
   }, [path]);
 
-  const poser = useCallback((u: string, n: string) => {
-    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-    urlRef.current = u;
-    setUrl(u);
-    setNom(n);
-    setEtat("image");
-    setAvis("");
-    setDetail("");
-    setAnnonce("Image chargée, échantillonnée en blocs.");
-  }, []);
+  const poser = useCallback(
+    (u: string, n: string) => {
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+      urlRef.current = u;
+      setUrl(u);
+      setNom(n);
+      aller("image");
+      setAvis("");
+      setDetail("");
+      dire("Image chargée, échantillonnée en blocs.");
+    },
+    [aller, dire],
+  );
 
   const charger = useCallback(
     async (f: File) => {
@@ -372,10 +429,10 @@ export function Miroir() {
       // le creux, pas une planche vide : sans cet etat intermediaire, la
       // planche reste montee avec src="" pendant tout le decodage, garde la
       // derniere trame camera figee, et son cartouche bascule dans le vide
-      setEtat("lecture");
+      aller("lecture");
       setAvis("LECTURE DU FICHIER");
       setDetail("");
-      setAnnonce("Lecture du fichier.");
+      dire("Lecture du fichier.");
       // couper() vient d'incrementer le jeton : il date cette lecture
       const id = demande.current;
       try {
@@ -391,13 +448,13 @@ export function Miroir() {
       } catch (err) {
         if (id !== demande.current) return;
         const trop = err instanceof RangeError;
-        setEtat("repos");
+        aller("repos");
         setAvis(trop ? "IMAGE TROP GRANDE" : "FICHIER ILLISIBLE");
         setDetail(trop ? "AU-DELA DE 50 MEGAPIXELS." : "CE FICHIER N'EST PAS UNE IMAGE LISIBLE.");
-        setAnnonce(trop ? "Image trop grande." : "Fichier illisible.");
+        dire(trop ? "Image trop grande." : "Fichier illisible.");
       }
     },
-    [couper, poser],
+    [aller, couper, dire, poser],
   );
 
   const chargerRef = useRef(charger);
@@ -442,8 +499,8 @@ export function Miroir() {
       couper();
       setFlux(null);
       const id = ++demande.current;
-      setEtat("demande");
-      setAnnonce("Demande d'accès à la caméra.");
+      aller("demande");
+      dire("Demande d'accès à la caméra.");
       try {
         // audio: false explicite : la fiche de permission ne doit nommer que la camera
         const s = await navigator.mediaDevices.getUserMedia({ video: contrainte, audio: false });
@@ -464,10 +521,10 @@ export function Miroir() {
           return;
         }
         setFlux(s);
-        setEtat("camera");
+        aller("camera");
         setAvis("");
         setDetail("");
-        setAnnonce("Caméra ouverte. L'image reste dans votre navigateur.");
+        dire("Caméra ouverte. L'image reste dans votre navigateur.");
 
         const piste = s.getVideoTracks()[0];
         if (piste) {
@@ -496,7 +553,7 @@ export function Miroir() {
         const refus = n === "NotAllowedError" || n === "SecurityError";
         const absente = n === "NotFoundError" || n === "DevicesNotFoundError";
         const occupee = n === "NotReadableError" || n === "TrackStartError";
-        setEtat("repos");
+        aller("repos");
         // jamais le message brut du navigateur a l'ecran
         setAvis(
           refus
@@ -516,7 +573,7 @@ export function Miroir() {
                 ? "UNE AUTRE APPLICATION TIENT LA CAMERA. REESSAYER."
                 : `LA CAMERA N'A PAS PU ETRE OUVERTE. ${REPLI}`,
         );
-        setAnnonce(
+        dire(
           refus
             ? "Accès à la caméra refusé."
             : absente
@@ -525,7 +582,7 @@ export function Miroir() {
         );
       }
     },
-    [couper],
+    [aller, couper, dire],
   );
 
   const suivante = useCallback(() => {
@@ -546,16 +603,23 @@ export function Miroir() {
     const e = etatRef.current;
     couper();
     setFlux(null);
+    setNbCams(0);
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     urlRef.current = null;
     setUrl(null);
     setNom("");
-    setEtat("repos");
+    aller("repos");
     setAvis(AUCUNE);
     setDetail("");
-    setAnnonce(e === "lecture" ? "Lecture annulée." : "Source fermée.");
+    dire(
+      e === "demande"
+        ? "Demande d'accès annulée."
+        : e === "lecture"
+          ? "Lecture annulée."
+          : "Source fermée.",
+    );
     if (fichier.current) fichier.current.value = "";
-  }, [couper]);
+  }, [aller, couper, dire]);
 
   /* Le canvas EST deja la mire : toBlob rend la trame telle qu'elle est a
      l'ecran, aucun second rendu, aucun algorithme duplique. L'ancre est
@@ -575,14 +639,40 @@ export function Miroir() {
       // le transfert est engage ; revoquer dans le meme tour l'annulerait
       setTimeout(() => URL.revokeObjectURL(u), 1000);
     }, "image/png");
-    setAnnonce("Trame enregistrée en PNG.");
-  }, []);
+    dire("Trame enregistrée en PNG.");
+  }, [dire]);
 
-  const bascule = etat === "camera" && (nbCams > 1 || coarse);
-  const source = etat === "camera" ? "CAMERA" : etat === "image" ? nom || "IMAGE" : "AUCUNE";
+  const ouverte = etat === "camera";
+  const enVol = etat === "demande";
+  const lit = etat === "lecture";
+  const posee = ouverte || etat === "image";
+  /* nbCams est pose par enumerateDevices apres permission : fiable sur mobile
+     comme sur bureau. Sur un appareil a capteur unique, facingMode est une
+     contrainte souple — la meme camera reviendrait, sans erreur et sans que
+     rien ne le dise. Le bloc n'existe donc que s'il y a vraiment deux sources.
+     Il reste monte pendant la demande : sinon il se demonte sous le doigt, et
+     sous le focus, a chaque bascule. */
+  const bascule = (ouverte || enVol) && nbCams > 1;
+  const nomSource = ouverte ? "CAMERA" : etat === "image" ? nom || "IMAGE" : "AUCUNE";
+  /* Le jeton alterne une espace insecable en fin de message : deux annonces
+     de texte identique doivent muter le noeud, sinon React le laisse tel quel
+     (egalite de la chaine) et aucun lecteur d'ecran ne dit rien — deux
+     ENREGISTRER de suite passaient en silence. L'espace ne s'entend pas. */
+  const dit = annonce.texte && annonce.n % 2 === 0 ? `${annonce.texte}\u00A0` : annonce.texte;
 
   return (
-    <div>
+    <div
+      ref={racine}
+      onFocus={() => {
+        dedans.current = true;
+      }}
+      onBlur={(e) => {
+        // un demontage ne designe aucune cible : le focus tombe sur <body> et
+        // doit etre rattrape. Un Tab vers l'exterieur, lui, est volontaire.
+        const vers = e.relatedTarget as Node | null;
+        if (vers && !racine.current?.contains(vers)) dedans.current = false;
+      }}
+    >
       <div
         ref={zone}
         onDragOver={(e) => e.preventDefault()}
@@ -596,12 +686,12 @@ export function Miroir() {
           }
         }}
       >
-        {etat === "camera" || etat === "image" ? (
+        {posee ? (
           <HybridMedia
-            stream={etat === "camera" ? flux : null}
+            stream={ouverte ? flux : null}
             src={etat === "image" ? (url ?? "") : ""}
-            alt={etat === "camera" ? ALT_CAMERA : ALT_IMAGE}
-            label={etat === "camera" ? "MIROIR / CAMERA" : `MIROIR / ${nom}`}
+            alt={ouverte ? ALT_CAMERA : ALT_IMAGE}
+            label={ouverte ? "MIROIR / CAMERA" : `MIROIR / ${nom}`}
             mode="gris"
             ratio={RATIO}
             onCanvas={(c) => {
@@ -613,7 +703,7 @@ export function Miroir() {
             style={creux ? { height: creux } : undefined}
             className="flex min-h-[calc(var(--cell)*14)] flex-col items-center justify-center gap-cell border-[3px] border-(--ink) px-cell py-cell2 text-center"
           >
-            <span className="u-mono">{etat === "demande" ? "AUTORISATION EN COURS" : avis}</span>
+            <span className="u-mono">{enVol ? "AUTORISATION EN COURS" : avis}</span>
             {detail && <span className="u-mono max-w-[52ch]">{detail}</span>}
             <span className="u-mono max-w-[64ch]">{DEPOT}</span>
           </div>
@@ -625,23 +715,28 @@ export function Miroir() {
         aria-label="Source du miroir"
         className="mt-cell flex flex-wrap items-center gap-[6px]"
       >
-        {etat !== "camera" && apiOk && (
+        {apiOk && !ouverte && (
           <Bloc
-            onClick={() => void ouvrir({ facingMode: facing.current })}
-            disabled={etat === "demande"}
+            ref={ouvrirBtn}
+            onClick={() => {
+              if (!enVol) void ouvrir({ facingMode: facing.current });
+            }}
+            // jamais disabled : Chrome et Firefox retirent le focus d'un
+            // element desactive et le visiteur au clavier repart de <body>
+            aria-disabled={enVol || undefined}
             aria-label="Ouvrir la caméra ; l'image reste dans le navigateur, rien n'est transmis ni conservé"
           >
-            {etat === "demande" ? "AUTORISATION…" : "OUVRIR LA CAMERA"}
+            {enVol ? "AUTORISATION…" : "OUVRIR LA CAMERA"}
           </Bloc>
         )}
-        <label
-          className="u-mono u-bloc cursor-pointer"
-          aria-label="Choisir une image sur cet appareil"
-        >
+        <label className="u-mono u-bloc cursor-pointer">
           CHOISIR UNE IMAGE
           <input
             ref={fichier}
             type="file"
+            // sur le <label> l'attribut serait ignore (aucun role ARIA) et le
+            // nom accessible retomberait sur les capitales de la mire
+            aria-label="Choisir une image sur cet appareil"
             accept="image/png,image/jpeg,image/webp,image/avif"
             className="sr-only"
             onChange={(e) => {
@@ -651,18 +746,36 @@ export function Miroir() {
           />
         </label>
         {bascule && (
-          <Bloc onClick={suivante} aria-label="Passer à la caméra suivante">
+          <Bloc
+            onClick={() => {
+              if (!enVol) suivante();
+            }}
+            aria-disabled={enVol || undefined}
+            aria-label="Passer à la caméra suivante"
+          >
             CAMERA SUIVANTE
           </Bloc>
         )}
-        {(etat === "camera" || etat === "image") && (
+        {posee && (
           <Bloc onClick={enregistrer} aria-label="Enregistrer la trame affichée en PNG">
             ENREGISTRER
           </Bloc>
         )}
-        {(etat === "camera" || etat === "image" || etat === "lecture") && (
-          <Bloc onClick={fermer} aria-label="Fermer la source et arrêter la caméra">
-            {etat === "lecture" ? "ANNULER" : "FERMER"}
+        {(posee || enVol || lit) && (
+          <Bloc
+            ref={fermerBtn}
+            onClick={fermer}
+            aria-label={
+              ouverte
+                ? "Fermer la source et arrêter la caméra"
+                : enVol
+                  ? "Annuler la demande d'accès à la caméra"
+                  : lit
+                    ? "Annuler la lecture du fichier"
+                    : "Fermer l'image affichée"
+            }
+          >
+            {enVol || lit ? "ANNULER" : "FERMER"}
           </Bloc>
         )}
       </div>
@@ -670,9 +783,9 @@ export function Miroir() {
       <div className="u-mono mt-cell flex min-h-cell2 flex-wrap items-center gap-x-cell gap-y-0">
         <span className="flex min-w-0 items-center gap-[4px]">
           <span>SOURCE</span>
-          <span className="min-w-0 truncate">{source}</span>
+          <span className="min-w-0 truncate">{nomSource}</span>
         </span>
-        {etat === "camera" && nbCams > 1 && (
+        {ouverte && nbCams > 1 && (
           <span className="flex shrink-0 items-center gap-[4px]">
             <span>CAMERA</span>
             <BitReadout text={`${numCam}/${nbCams}`} />
@@ -685,7 +798,7 @@ export function Miroir() {
       <p className="u-copy mt-cell2 max-w-[56ch]">{CONFIDENTIALITE}</p>
 
       <span className="sr-only" aria-live="polite">
-        {annonce}
+        {dit}
       </span>
     </div>
   );
