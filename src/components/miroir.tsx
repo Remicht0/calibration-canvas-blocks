@@ -26,7 +26,10 @@ import { cellSizeFor } from "@/lib/mire";
 /* canvas de travail rendent leur bitmap des que la source est fermee.  */
 /* ------------------------------------------------------------------ */
 
-type Etat = "repos" | "demande" | "camera" | "image";
+/* « lecture » : un fichier est en cours de decodage. C'est un etat a part
+   entiere et non un repos, sinon rien ne permet de l'annuler — une photo de
+   40 Mpx tient la planche plus d'une seconde. */
+type Etat = "repos" | "demande" | "lecture" | "camera" | "image";
 
 /* Dans la mire : capitales sans accents (DESIGN.md §2). */
 const AUCUNE = "AUCUNE SOURCE";
@@ -362,10 +365,31 @@ export function Miroir() {
     async (f: File) => {
       couper();
       setFlux(null);
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+      urlRef.current = null;
+      setUrl(null);
+      setNom("");
+      // le creux, pas une planche vide : sans cet etat intermediaire, la
+      // planche reste montee avec src="" pendant tout le decodage, garde la
+      // derniere trame camera figee, et son cartouche bascule dans le vide
+      setEtat("lecture");
+      setAvis("LECTURE DU FICHIER");
+      setDetail("");
+      setAnnonce("Lecture du fichier.");
+      // couper() vient d'incrementer le jeton : il date cette lecture
+      const id = demande.current;
       try {
         const u = await preparer(f);
+        // FERMER, un changement de route ou un demontage pendant le decodage
+        // d'une grande photo : l'image fermee ne doit pas reapparaitre, et son
+        // URL ne doit rester referencee par personne
+        if (id !== demande.current) {
+          URL.revokeObjectURL(u);
+          return;
+        }
         poser(u, etiquette(f.name));
       } catch (err) {
+        if (id !== demande.current) return;
         const trop = err instanceof RangeError;
         setEtat("repos");
         setAvis(trop ? "IMAGE TROP GRANDE" : "FICHIER ILLISIBLE");
@@ -519,6 +543,7 @@ export function Miroir() {
   }, [coarse, ouvrir]);
 
   const fermer = useCallback(() => {
+    const e = etatRef.current;
     couper();
     setFlux(null);
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
@@ -528,7 +553,7 @@ export function Miroir() {
     setEtat("repos");
     setAvis(AUCUNE);
     setDetail("");
-    setAnnonce("Source fermée.");
+    setAnnonce(e === "lecture" ? "Lecture annulée." : "Source fermée.");
     if (fichier.current) fichier.current.value = "";
   }, [couper]);
 
@@ -631,14 +656,14 @@ export function Miroir() {
           </Bloc>
         )}
         {(etat === "camera" || etat === "image") && (
-          <>
-            <Bloc onClick={enregistrer} aria-label="Enregistrer la trame affichée en PNG">
-              ENREGISTRER
-            </Bloc>
-            <Bloc onClick={fermer} aria-label="Fermer la source et arrêter la caméra">
-              FERMER
-            </Bloc>
-          </>
+          <Bloc onClick={enregistrer} aria-label="Enregistrer la trame affichée en PNG">
+            ENREGISTRER
+          </Bloc>
+        )}
+        {(etat === "camera" || etat === "image" || etat === "lecture") && (
+          <Bloc onClick={fermer} aria-label="Fermer la source et arrêter la caméra">
+            {etat === "lecture" ? "ANNULER" : "FERMER"}
+          </Bloc>
         )}
       </div>
 
