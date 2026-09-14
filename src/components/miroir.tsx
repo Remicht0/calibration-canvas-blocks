@@ -112,6 +112,24 @@ async function preparer(file: File): Promise<string> {
   }
 }
 
+/**
+ * Etiquette visible de la planche, tiree du nom du fichier. mireText retire
+ * les accents, mais un nom de fichier contient ce que le visiteur veut :
+ * la fonte du site n'a que des capitales latines, et tout le reste sortirait
+ * en carres vides dans le cartouche. Ce qui ne tient pas dans l'alphabet de
+ * la mire est donc retire, et un nom entierement hors alphabet devient IMAGE.
+ */
+function etiquette(nomFichier: string) {
+  const t = mireText(nomFichier)
+    .replace(/\.[A-Z0-9]+$/, "")
+    .replace(/[^A-Z0-9 .,:;!?()[\]/%+\-'"]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 22)
+    .trim();
+  return t || "IMAGE";
+}
+
 function horodatage() {
   const d = new Date();
   const p = (n: number) => String(n).padStart(2, "0");
@@ -286,12 +304,7 @@ export function Miroir() {
       setFlux(null);
       try {
         const u = await preparer(f);
-        poser(
-          u,
-          mireText(f.name)
-            .replace(/\.[A-Z0-9]+$/, "")
-            .slice(0, 22),
-        );
+        poser(u, etiquette(f.name));
       } catch (err) {
         const trop = err instanceof RangeError;
         setEtat("repos");
