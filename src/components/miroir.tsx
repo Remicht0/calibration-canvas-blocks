@@ -3,6 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
 import { BitReadout } from "@/components/readout";
+import { releaseSampleBuffer } from "@/lib/bitmap";
 import { mireText } from "@/lib/glyphs";
 import { cellSizeFor } from "@/lib/mire";
 
@@ -15,10 +16,14 @@ import { cellSizeFor } from "@/lib/mire";
 /*                                                                      */
 /* Vie privee, pas optimisation : la camera s'arrete (pistes stoppees,  */
 /* voyant eteint) au demontage, au changement de route, quand la        */
-/* section sort de l'ecran et quand l'onglet est cache — seul           */
+/* section sort de l'ecran, quand l'onglet est cache, au depart de la   */
+/* page et a son retour du bfcache — y compris quand la permission est  */
+/* encore en vol : une autorisation accordee apres coup est invalidee   */
+/* par le jeton, et ses pistes arretees a la resolution. Seul           */
 /* track.stop() eteint le voyant, ni pause() ni srcObject = null.       */
 /* Rien n'est envoye, rien n'est stocke : aucune requete, aucun         */
-/* localStorage, aucun MediaRecorder, et audio: false explicite.        */
+/* localStorage, aucun MediaRecorder, et audio: false explicite ; les   */
+/* canvas de travail rendent leur bitmap des que la source est fermee.  */
 /* ------------------------------------------------------------------ */
 
 type Etat = "repos" | "demande" | "camera" | "image";
@@ -53,6 +58,19 @@ const FACTEUR = 6;
    ferait tourner le ramasse-miettes. */
 let passeA: HTMLCanvasElement | null = null;
 let passeB: HTMLCanvasElement | null = null;
+
+/**
+ * Rend le backing store des deux canvas de reduction. Contrairement au canvas
+ * de sample(), dimensionne a quelques milliers de pixels, celui-ci porte la
+ * photo du visiteur reduite a 1600 px — jusqu'a 10 Mo d'image personnelle qui
+ * resteraient lisibles par n'importe quel script de la page, sur toutes les
+ * pages de la session, longtemps apres « SOURCE FERMEE ». Mettre la largeur a
+ * 0 vide le bitmap sans detruire l'element partage.
+ */
+function libererPasses() {
+  if (passeA) passeA.width = passeA.height = 0;
+  if (passeB) passeB.width = passeB.height = 0;
+}
 
 function reduirePasse(
   src: CanvasImageSource,
@@ -109,6 +127,8 @@ async function preparer(file: File): Promise<string> {
     return URL.createObjectURL(blob);
   } finally {
     bmp.close();
+    // le blob est lu, l'image du visiteur n'a plus a rester en memoire
+    libererPasses();
   }
 }
 
@@ -191,7 +211,7 @@ export function Miroir() {
   const etatRef = useRef<Etat>(etat);
   etatRef.current = etat;
 
-  /* Seule sortie qui eteint le voyant. Idempotente : appelee par six chemins. */
+  /* Seule sortie qui eteint le voyant. Idempotente : appelee par sept chemins. */
   const couper = useCallback(() => {
     // toute demande encore en vol est invalidee ici : sans ce compteur, une
     // permission accordee apres un depart de page ouvrirait la camera sur une
@@ -211,8 +231,10 @@ export function Miroir() {
   const arreter = useCallback(
     (a: string, d: string, dit: string) => {
       const avait = couper();
-      // ni flux ouvert, ni demande en vol : il n'y a rien a annoncer
-      if (!avait && etatRef.current !== "demande") return;
+      // rien a annoncer s'il n'y avait ni flux ouvert, ni demande en vol, ni
+      // interface affirmant une camera — ce dernier cas est le retour de
+      // bfcache : pagehide a coupe les pistes, l'etat React a survecu tel quel
+      if (!avait && etatRef.current !== "demande" && etatRef.current !== "camera") return;
       setFlux(null);
       setEtat("repos");
       setAvis(a);
@@ -227,7 +249,7 @@ export function Miroir() {
   const arreterRef = useRef(arreter);
   arreterRef.current = arreter;
 
-  /* Six sorties. L'IntersectionObserver a une hysteresis : un defilement au
+  /* Sept sorties. L'IntersectionObserver a une hysteresis : un defilement au
      doigt ne doit pas couper puis rallumer le voyant sans arret. */
   useEffect(() => {
     const el = zone.current;
@@ -241,11 +263,24 @@ export function Miroir() {
         "Caméra arrêtée : l'onglet a été quitté.",
       );
     };
-    // bfcache (Safari, iOS) : ni beforeunload ni le nettoyage React ne passent
+    // bfcache (Safari, iOS) : ni beforeunload ni le nettoyage React ne passent.
+    // Couper doit etre synchrone ici ; l'etat React, lui, survit au gel.
     const partir = () => couperRef.current();
+    // ... et il est resynchronise a la restauration : sans cela la planche
+    // affiche une camera qui ne tourne plus, DIRECT au cartouche, et laisse
+    // exporter en PNG une trame prise avant le depart, sans aucun avis.
+    const revenir = (e: PageTransitionEvent) => {
+      if (!e.persisted) return;
+      arreterRef.current(
+        "CAMERA ARRETEE",
+        "LA PAGE A ETE RESTAUREE. RELANCER POUR REPRENDRE.",
+        "Caméra arrêtée : la page a été restaurée.",
+      );
+    };
 
     document.addEventListener("visibilitychange", cache);
     window.addEventListener("pagehide", partir);
+    window.addEventListener("pageshow", revenir);
 
     const io = new IntersectionObserver(
       (entries) => {
@@ -254,7 +289,11 @@ export function Miroir() {
           if (e.isIntersecting) {
             clearTimeout(sortie);
             sortie = 0;
-          } else if (!sortie && fluxRef.current) {
+            // une demande en vol suffit a armer la sortie : la bulle de
+            // permission n'est pas modale, le visiteur peut faire defiler la
+            // page pendant qu'elle est ouverte. Sans cela, la camera s'ouvrait
+            // hors ecran et plus rien ne repassait le seuil pour l'eteindre.
+          } else if (!sortie && (fluxRef.current || etatRef.current === "demande")) {
             sortie = window.setTimeout(() => {
               sortie = 0;
               arreterRef.current(
@@ -274,17 +313,38 @@ export function Miroir() {
       clearTimeout(sortie);
       document.removeEventListener("visibilitychange", cache);
       window.removeEventListener("pagehide", partir);
+      window.removeEventListener("pageshow", revenir);
       io.disconnect();
       couperRef.current();
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
       urlRef.current = null;
+      // la planche est demontee avant ce nettoyage (React libere les enfants
+      // d'abord) : plus personne ne reechantillonne, les bitmaps peuvent partir
+      libererPasses();
+      releaseSampleBuffer();
     };
   }, []);
 
-  /* Changement de route : couper avant meme le demontage — le masque de
-     RouteWipe tient 1500 ms, la camera tournerait derriere lui. */
+  /* Plus aucune source a l'ecran : les canvas de travail rendent leur bitmap.
+     L'effet s'execute apres la commit, donc apres le demontage de la planche. */
   useEffect(() => {
-    if (path !== origine.current) couperRef.current();
+    if (etat === "camera" || etat === "image") return;
+    libererPasses();
+    releaseSampleBuffer();
+  }, [etat]);
+
+  /* Changement de route : couper avant meme le demontage — le masque de
+     RouteWipe tient 1500 ms, la camera tournerait derriere lui. L'interface
+     repasse au repos en meme temps : couper() seul laisserait la planche
+     annoncer un flux deja eteint. */
+  useEffect(() => {
+    if (path === origine.current) return;
+    origine.current = path;
+    arreterRef.current(
+      "CAMERA ARRETEE",
+      "LA PAGE A CHANGE. RELANCER POUR REPRENDRE.",
+      "Caméra arrêtée : la page a changé.",
+    );
   }, [path]);
 
   const poser = useCallback((u: string, n: string) => {
@@ -368,6 +428,17 @@ export function Miroir() {
           return;
         }
         fluxRef.current = s;
+        // la planche a pu quitter l'ecran pendant l'invite : elle n'est modale
+        // dans aucun navigateur. L'observateur ne repassera plus le seuil, et
+        // la camera resterait allumee, voyant compris, hors de tout ecran.
+        if (!visible.current) {
+          arreterRef.current(
+            "CAMERA ARRETEE",
+            "LA PLANCHE A QUITTE L'ECRAN. RELANCER POUR REPRENDRE.",
+            "Caméra arrêtée : la planche a quitté l'écran.",
+          );
+          return;
+        }
         setFlux(s);
         setEtat("camera");
         setAvis("");
