@@ -58,6 +58,9 @@ export function KeyHelp() {
     if (!open) return;
     const before = document.activeElement;
     const opener = openBtn.current;
+    // lockPage emet mire:modal : sous ce masque noir plein, aucune planche de
+    // la page ne continue a echantillonner — le miroir tenait sinon la camera
+    // du visiteur a 60 im/s derriere un aplat opaque
     lockPage();
     const raf = requestAnimationFrame(() => closeBtn.current?.focus());
     return () => {

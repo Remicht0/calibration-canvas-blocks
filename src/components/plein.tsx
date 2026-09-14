@@ -8,7 +8,7 @@ import {
 import { createPortal } from "react-dom";
 import { useRouterState } from "@tanstack/react-router";
 import { Bloc } from "@/components/bloc";
-import { HybridMedia, MODAL_EVENT } from "@/components/media";
+import { HybridMedia } from "@/components/media";
 import { lockPage, unlockPage } from "@/lib/modal";
 import type { BitMode } from "@/lib/bitmap";
 
@@ -70,8 +70,8 @@ export function PleinCadre({
   }, [path]);
 
   useEffect(() => {
+    // lockPage emet mire:modal : les planches de la page s'arretent sous le masque
     lockPage();
-    window.dispatchEvent(new CustomEvent(MODAL_EVENT, { detail: true }));
 
     // plein ecran systeme quand il existe (pas sur iOS : le masque fixe est le rendu)
     let entered = false;
@@ -112,7 +112,6 @@ export function PleinCadre({
         pushed.current = false;
         history.back();
       }
-      window.dispatchEvent(new CustomEvent(MODAL_EVENT, { detail: false }));
       unlockPage();
     };
   }, [request]);

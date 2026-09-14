@@ -13,6 +13,7 @@ import {
 import { Bloc } from "@/components/bloc";
 import { PleinCadre } from "@/components/plein";
 import { BitReadout } from "@/components/readout";
+import { MODAL_EVENT } from "@/lib/modal";
 
 /* Hors mire : ce que le lecteur d'ecran entend, en francais accentue. */
 const SPOKEN: Record<BitMode, string> = {
@@ -33,9 +34,6 @@ const clampTune = (t: Tune): Tune => ({
 });
 
 const frNumber = (v: number) => v.toFixed(2).replace(".", ",");
-
-/** Evenement emis par le plein cadre : a true les planches de la page s'arretent, a false elles reprennent. */
-export const MODAL_EVENT = "mire:modal";
 
 type KeyLike = {
   key: string;
