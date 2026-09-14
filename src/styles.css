@@ -303,7 +303,10 @@ body {
 
   .u-bloc[aria-pressed="true"],
   .u-bloc[aria-current="page"],
-  .u-bloc:focus-visible {
+  .u-bloc:focus-visible,
+  /* un bloc-etiquette qui enveloppe un champ en sr-only (choix de fichier) :
+     le focus est sur le champ, l'inversion doit rester sur le cadre */
+  .u-bloc:has(:focus-visible) {
     background: var(--ink);
     color: var(--paper);
   }
