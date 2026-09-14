@@ -170,12 +170,18 @@ export function Miroir() {
     setApiOk(typeof navigator.mediaDevices?.getUserMedia === "function");
   }, []);
 
+  const etatRef = useRef<Etat>(etat);
+  etatRef.current = etat;
+
   /* Seule sortie qui eteint le voyant. Idempotente : appelee par six chemins. */
   const couper = useCallback(() => {
+    // toute demande encore en vol est invalidee ici : sans ce compteur, une
+    // permission accordee apres un depart de page ouvrirait la camera sur une
+    // planche qui n'existe plus, et plus personne ne pourrait l'eteindre
+    demande.current++;
     const s = fluxRef.current;
     if (!s) return false;
     fluxRef.current = null;
-    demande.current++;
     s.getTracks().forEach((t) => {
       t.onended = null;
       t.onmute = null;
@@ -186,7 +192,9 @@ export function Miroir() {
 
   const arreter = useCallback(
     (a: string, d: string, dit: string) => {
-      if (!couper()) return;
+      const avait = couper();
+      // ni flux ouvert, ni demande en vol : il n'y a rien a annoncer
+      if (!avait && etatRef.current !== "demande") return;
       setFlux(null);
       setEtat("repos");
       setAvis(a);
