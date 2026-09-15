@@ -190,6 +190,20 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
   sont pas filtres. Le repere est en z 130, au-dessus de la reglette ; le
   curseur s'efface quand sa cellule croise la ligne rouge (un blanc en
   difference sur du rouge donnerait du cyan).
+- **L'inversion est memorisee** (`localStorage`, cle `mire-negative`) : qui lit
+  en negatif retrouve le negatif au rechargement et a la visite suivante, sans
+  eclat blanc au passage. Un script d'amorce de deux lignes, pose dans le
+  `<head>` du document (`NEGATIVE_BOOT_SCRIPT`, `boot.tsx`), applique la classe
+  `mire-negative` sur `<html>` avant la premiere peinture. Le rendu serveur
+  ignore le stockage : le bouton part au positif et rejoint la classe en couche
+  de mise en page, donc avant peinture et sans ecart d'hydratation. La classe
+  sur la racine est la source unique — `aria-pressed`, le libelle de
+  l'inverseur, le bouton de la console (qui la lit en `MutationObserver`) et le
+  drapeau ecrit bougent ensemble, y compris au retour arriere et a la
+  restauration bfcache (`pageshow` les remet d'accord). Le stockage peut lever
+  (navigation privee, donnees de site bloquees) : lecture et ecriture sont sous
+  `try/catch`, une valeur inconnue vaut positif, et faute de stockage
+  l'inversion reste parfaitement valable pour la visite en cours.
 - `CalibrationBand` : `negative` (fond noir, colonnes blanches) pour un
   conteneur noir ; `still` (une rangee de blocs, aucune animation) pour une
   ligne sans signal. `BlockType` accepte `negative`.
@@ -503,6 +517,10 @@ Fait :
       region aria-live ecrite par le visiteur seulement ; figure nommee ;
       CSS sans le kit shadcn ni tw-animate-css (78 Ko -> 20 Ko) ;
       react-query retire.
+- [x] Negatif memorise : cle `mire-negative` en `localStorage`, posee par un
+      script d'amorce dans le `<head>` avant la premiere peinture ; classe de
+      racine, `aria-pressed`, libelle et drapeau toujours d'accord, y compris
+      au retour arriere et au bfcache ; stockage indisponible tolere.
 
 ### Le miroir (instrument 05)
 
@@ -558,6 +576,8 @@ Reste a faire :
 1. Une seule ligne rouge visible à l'écran, alignée sur le pas de grille.
 2. Zoom 400 % : aucun bloc coupé, aucun demi-pixel.
 3. Mobile 393 px : les blocs restent gros, la grille ne devient jamais fine.
-4. Touche `N` (négatif) : tout s'inverse, le repère rouge reste rouge.
+4. Touche `N` (négatif) : tout s'inverse, le repère rouge reste rouge ; après
+   rechargement le négatif est toujours là, sans éclat blanc, et le bouton
+   affiche `POSITIF [N]`.
 5. Console vide, build sans erreur, aucun `border-radius` dans le rendu.
 6. 393 / 820 / 1440 px : `document.documentElement.scrollWidth === innerWidth`.

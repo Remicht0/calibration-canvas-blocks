@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { drawText, mireText, textCols } from "@/lib/glyphs";
 import {
@@ -193,15 +193,58 @@ export function GridCursor() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Inversion du signal : touche N ou bouton                            */
+/* Inversion du signal : touche N ou bouton, memorisee d'une visite a   */
+/* l'autre. La classe est posee par NEGATIVE_BOOT_SCRIPT avant la       */
+/* premiere peinture : le composant ne fait que la suivre et l'ecrire.  */
 /* ------------------------------------------------------------------ */
+
+const NEG_CLASS = "mire-negative";
+const NEG_KEY = "mire-negative";
+
+/**
+ * Script d'amorce du document, pose dans le `<head>` (voir `__root.tsx`) : il
+ * applique l'inversion memorisee avant que la moindre surface soit peinte.
+ * Sans dependance, et muet si le stockage est refuse.
+ */
+export const NEGATIVE_BOOT_SCRIPT = `try{if(localStorage.getItem("${NEG_KEY}")==="1")document.documentElement.classList.add("${NEG_CLASS}")}catch(e){}`;
+
+/** Drapeau memorise, ou null si rien n'est ecrit ou si le stockage est indisponible. */
+function storedNegative(): boolean | null {
+  try {
+    const v = localStorage.getItem(NEG_KEY);
+    return v === null ? null : v === "1";
+  } catch {
+    return null;
+  }
+}
+
+// le rendu serveur n'a pas de couche de mise en page : useEffect y tient lieu de useLayoutEffect
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function NegativeSwitch() {
   const [neg, setNeg] = useState(false);
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("mire-negative", neg);
-  }, [neg]);
+  // Le serveur ne connait pas le stockage : le bouton est rendu au positif, puis
+  // rejoint la classe deja posee — avant la premiere peinture, donc sans
+  // clignotement et sans ecart d'hydratation.
+  useIsoLayoutEffect(() => {
+    setNeg(document.documentElement.classList.contains(NEG_CLASS));
+  }, []);
+
+  // seul chemin d'ecriture : classe, stockage et aria-pressed bougent ensemble
+  const apply = useCallback((next: boolean) => {
+    document.documentElement.classList.toggle(NEG_CLASS, next);
+    try {
+      localStorage.setItem(NEG_KEY, next ? "1" : "0");
+    } catch {
+      // stockage refuse : l'inversion vaut pour la visite en cours, rien de plus
+    }
+    setNeg(next);
+  }, []);
+
+  const toggle = useCallback(() => {
+    apply(!document.documentElement.classList.contains(NEG_CLASS));
+  }, [apply]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -209,16 +252,27 @@ export function NegativeSwitch() {
       if (document.documentElement.classList.contains("mire-modal")) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      if (e.key === "n" || e.key === "N") setNeg((v) => !v);
+      if (e.key === "n" || e.key === "N") toggle();
+    };
+    // retour arriere ou restauration bfcache : la page revient telle qu'elle etait,
+    // on la remet d'accord avec le drapeau memorise (a defaut, avec sa propre classe)
+    const onPageShow = () => {
+      const next = storedNegative() ?? document.documentElement.classList.contains(NEG_CLASS);
+      document.documentElement.classList.toggle(NEG_CLASS, next);
+      setNeg(next);
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [toggle]);
 
   return (
     <Bloc
       id="inverseur"
-      onClick={() => setNeg((v) => !v)}
+      onClick={toggle}
       pressed={neg}
       aria-keyshortcuts="n"
       aria-label={neg ? "Revenir au positif, touche N" : "Passer en négatif, touche N"}
