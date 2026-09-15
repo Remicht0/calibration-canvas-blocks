@@ -199,13 +199,40 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
 
 ### Transition de page (`RouteWipe`)
 
-1500 ms, trois temps, jamais de fondu :
+**Une seule chute, d'un bout a l'autre.** Au clic, ce sont les blocs de la page
+sortante qui tombent, et cette chute devient le masque : ce que je regardais
+s'effondre, l'effondrement remplit l'ecran, la page suivante se leve de la meme
+matiere. 1500 ms, trois temps, jamais de fondu :
 
-| Temps | Part | Rendu |
-| --- | --- | --- |
-| Recouvrement | 0 → 0,40 | les blocs noirs tombent du haut, `easeOutCubic`, bruit par colonne |
-| Palier | 0,40 → 0,56 | ecran noir plein, un seul repere rouge balaye la surface |
-| Chute | 0,56 → 1 | les blocs se vident du bas vers le haut, `easeInOutCubic`, 6 % de cellules resistent |
+| Temps | Part | Duree | Rendu |
+| --- | --- | --- | --- |
+| Effondrement | 0 → 0,42 | 0 → 630 ms | le masque **reproduit la page sortante** (papier compris) ; ses cellules d'encre lachent de bas en haut selon `fallOrder` (graine 61) et s'empilent au bas de leur colonne ; une crue acheve de remplir l'ecran. `easeInOutCubic` |
+| Palier | 0,42 → 0,58 | 630 → 870 ms | ecran noir plein, un seul repere rouge balaye la surface |
+| Levee | 0,58 → 1 | 870 → 1500 ms | les blocs se vident du bas vers le haut, `easeInOutCubic`, 6 % de cellules resistent — et le titre d'arrivee resiste le plus longtemps |
+
+**La carte d'encre** (`lib/ink.ts`, `captureInk`) est relevee sur l'evenement
+`onBeforeNavigate` du routeur — donc avant que React ne compose la page
+d'arrivee, quand le DOM est encore celui que le visiteur regarde. Elle donne
+une valeur par cellule de grille, au pas `cellSizeFor`, sur les memes cellules
+que le reste du site. Deux sources, dans l'ordre du document : les **canvas
+deja presents** (planches, titres en blocs, bandes de calibration), redessines
+a l'echelle de la grille, et les **surfaces du DOM** dont le fond ou le filet
+resolus sont sombres — sections `.on-black`, filets de separation, blocs en
+etat inverse. Un filet franc plus fin qu'une cellule se cale sur la grille
+plutot que de disparaitre au seuil : les deux filets du site y passent,
+`border-[10px]` en macro comme `border-[3px]` en cadre (section 1). Sous
+`mire-negative`, la carte est inversee : l'ecran montre le negatif de ce que
+les styles declarent. Ce qui est plus fin que la cellule — le mono des
+etiquettes, le texte courant — n'entre pas dans la carte : la silhouette est
+faite de blocs, comme le reste du site.
+
+**Repli obligatoire.** Si la capture echoue ou ne trouve aucune encre (page
+sans surface lisible, tampon illisible, arrivee sans page precedente), le
+premier temps redevient un recouvrement du haut vers le bas en `easeOutCubic`
+avec bruit par colonne, sans silhouette : le comportement d'avant. Les deux
+autres temps sont identiques dans les deux cas. Sous
+`prefers-reduced-motion`, aucun masque n'est monte et la navigation reste
+instantanee.
 
 Tout est dessine dans le canvas du masque, jamais en HTML : le compteur
 `000 → 100` (fonte 3x5, un bloc = une cellule, en bas a droite) et la mention
@@ -213,13 +240,18 @@ Tout est dessine dans le canvas du masque, jamais en HTML : le compteur
 XOR par cellule — blanc sur une cellule noire, noir sur une cellule vide, rien
 sur la rangee rouge — et restent lisibles pendant les trois temps. **Le titre
 de la page de destination traverse la transition** (MIRE, ATELIER, CONTACT ou
-le titre du projet) : compose en blocs Anton pleine largeur, centre, avec son
-propre `fallOrder` (graine 13), il se compose avec le recouvrement, tient au
-palier et tombe avec le masque, en blanc uniquement sur les cellules noires.
-S'il depasse `rows - 6`, il est compose sur moins de colonnes plutot que
-coupe. Aucun `mix-blend-mode` ni opacite sur ce calque. Plan z : curseur 250
-> fiche de commande 240 > boot 200 > masque de transition 195 > bouton AIDE
-180 > inverseur 160 > ScanLine 50.
+le titre du projet, lu sur le chemin vise) : compose en blocs Anton pleine
+largeur, centre, avec son propre `fallOrder` (graine 13), il se compose avec
+l'effondrement, tient au palier, puis resiste a la levee (`+0,30` sur l'ordre
+de chute de ses cellules) avant de tomber a son tour — le temps que le vrai
+titre de la page se compose dessous. En blanc uniquement sur les cellules
+noires. S'il depasse `rows - 6`, il est compose sur moins de colonnes plutot
+que coupe. Aucun `mix-blend-mode` ni opacite sur ce calque. Plan z : curseur
+250 > fiche de commande 240 > boot 200 > masque de transition 195 > bouton
+AIDE 180 > inverseur 160 > ScanLine 50.
+
+Le repere rouge n'apparait que pendant le palier, quand le masque couvre tout :
+jamais deux lignes rouges a l'ecran.
 
 ---
 
@@ -242,6 +274,8 @@ src/
                        année, nature, client, image, lignes, resume, alt)
     glyphs.ts          fonte bitmap 3x5 (capitales, chiffres, ponctuation),
                        mireText() : capitales sans accents
+    ink.ts             captureInk() : carte d'encre de l'ecran, une valeur par
+                       cellule, relevee sur les canvas et les surfaces du DOM
     site.ts            origine absolue du site (og:image, canonical, sitemap),
                        chemin des cartes, identite du studio (STUDIO)
     modal.ts           lockPage / unlockPage : verrou de page partage par les
@@ -260,7 +294,7 @@ src/
     chrome.tsx         TopBar — barre haute commune
     help.tsx           KeyHelp — fiche de commande (raccourcis)
     bars.tsx           CalibrationBand, Ticker
-    boot.tsx           BootSequence, GridCursor, NegativeSwitch
+    boot.tsx           BootSequence, GridCursor, NegativeSwitch, RouteWipe
     bitmap-extras.tsx  BitmapClock, BitmapBoard (automate 23/3), NoiseField
   hooks/
     use-mobile.tsx     useIsMobile() — reste du gabarit, mais `__root.tsx`
@@ -268,7 +302,7 @@ src/
                        console (mobile) : ne pas le retirer sans le remplacer
   routes/
     __root.tsx         chrome global : ScanLine, GridCursor, NegativeSwitch,
-                       BootSequence, fontes, métadonnées de base
+                       BootSequence, RouteWipe, fontes, métadonnées de base
     index.tsx          entrée + index + banc d'essai + procédé + atelier
                        (manifeste) + Colophon (exporté et réutilisé)
     projet.$slug.tsx   page projet
@@ -590,8 +624,8 @@ Regles propres a cet instrument, non negociables :
   `visibilitychange`, comme `HybridMedia`, `CalibrationBand`, `BlockType`.
 - Ce qui ne change qu'avec le defilement se redessine au defilement
   (`NoiseField`, `drive="scroll"`), jamais a chaque image.
-- Un canvas de travail hors DOM est reutilise (`sample()`), jamais alloue par
-  image ; un masque invisible libere son bitmap (`RouteWipe`).
+- Un canvas de travail hors DOM est reutilise (`sample()`, `captureInk()`),
+  jamais alloue par image ; un masque invisible libere son bitmap (`RouteWipe`).
 - Aucun traitement d'une source apportee par le visiteur ne tient le fil
   principal plus d'une image. La reduction d'une photo deposee dans le miroir
   part dans un worker avec `OffscreenCanvas`
@@ -606,6 +640,18 @@ Regles propres a cet instrument, non negociables :
   appellent la **meme** fonction (`src/lib/reduction.ts`) : la trame 1-bit ne
   peut pas dependre de celui qu'on a pris. Deux copies du meme algorithme
   seraient une regle a tenir a la main, donc une regle perdue.
+- **Le clic ne paie pas la transition.** Tout ce que le clic prepare — la carte
+  d'encre de la page sortante (une valeur par cellule, 72 x 45 en 1440 px,
+  25 x 54 en 393 px, une seule lecture de pixels), les ordres de chute, le
+  titre d'arrivee compose en blocs et l'allocation du masque — est publie en
+  User Timing sous un seul nom :
+  `performance.getEntriesByName("mire:transition")`. La mesure couvre la
+  preparation entiere, pas la seule carte d'encre : sur trente navigations
+  enchainees (index, atelier, contact, projet), 3 a 8 ms en 1440 x 900 et
+  2 a 6 ms en 393 x 852, la premiere navigation d'une session etant toujours
+  la plus chere — la composition du titre y paie ses metriques de fonte, et un
+  seul releve a touche 17 ms. Au-dela d'une image (16 ms), c'est un defaut :
+  l'a-coup se verrait au clic, exactement la ou il se voit le plus.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
