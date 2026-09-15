@@ -5,6 +5,16 @@ import { cellSizeFor, prefersReducedMotion } from "@/lib/mire";
 /* Bande de calibration : barres 1-bit qui respirent par blocs          */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Emprise du pointeur sur une bande qui respire : voisinage CARRE (jamais un
+ * disque) de POINTER_R colonnes de part et d'autre, monte en PUSH_MS tant que
+ * le pointeur est la, retombe en RELAX_MS des qu'il part. Les hauteurs restent
+ * des nombres entiers de cellules : la bande se deforme, elle ne se fond pas.
+ */
+const POINTER_R = 3;
+const PUSH_MS = 150;
+const RELAX_MS = 620;
+
 export function CalibrationBand({
   height = 8,
   seed = 3,
@@ -35,6 +45,11 @@ export function CalibrationBand({
     const rows = height;
     let phase = new Float32Array(0);
     let width = new Float32Array(0);
+    // emprise du pointeur par colonne (0..1), rangee visee, horloge de la derniere image
+    let push = new Float32Array(0);
+    let hot: { x: number; y: number } | null = null;
+    let level = 1;
+    let last = 0;
 
     const size = () => {
       cell = cellSizeFor(window.innerWidth);
@@ -48,6 +63,7 @@ export function CalibrationBand({
       const rnd = () => ((s = (s * 9301 + 49297) % 233280), s / 233280);
       phase = new Float32Array(cols);
       width = new Float32Array(cols);
+      push = new Float32Array(cols);
       for (let x = 0; x < cols; x++) {
         phase[x] = rnd() * Math.PI * 2;
         width[x] = 0.4 + rnd() * 1.4;
@@ -55,10 +71,29 @@ export function CalibrationBand({
     };
 
     const once = still || prefersReducedMotion();
+    // une ligne sans signal, un mouvement reduit ou un pointeur grossier ne
+    // reagissent pas : la bande garde exactement son comportement d'origine
+    const reacts = !once && !window.matchMedia("(pointer: coarse)").matches;
     let visible = false;
     let modal = false;
     const paint = (t: number) => {
       if (dead) return;
+      if (reacts) {
+        // l'emprise se calcule dans la boucle deja en cours : aucune image de plus
+        const dt = last ? Math.min(120, t - last) : 0;
+        for (let x = 0; x < cols; x++)
+          if (push[x]! > 0) push[x] = Math.max(0, push[x]! - dt / RELAX_MS);
+        if (hot) {
+          level = Math.min(rows, Math.max(1, rows - hot.y));
+          const lo = Math.max(0, hot.x - POINTER_R);
+          const hi = Math.min(cols - 1, hot.x + POINTER_R);
+          for (let x = lo; x <= hi; x++) {
+            const target = 1 - Math.abs(x - hot.x) / (POINTER_R + 1);
+            if (target > push[x]!) push[x] = Math.min(target, push[x]! + dt / PUSH_MS);
+          }
+        }
+        last = t;
+      }
       const ctx = cv.getContext("2d");
       if (ctx) {
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -69,7 +104,11 @@ export function CalibrationBand({
         for (let x = 0; x < cols; x++) {
           // hauteur de colonne quantifiee : seuil dur, aucun degrade
           const v = (Math.sin(t / 900 + phase[x]! * width[x]!) + 1) / 2;
-          const h = still ? 1 : Math.max(1, Math.round(v * rows));
+          let h = still ? 1 : Math.max(1, Math.round(v * rows));
+          // la ou le pointeur passe, la colonne va chercher sa rangee, puis elle
+          // relache et reprend sa respiration : toujours un compte entier de blocs
+          if (reacts && push[x]! > 0)
+            h = Math.max(1, Math.min(rows, Math.round(h + (level - h) * push[x]!)));
           ctx.fillRect(x * cell, (rows - h) * cell, cell, h * cell);
         }
       }
@@ -100,6 +139,24 @@ export function CalibrationBand({
       sync();
     };
     window.addEventListener("mire:modal", onModal);
+
+    // le pointeur ne declenche rien de lui-meme : il ne fait que deplacer la
+    // cellule visee, la boucle deja en cours s'en sert a l'image suivante
+    const onPointerMove = (ev: PointerEvent) => {
+      const r = cv.getBoundingClientRect();
+      hot = {
+        x: Math.min(cols - 1, Math.max(0, Math.floor((ev.clientX - r.left) / cell))),
+        y: Math.min(rows - 1, Math.max(0, Math.floor((ev.clientY - r.top) / cell))),
+      };
+    };
+    const onPointerLeave = () => {
+      hot = null;
+    };
+    if (reacts) {
+      el.addEventListener("pointermove", onPointerMove, { passive: true });
+      el.addEventListener("pointerleave", onPointerLeave, { passive: true });
+    }
+
     const ro = new ResizeObserver(() => {
       size();
       // le redimensionnement vide le canvas : une pose fixe doit etre repeinte
@@ -111,6 +168,8 @@ export function CalibrationBand({
       dead = true;
       io.disconnect();
       window.removeEventListener("mire:modal", onModal);
+      el.removeEventListener("pointermove", onPointerMove);
+      el.removeEventListener("pointerleave", onPointerLeave);
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
