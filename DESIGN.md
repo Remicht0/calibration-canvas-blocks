@@ -578,13 +578,20 @@ l'instrument 05 : cycle de vie de la camera, vie privee, clavier et focus,
 creux et cartouche, etiquette, photo demesuree, non-regressions du reste du
 site.
 
-Trois variables d'environnement, toutes facultatives :
+Avec `run` : `bun test` appellerait le coureur de bun, qui ne monte ni les
+pieces ni le serveur. Elle demande Node 22 ou plus a cote de bun, le lanceur
+s'appuyant sur `node --test`. Le port est verifie libre avant le demarrage, et
+un serveur qui tombe en cours de route coupe la campagne au lieu de la laisser
+jouer contre un port muet.
 
-| variable        | defaut                  | effet                                     |
-| --------------- | ----------------------- | ----------------------------------------- |
-| `MIRE_PORT`     | `4288`                  | port du serveur monte pour la campagne    |
-| `MIRE_BASE`     | —                       | joue contre un serveur deja debout        |
-| `MIRE_SUITES`   | toutes                  | liste de suites, separees par des virgules |
+Quatre variables d'environnement, toutes facultatives :
+
+| variable        | defaut                   | effet                                       |
+| --------------- | ------------------------ | ------------------------------------------- |
+| `MIRE_PORT`     | `4288`                   | port du serveur monte pour la campagne      |
+| `MIRE_BASE`     | —                        | joue contre un serveur deja debout          |
+| `MIRE_SUITES`   | toutes                   | liste de suites, separees par des virgules  |
+| `MIRE_CHROMIUM` | `/opt/pw-browsers/chromium` | chemin du navigateur pilote              |
 
 Les pieces fabriquees (`tests/.fixtures/`) et les captures d'ecran laissees
 derriere (`tests/.captures/`) ne sont pas versionnees.
