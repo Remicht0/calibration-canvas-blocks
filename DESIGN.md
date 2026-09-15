@@ -257,6 +257,10 @@ src/
     bars.tsx           CalibrationBand, Ticker
     boot.tsx           BootSequence, GridCursor, NegativeSwitch
     bitmap-extras.tsx  BitmapClock, BitmapBoard (automate 23/3), NoiseField
+  hooks/
+    use-mobile.tsx     useIsMobile() — reste du gabarit, mais `__root.tsx`
+                       s'en sert pour choisir la reglette (bureau) ou la
+                       console (mobile) : ne pas le retirer sans le remplacer
   routes/
     __root.tsx         chrome global : ScanLine, GridCursor, NegativeSwitch,
                        BootSequence, fontes, métadonnées de base
@@ -504,15 +508,14 @@ Fait :
       CSS sans le kit shadcn ni tw-animate-css (78 Ko -> 20 Ko) ;
       react-query retire.
 - [x] Kit shadcn du gabarit supprime du depot : `src/components/ui/`
-      (46 fichiers, 264 Ko), `src/lib/utils.ts` (`cn()`, devenu orphelin) et
-      `components.json` retires, avec les 42 dependances qui n'existaient que
-      pour lui (26 `@radix-ui/*`, `lucide-react`, `recharts`, `react-hook-form`,
-      `zod`, `date-fns`, `cmdk`, `vaul`, `sonner`, `clsx`, `tailwind-merge`,
-      etc.) : 50 dependances d'execution, il en reste 8. Le garde-fou
-      `@source not "../src/components/ui"` de `styles.css` est tombe avec le
-      dossier. Bundle client inchange a l'octet pres (419 153 o de JS,
-      20 564 o de CSS) : le kit n'etait deja plus compile. Lint a zero erreur
-      et zero avertissement.
+      (46 fichiers, 145 Ko de source), `src/lib/utils.ts` (`cn()`, devenu
+      orphelin) et `components.json` retires, avec les 42 dependances qui
+      n'existaient que pour lui (26 `@radix-ui/*`, `lucide-react`, `recharts`,
+      `react-hook-form`, `zod`, `date-fns`, `cmdk`, `vaul`, `sonner`, `clsx`,
+      `tailwind-merge`, etc.) : 50 dependances d'execution, il en reste 8. Le
+      garde-fou `@source not "../src/components/ui"` de `styles.css` est tombe
+      avec le dossier. JS client inchange a l'octet pres (419 153 o) : le kit
+      n'etait deja plus compile. Lint a zero erreur et zero avertissement.
 
 ### Le miroir (instrument 05)
 
