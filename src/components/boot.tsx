@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { useRouterState } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { drawText, mireText, textCols } from "@/lib/glyphs";
+import { captureInk } from "@/lib/ink";
 import {
   bitUnit,
   blockifyText,
   cellSizeFor,
   fallOrder,
+  prefersReducedMotion,
   scanLineTop,
   textBlockHeight,
+  type Bits,
 } from "@/lib/mire";
 import { bySlug } from "@/lib/projects";
 import { Bloc } from "@/components/bloc";
@@ -232,7 +235,7 @@ export function NegativeSwitch() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Transition de page : masque plein ecran en chute de blocs           */
+/* Transition de page : une seule chute, de la page sortante a l'arrivee */
 /* ------------------------------------------------------------------ */
 
 const easeOutCubic = (k: number) => 1 - Math.pow(1 - k, 3);
@@ -241,7 +244,11 @@ const seg = (k: number, a: number, b: number) => Math.min(1, Math.max(0, (k - a)
 
 const DISPLAY_FONT = "'Anton', sans-serif";
 
-/** Titre de la page de destination, lu sur le chemin deja change au declenchement. */
+const DUR = 1500;
+const COLLAPSE = 0.42; // fin de l'effondrement de la page sortante
+const HOLD = 0.58; // fin du palier de calibration
+
+/** Titre de la page de destination, lu sur le chemin vise avant que la route ne change. */
 function titleFor(path: string): string {
   if (path === "/") return "MIRE";
   if (path.startsWith("/atelier")) return "ATELIER";
@@ -290,157 +297,321 @@ function drawTextXor(
   ctx.restore();
 }
 
+/** Tout ce qui est fige au declenchement : la silhouette sortante, les ordres, le titre d'arrivee. */
+type Fall = {
+  t0: number;
+  cell: number;
+  cols: number;
+  rows: number;
+  n: number;
+  unit: number;
+  /** silhouette de la page sortante (1 = encre), ou null : on se replie sur `cover` */
+  ink: Uint8Array | null;
+  /** ordre de lachage : les cellules basses cedent d'abord, colonne par colonne */
+  order: Float32Array;
+  /** repli : recouvrement du haut vers le bas, le motif d'avant la capture */
+  cover: Float32Array;
+  /** vidage du bas vers le haut ; les cellules du titre d'arrivee resistent */
+  fall: Float32Array;
+  /** encre par colonne, et instant ou la crue prend le relais dans cette colonne */
+  colInk: Int32Array;
+  colRise: Float32Array;
+  /** tampons de travail, alloues une fois par transition */
+  released: Int32Array;
+  top: Int32Array;
+  state: Uint8Array;
+  title: Bits;
+  titleOrder: Float32Array;
+  titleX: number;
+  titleY: number;
+  counterX: number;
+  counterY: number;
+};
+
+/**
+ * Fige la transition au declenchement : la carte d'encre de la page sortante est
+ * relevee ici, avant que la route ne change, et c'est elle qui tombe.
+ * Le cout de la capture est publie en mesure `mire:capture` (budget de rendu).
+ */
+function planFall(to: string): Fall {
+  const cell = cellSizeFor(window.innerWidth);
+  const cols = Math.ceil(window.innerWidth / cell);
+  const rows = Math.ceil(window.innerHeight / cell);
+  const n = cols * rows;
+
+  const t0 = performance.now();
+  const ink = captureInk(cell, cols, rows);
+  try {
+    // cout de la capture, lisible en User Timing : c'est le budget du clic
+    performance.measure("mire:capture", { start: t0, end: performance.now() });
+  } catch {
+    // User Timing indisponible : la mesure n'est qu'un diagnostic
+  }
+
+  // ordre de chute du site : les cellules basses lachent d'abord, certaines
+  // colonnes tiennent plus longtemps que les autres
+  const order = fallOrder(cols, rows, 61);
+
+  let s = 4441;
+  const rnd = () => ((s = (s * 9301 + 49297) % 233280), s / 233280);
+
+  // bruit par colonne : ni le recouvrement ni la crue ne montent droit
+  const colOffset = new Float32Array(cols);
+  const colRise = new Float32Array(cols);
+  for (let x = 0; x < cols; x++) {
+    colOffset[x] = rnd() * 0.22;
+    colRise[x] = 0.18 + rnd() * 0.34;
+  }
+
+  const cover = new Float32Array(n);
+  const fall = new Float32Array(n);
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const i = y * cols + x;
+      const v = y / Math.max(1, rows - 1);
+      cover[i] = Math.min(1, v * 0.66 + colOffset[x]! + rnd() * 0.3);
+      const hold = rnd() < 0.06 ? 0.3 : 0; // cellules isolees qui resistent
+      fall[i] = Math.min(1, (1 - v) * 0.6 + colOffset[x]! + rnd() * 0.26 + hold);
+    }
+  }
+
+  const colInk = new Int32Array(cols);
+  if (ink) for (let i = 0; i < n; i++) if (ink[i]) colInk[i % cols] = colInk[i % cols]! + 1;
+
+  // titre de destination, compose pleine largeur et centre ; s'il depasse la
+  // hauteur d'ecran, on reduit sa largeur plutot que de le couper
+  const text = mireText(titleFor(to));
+  const rowsMax = Math.max(1, rows - 6);
+  const needed = Math.ceil(textBlockHeight(text, DISPLAY_FONT, cols * cell) / cell);
+  const rowsTitle = Math.min(needed, rowsMax);
+  const colsTitle = needed > rowsMax ? Math.max(1, Math.floor((cols * rowsMax) / needed)) : cols;
+  const title = blockifyText(text, DISPLAY_FONT, colsTitle, rowsTitle);
+  const titleOrder = fallOrder(colsTitle, rowsTitle, 13);
+  const titleX = Math.floor((cols - colsTitle) / 2);
+  const titleY = Math.floor((rows - rowsTitle) / 2);
+
+  // le titre d'arrivee est la derniere matiere que le masque lache : la page se
+  // leve autour de lui, puis il tombe a son tour
+  for (let y = 0; y < rowsTitle; y++) {
+    for (let x = 0; x < colsTitle; x++) {
+      if (!title.data[y * colsTitle + x]) continue;
+      const i = (titleY + y) * cols + (titleX + x);
+      fall[i] = Math.min(1, fall[i]! + 0.3);
+    }
+  }
+
+  return {
+    t0,
+    cell,
+    cols,
+    rows,
+    n,
+    unit: bitUnit(cell),
+    ink,
+    order,
+    cover,
+    fall,
+    colInk,
+    colRise,
+    released: new Int32Array(cols),
+    top: new Int32Array(cols),
+    state: new Uint8Array(n),
+    title,
+    titleOrder,
+    titleX,
+    titleY,
+    // compteur cale sur la grille visible, a une cellule des bords bas et droit
+    counterX: (Math.floor(window.innerWidth / cell) - 1 - textCols("000")) * cell,
+    counterY: (Math.floor(window.innerHeight / cell) - 1 - 5) * cell,
+  };
+}
+
+const MENTION = "MIRE / RECALIBRAGE";
+
+/** Une image de la transition, a l'avancement k (0 -> 1). */
+function paint(ctx: CanvasRenderingContext2D, f: Fall, k: number, dpr: number) {
+  const { cols, rows, cell, n, state } = f;
+  const w = cols * cell;
+  const h = rows * cell;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  let red = -1;
+  // l'effondrement est opaque : le masque reproduit la page sortante, papier
+  // compris, et la page d'arrivee se compose derriere sans se montrer
+  let opaque = false;
+
+  if (k < COLLAPSE) {
+    // l'effondrement part lentement puis cede : la silhouette se lit avant de tomber
+    const p = easeInOutCubic(seg(k, 0, COLLAPSE));
+    const ink = f.ink;
+    if (ink) {
+      opaque = true;
+      f.released.fill(0);
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const i = y * cols + x;
+          if (ink[i] && f.order[i]! <= p) f.released[x] = f.released[x]! + 1;
+        }
+      }
+      for (let x = 0; x < cols; x++) {
+        // la matiere lachee s'empile au bas de sa colonne : le profil du tas est
+        // l'histogramme d'encre de la page. La crue acheve de remplir l'ecran.
+        const q = easeOutCubic(seg(p, f.colRise[x]!, 0.94));
+        const pile = f.released[x]! + Math.round((rows - f.colInk[x]!) * q);
+        f.top[x] = rows - Math.min(rows, pile);
+      }
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const i = y * cols + x;
+          state[i] = (ink[i] && f.order[i]! > p) || y >= f.top[x]! ? 1 : 0;
+        }
+      }
+    } else {
+      // repli : recouvrement du haut vers le bas, sans silhouette
+      const c = easeOutCubic(seg(k, 0, COLLAPSE));
+      for (let i = 0; i < n; i++) state[i] = f.cover[i]! <= c ? 1 : 0;
+    }
+  } else if (k < HOLD) {
+    state.fill(1);
+    // palier : un seul repere rouge balaye la surface noire
+    red = Math.floor(seg(k, COLLAPSE, HOLD) * (rows - 1));
+  } else {
+    const p = easeInOutCubic(seg(k, HOLD, 1));
+    for (let i = 0; i < n; i++) state[i] = f.fall[i]! > p ? 1 : 0;
+  }
+
+  if (opaque) {
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, w, h);
+  }
+  ctx.fillStyle = "#000000";
+  for (let i = 0; i < n; i++) {
+    if (!state[i]) continue;
+    ctx.fillRect((i % cols) * cell, Math.floor(i / cols) * cell, cell, cell);
+  }
+  if (red >= 0) {
+    ctx.fillStyle = "#FF0000";
+    ctx.fillRect(0, red * cell, w, cell);
+  }
+
+  // titre d'arrivee : il se compose avec l'effondrement, tient au palier, et
+  // resiste au vidage avant de tomber a son tour
+  const pTitle = k < COLLAPSE ? easeOutCubic(seg(k, 0, COLLAPSE)) : 1;
+  const { title, titleOrder, titleX, titleY } = f;
+  ctx.fillStyle = "#FFFFFF";
+  for (let y = 0; y < title.rows; y++) {
+    const gy = titleY + y;
+    if (gy === red) continue;
+    for (let x = 0; x < title.cols; x++) {
+      const i = y * title.cols + x;
+      if (!title.data[i] || titleOrder[i]! > pTitle) continue;
+      const gx = titleX + x;
+      if (!state[gy * cols + gx]) continue;
+      ctx.fillRect(gx * cell, gy * cell, cell, cell);
+    }
+  }
+
+  const ink = (gx: number, gy: number) => (gy === red ? null : state[gy * cols + gx] === 1);
+  drawTextXor(ctx, MENTION, f.unit, cell, cell, cell, ink);
+  const count = String(Math.round(easeInOutCubic(k) * 100)).padStart(3, "0");
+  drawTextXor(ctx, count, cell, f.counterX, f.counterY, cell, ink);
+}
+
+/**
+ * Une seule chute, d'un bout a l'autre. Au declenchement de la navigation — donc
+ * avant que la route ne change et que la page sortante ne disparaisse — sa
+ * silhouette est relevee en carte d'encre ; ce sont ses blocs qui tombent, leur
+ * chute devient le masque, et la page d'arrivee se leve de la meme matiere.
+ */
 export function RouteWipe() {
-  const path = useRouterState({ select: (s) => s.location.pathname });
+  const router = useRouter();
+  const shell = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const [on, setOn] = useState(false);
-  const first = useRef(true);
 
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    setOn(true);
-    window.dispatchEvent(new CustomEvent("mire:wipe", { detail: true }));
+    const box = shell.current;
     const cv = canvas.current;
+    if (!box || !cv) return;
+
     let raf = 0;
     let dead = false;
-    // trois temps : recouvrement, palier de calibration, chute
-    const DUR = 1500;
-    const A = 0.4; // fin du recouvrement
-    const B = 0.56; // fin du palier
-    const t0 = performance.now();
+    // aucun bitmap tant qu'aucune transition ne tourne
+    cv.width = 0;
+    cv.height = 0;
 
-    const cell = cellSizeFor(window.innerWidth);
-    const cols = Math.ceil(window.innerWidth / cell);
-    const rows = Math.ceil(window.innerHeight / cell);
-    const n = cols * rows;
-
-    let s = 4441;
-    const rnd = () => ((s = (s * 9301 + 49297) % 233280), s / 233280);
-
-    // bruit par colonne : la vague ne descend pas droit
-    const colOffset = new Float32Array(cols);
-    for (let x = 0; x < cols; x++) colOffset[x] = rnd() * 0.22;
-
-    // recouvrement : du haut vers le bas, densite croissante
-    const cover = new Float32Array(n);
-    // chute : du bas vers le haut, quelques cellules tiennent plus longtemps
-    const fall = new Float32Array(n);
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const i = y * cols + x;
-        const v = y / Math.max(1, rows - 1);
-        cover[i] = Math.min(1, v * 0.66 + colOffset[x]! + rnd() * 0.3);
-        const hold = rnd() < 0.06 ? 0.3 : 0; // cellules isolees qui resistent
-        fall[i] = Math.min(1, (1 - v) * 0.6 + colOffset[x]! + rnd() * 0.26 + hold);
-      }
-    }
-
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    if (cv) {
-      cv.width = cols * cell * dpr;
-      cv.height = rows * cell * dpr;
-      cv.style.width = `${cols * cell}px`;
-      cv.style.height = `${rows * cell}px`;
-    }
-
-    // etat du masque ce frame : 1 = cellule noire
-    const state = new Uint8Array(n);
-    const u = bitUnit(cell);
-    const MENTION = "MIRE / RECALIBRAGE";
-    // compteur cale sur la grille visible, a une cellule des bords bas et droit
-    const counterX = (Math.floor(window.innerWidth / cell) - 1 - textCols("000")) * cell;
-    const counterY = (Math.floor(window.innerHeight / cell) - 1 - 5) * cell;
-
-    // titre de destination, compose pleine largeur et centre ; s'il depasse la
-    // hauteur d'ecran, on reduit sa largeur plutot que de le couper
-    const title = mireText(titleFor(path));
-    const rowsMax = Math.max(1, rows - 6);
-    const needed = Math.ceil(textBlockHeight(title, DISPLAY_FONT, cols * cell) / cell);
-    const rowsTitle = Math.min(needed, rowsMax);
-    const colsTitle = needed > rowsMax ? Math.max(1, Math.floor((cols * rowsMax) / needed)) : cols;
-    const titleBits = blockifyText(title, DISPLAY_FONT, colsTitle, rowsTitle);
-    const titleOrder = fallOrder(colsTitle, rowsTitle, 13);
-    const titleX = Math.floor((cols - colsTitle) / 2);
-    const titleY = Math.floor((rows - rowsTitle) / 2);
-
-    const step = (t: number) => {
-      if (dead) return;
-      const k = Math.min(1, (t - t0) / DUR);
-      const ctx = cv?.getContext("2d");
-      if (ctx) {
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, cols * cell, rows * cell);
-
-        let red = -1;
-        if (k < A) {
-          const p = easeOutCubic(seg(k, 0, A));
-          for (let i = 0; i < n; i++) state[i] = cover[i]! <= p ? 1 : 0;
-        } else if (k < B) {
-          state.fill(1);
-          // palier : un seul repere rouge balaye la surface noire
-          red = Math.floor(seg(k, A, B) * (rows - 1));
-        } else {
-          const p = easeInOutCubic(seg(k, B, 1));
-          for (let i = 0; i < n; i++) state[i] = fall[i]! > p ? 1 : 0;
-        }
-
-        ctx.fillStyle = "#000000";
-        for (let i = 0; i < n; i++) {
-          if (!state[i]) continue;
-          ctx.fillRect((i % cols) * cell, Math.floor(i / cols) * cell, cell, cell);
-        }
-        if (red >= 0) {
-          ctx.fillStyle = "#FF0000";
-          ctx.fillRect(0, red * cell, cols * cell, cell);
-        }
-
-        // titre : se compose avec le masque, tient au palier, tombe avec lui
-        const pTitle = k < A ? easeOutCubic(seg(k, 0, A)) : 1;
-        ctx.fillStyle = "#FFFFFF";
-        for (let y = 0; y < rowsTitle; y++) {
-          const gy = titleY + y;
-          if (gy === red) continue;
-          for (let x = 0; x < colsTitle; x++) {
-            const i = y * colsTitle + x;
-            if (!titleBits.data[i] || titleOrder[i]! > pTitle) continue;
-            const gx = titleX + x;
-            if (!state[gy * cols + gx]) continue;
-            ctx.fillRect(gx * cell, gy * cell, cell, cell);
-          }
-        }
-
-        const ink = (gx: number, gy: number) => (gy === red ? null : state[gy * cols + gx] === 1);
-        drawTextXor(ctx, MENTION, u, cell, cell, cell, ink);
-        const count = String(Math.round(easeInOutCubic(k) * 100)).padStart(3, "0");
-        drawTextXor(ctx, count, cell, counterX, counterY, cell, ink);
-      }
-      if (k < 1) raf = requestAnimationFrame(step);
-      else {
-        // le masque est invisible entre deux navigations : son bitmap n'a pas a rester alloue
-        if (cv) {
-          cv.width = 0;
-          cv.height = 0;
-        }
-        setOn(false);
-        window.dispatchEvent(new CustomEvent("mire:wipe", { detail: false }));
-      }
+    const show = (v: boolean) => {
+      box.style.visibility = v ? "visible" : "hidden";
+      window.dispatchEvent(new CustomEvent("mire:wipe", { detail: v }));
     };
-    raf = requestAnimationFrame(step);
+
+    const stop = () => {
+      cancelAnimationFrame(raf);
+      // le masque est invisible entre deux navigations : son bitmap n'a pas a
+      // rester alloue
+      cv.width = 0;
+      cv.height = 0;
+      show(false);
+    };
+
+    const start = (to: string) => {
+      cancelAnimationFrame(raf);
+      const f = planFall(to);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      cv.width = f.cols * f.cell * dpr;
+      cv.height = f.rows * f.cell * dpr;
+      cv.style.width = `${f.cols * f.cell}px`;
+      cv.style.height = `${f.rows * f.cell}px`;
+      show(true);
+
+      const step = (t: number) => {
+        if (dead) return;
+        const k = Math.min(1, (t - f.t0) / DUR);
+        try {
+          const ctx = cv.getContext("2d");
+          if (ctx) paint(ctx, f, k, dpr);
+        } catch {
+          // une image qui ne se peint pas ne doit pas laisser un masque fige
+          stop();
+          return;
+        }
+        if (k < 1) raf = requestAnimationFrame(step);
+        else stop();
+      };
+      raf = requestAnimationFrame(step);
+    };
+
+    // `onBeforeNavigate` est emis avant que React ne compose la page d'arrivee :
+    // le DOM sous nos pieds est encore celui que le visiteur regarde
+    const off = router.subscribe("onBeforeNavigate", (e) => {
+      if (!e.fromLocation || !e.pathChanged) return;
+      if (prefersReducedMotion()) return;
+      // la transition ne doit jamais empecher la navigation : si la chute ne
+      // peut pas etre preparee, on navigue sans masque plutot que de casser
+      try {
+        start(e.toLocation.pathname);
+      } catch {
+        stop();
+      }
+    });
+
     return () => {
       dead = true;
+      off();
       cancelAnimationFrame(raf);
+      cv.width = 0;
+      cv.height = 0;
+      box.style.visibility = "hidden";
     };
-  }, [path]);
+  }, [router]);
 
   return (
     <div
+      ref={shell}
+      // la capture d'encre ne se releve jamais elle-meme
+      data-mire-nocapture=""
       className="pointer-events-none fixed inset-0 z-[195] overflow-hidden"
-      style={{ visibility: on ? "visible" : "hidden" }}
+      style={{ visibility: "hidden" }}
       aria-hidden="true"
     >
       <canvas ref={canvas} className="block" />
