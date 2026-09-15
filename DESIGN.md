@@ -251,6 +251,8 @@ src/
     instruments.tsx    Histogramme (20 tranches x 8 rangs, plein / cadre),
                        InstrumentSeuil (planche BIN pilotee par l'histogramme)
     miroir.tsx         Miroir — la camera ou une image du visiteur, en local
+    miroir-reduction.worker.ts
+                       reduction d'une photo deposee, hors fil principal
     bloc.tsx           Bloc — bouton / lien cadre 1 bit (.u-bloc)
     chrome.tsx         TopBar — barre haute commune
     help.tsx           KeyHelp — fiche de commande (raccourcis)
@@ -491,6 +493,10 @@ Fait :
       dans la grille, tout en local, avec enregistrement de la trame en PNG.
       Relu par quatre relecteurs adversariaux (vie privee, regles, code,
       accessibilite) ; 23 constats corriges, 85 tests de navigateur.
+- [x] Reduction d'une photo deposee hors fil principal (worker +
+      `OffscreenCanvas`, repli synchrone la ou ils manquent) : sur 48 Mpx, le
+      plus long blocage tombe de ~200 ms a ~30 ms, pour une trame 1-bit
+      identique au pixel.
 - [x] Negatif : filtre sur `main` et le chrome fixe, plus sur `body` (les
       elements fixes defilaient avec la page) ; repere au-dessus de la
       reglette ; curseur efface sur la ligne rouge.
@@ -516,7 +522,10 @@ Regles propres a cet instrument, non negociables :
 
 - **Rien ne sort de l'appareil.** Aucune requete, aucun stockage (ni
   `localStorage`, ni `sessionStorage`, ni `IndexedDB`), aucune copie qui
-  survive a la fermeture. La phrase ecrite au visiteur est un engagement :
+  survive a la fermeture. Le worker qui reduit une photo deposee n'echappe pas
+  a la regle : il est cree pour une image, vide ses canvas, ferme la source et
+  est supprime des qu'elle est reduite. La phrase ecrite au visiteur est un
+  engagement :
   « RIEN N'EST ENVOYE. LA MIRE EST CALCULEE DANS VOTRE NAVIGATEUR, LA SOURCE NE
   QUITTE JAMAIS VOTRE APPAREIL. »
 - **Aucun chemin ne laisse la camera allumee.** Les pistes sont arretees au
@@ -547,6 +556,16 @@ Regles propres a cet instrument, non negociables :
   (`NoiseField`, `drive="scroll"`), jamais a chaque image.
 - Un canvas de travail hors DOM est reutilise (`sample()`), jamais alloue par
   image ; un masque invisible libere son bitmap (`RouteWipe`).
+- Aucun traitement d'une source apportee par le visiteur ne tient le fil
+  principal plus d'une image. La reduction d'une photo deposee dans le miroir
+  part dans un worker avec `OffscreenCanvas`
+  (`miroir-reduction.worker.ts`) : la photo y est **transferee**, pas copiee, et
+  le worker est cree pour elle puis supprime avec elle — jamais au chargement
+  du module (le rendu serveur n'a pas de `Worker`), jamais garde entre deux
+  images. Sur une photo de 48 Mpx, le plus long blocage du fil principal passe
+  de ~200 ms a ~30 ms, pour un rendu 1-bit identique au pixel.
+- Un navigateur sans `Worker` ou sans `OffscreenCanvas` garde le chemin
+  synchrone : le repli est plus lent, il n'est jamais absent.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.

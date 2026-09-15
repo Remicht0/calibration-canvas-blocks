@@ -23,7 +23,8 @@ import { cellSizeFor } from "@/lib/mire";
 /* track.stop() eteint le voyant, ni pause() ni srcObject = null.       */
 /* Rien n'est envoye, rien n'est stocke : aucune requete, aucun         */
 /* localStorage, aucun MediaRecorder, et audio: false explicite ; les   */
-/* canvas de travail rendent leur bitmap des que la source est fermee.  */
+/* canvas de travail rendent leur bitmap des que la source est fermee,  */
+/* et le worker qui reduit une photo deposee est supprime avec elle.    */
 /* ------------------------------------------------------------------ */
 
 /* « lecture » : un fichier est en cours de decodage. C'est un etat a part
@@ -78,13 +79,20 @@ const MAX_COTE = 1600;
 
 /* Rapport de reduction encore bon marche en une seule passe. Mesure sur ce
    navigateur, source 8000 x 6000 vers 1600 x 1200 (rapport 5) : une passe
-   coute 30 ms de fil principal, trois passes par moities en coutent 573 —
-   ce sont les canvas intermediaires de 48 et 24 Mo qui gelent la page, pas
-   le reechantillonnage. Les moities ne redeviennent utiles qu'au-dela. */
+   coute 30 ms, trois passes par moities en coutent 573 — ce sont les canvas
+   intermediaires de 48 et 24 Mo qui coutent, pas le reechantillonnage. Les
+   moities ne redeviennent utiles qu'au-dela. Le worker et le repli partagent
+   ce plafond : deux pyramides differentes donneraient deux trames. */
 const FACTEUR = 6;
 
-/* Canvas de travail partages, comme sample() : un canvas neuf par appel
-   ferait tourner le ramasse-miettes. */
+/* Le reducteur hors fil principal se charge en quelques millisecondes. Au-dela,
+   quelque chose l'en empeche (hors ligne, chunk absent, portee bridee) : la
+   reduction repart sur le fil principal plutot que d'attendre indefiniment
+   devant « LECTURE DU FICHIER ». */
+const ATTENTE_REDUCTEUR = 4000;
+
+/* Canvas de travail partages du chemin de repli, comme sample() : un canvas
+   neuf par appel ferait tourner le ramasse-miettes. */
 let passeA: HTMLCanvasElement | null = null;
 let passeB: HTMLCanvasElement | null = null;
 
@@ -119,43 +127,148 @@ function reduirePasse(
   c.drawImage(src, 0, 0, sw, sh, 0, 0, dw, dh);
 }
 
+/* Le reechantillonnage par createImageBitmap(bmp, { resizeWidth, resizeHeight,
+   resizeQuality: "high" }) a ete mesure sur la meme photo de 48 Mpx : trame
+   identique au pixel pres, mais 76 a 98 ms de fil principal tout de meme — il
+   reste a dessiner le resultat dans un canvas et a l'encoder en PNG, et c'est
+   la que le gel se trouve. Il aurait aussi laisse la qualite de la reduction
+   au bon vouloir de chaque moteur, la ou la pyramide la fixe. */
+
+/**
+ * Reduction sur le fil principal : le repli, quand le navigateur n'a ni Worker
+ * ni OffscreenCanvas, ou que le reducteur n'a pas repondu. Elle gele la page le
+ * temps de la pyramide et de l'encodage — c'est exactement ce qu'on evite
+ * ailleurs, mais mieux vaut une page qui bloque qu'une page qui refuse.
+ */
+async function reduireIci(bmp: ImageBitmap, tw: number, th: number): Promise<Blob> {
+  passeA ??= document.createElement("canvas");
+  passeB ??= document.createElement("canvas");
+  let source: CanvasImageSource = bmp;
+  let sw = bmp.width;
+  let sh = bmp.height;
+  let cible = passeA;
+  while (sw > tw * FACTEUR || sh > th * FACTEUR) {
+    const dw = Math.max(tw, Math.round(sw / 2));
+    const dh = Math.max(th, Math.round(sh / 2));
+    reduirePasse(source, sw, sh, dw, dh, cible);
+    source = cible;
+    sw = dw;
+    sh = dh;
+    cible = cible === passeA ? passeB : passeA;
+  }
+  reduirePasse(source, sw, sh, tw, th, cible);
+  const blob = await new Promise<Blob | null>((ok) => cible.toBlob(ok, "image/png"));
+  if (!blob) throw new Error("encodage impossible");
+  return blob;
+}
+
+/**
+ * Ouvre le reducteur. Le worker n'est jamais construit au chargement du module
+ * — le rendu serveur n'a pas de Worker — et jamais garde entre deux images :
+ * il nait avec une photo et meurt avec elle, comme les canvas de travail.
+ * Il annonce sa portee avant de recevoir quoi que ce soit : un worker qui ne se
+ * charge pas ne doit pas emporter la source, un ImageBitmap transfere ne
+ * revient pas. Retourne null quand il n'y a pas de hors-fil ici.
+ */
+function ouvrirReducteur(): Promise<Worker | null> {
+  if (typeof Worker === "undefined" || typeof OffscreenCanvas === "undefined")
+    return Promise.resolve(null);
+  let w: Worker;
+  try {
+    w = new Worker(new URL("./miroir-reduction.worker.ts", import.meta.url), { type: "module" });
+  } catch {
+    return Promise.resolve(null);
+  }
+  return new Promise<Worker | null>((ok) => {
+    let minuteur = 0;
+    const rater = () => {
+      clearTimeout(minuteur);
+      w.terminate();
+      ok(null);
+    };
+    minuteur = window.setTimeout(rater, ATTENTE_REDUCTEUR);
+    w.addEventListener("error", rater, { once: true });
+    w.addEventListener(
+      "message",
+      (e: MessageEvent<{ pret?: boolean }>) => {
+        if (!e.data?.pret) return rater();
+        clearTimeout(minuteur);
+        ok(w);
+      },
+      { once: true },
+    );
+  });
+}
+
+/**
+ * Reduction hors fil principal : la photo change de fil par transfert, sans
+ * copie, et ne revient qu'en PNG de quelques centaines de kilo-octets.
+ */
+function reduireHorsFil(w: Worker, bmp: ImageBitmap, tw: number, th: number): Promise<Blob> {
+  return new Promise<Blob>((ok, non) => {
+    w.addEventListener("error", () => non(new Error("reducteur perdu")), { once: true });
+    w.addEventListener(
+      "message",
+      (e: MessageEvent<{ blob?: Blob; erreur?: string }>) => {
+        if (e.data?.blob) ok(e.data.blob);
+        else non(new Error(e.data?.erreur ?? "reduction impossible"));
+      },
+      { once: true },
+    );
+    w.postMessage({ bmp, tw, th, facteur: FACTEUR }, [bmp]);
+  });
+}
+
+async function reduire(
+  file: File,
+  bmp: ImageBitmap,
+  tw: number,
+  th: number,
+  reducteur: Worker | null,
+): Promise<Blob> {
+  if (!reducteur) return reduireIci(bmp, tw, th);
+  try {
+    return await reduireHorsFil(reducteur, bmp, tw, th);
+  } catch {
+    /* Le reducteur a lache apres le transfert : la source lui appartient
+       desormais et ne revient pas. On la redecode pour finir sur le fil
+       principal — un fichier valide ne doit pas ressortir « ILLISIBLE ». */
+    const repli = await createImageBitmap(file);
+    try {
+      return await reduireIci(repli, tw, th);
+    } finally {
+      repli.close();
+    }
+  }
+}
+
 /**
  * Valide par decodage (jamais sur file.type ni sur l'extension : un texte
  * renomme .png arrive avec le type image/png) puis reduit a 1600 px une fois
- * pour toutes. Le decodage de createImageBitmap est hors fil principal
- * (~560 ms de travail, 17 ms de gel mesures sur une photo de 48 Mpx) ; la
- * reduction, elle, est synchrone, d'ou le plafond de FACTEUR par passe.
+ * pour toutes. Decodage et reduction sont tous deux hors fil principal : sur
+ * une photo de 48 Mpx, la reduction coute ~100 ms de travail pour 8 ms de gel,
+ * et le depot entier bloque au plus ~30 ms, montage de la planche compris. Le
+ * meme depot par le repli synchrone bloque ~200 ms.
  * Reduire une seule fois est indispensable : sample() rappelle la source a
  * chaque redimensionnement, a chaque bascule 16 / 20 px et a chaque plein cadre.
  */
 async function preparer(file: File): Promise<string> {
-  const bmp = await createImageBitmap(file);
+  /* Le reducteur se charge pendant que le fichier se decode : ni l'un ni
+     l'autre ne tient le fil principal, autant qu'ils courent ensemble. */
+  const ouverture = ouvrirReducteur();
+  let bmp: ImageBitmap | null = null;
   try {
+    bmp = await createImageBitmap(file);
     if (bmp.width * bmp.height > MAX_PIXELS) throw new RangeError("TROP GRANDE");
     const k = Math.min(1, MAX_COTE / Math.max(bmp.width, bmp.height));
     const tw = Math.max(1, Math.round(bmp.width * k));
     const th = Math.max(1, Math.round(bmp.height * k));
-    passeA ??= document.createElement("canvas");
-    passeB ??= document.createElement("canvas");
-    let source: CanvasImageSource = bmp;
-    let sw = bmp.width;
-    let sh = bmp.height;
-    let cible = passeA;
-    while (sw > tw * FACTEUR || sh > th * FACTEUR) {
-      const dw = Math.max(tw, Math.round(sw / 2));
-      const dh = Math.max(th, Math.round(sh / 2));
-      reduirePasse(source, sw, sh, dw, dh, cible);
-      source = cible;
-      sw = dw;
-      sh = dh;
-      cible = cible === passeA ? passeB : passeA;
-    }
-    reduirePasse(source, sw, sh, tw, th, cible);
-    const blob = await new Promise<Blob | null>((ok) => cible.toBlob(ok, "image/png"));
-    if (!blob) throw new Error("encodage impossible");
+    const blob = await reduire(file, bmp, tw, th, await ouverture);
     return URL.createObjectURL(blob);
   } finally {
-    bmp.close();
+    // qu'elle ait abouti ou non, l'ouverture ne survit pas a l'image
+    void ouverture.then((w) => w?.terminate());
+    bmp?.close();
     // le blob est lu, l'image du visiteur n'a plus a rester en memoire
     libererPasses();
   }
