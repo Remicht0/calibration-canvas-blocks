@@ -543,6 +543,8 @@ export function RouteWipe() {
 
     let raf = 0;
     let dead = false;
+    /** La chute en cours, ou null entre deux navigations. */
+    let live: Fall | null = null;
     // aucun bitmap tant qu'aucune transition ne tourne
     cv.width = 0;
     cv.height = 0;
@@ -554,6 +556,7 @@ export function RouteWipe() {
 
     const stop = () => {
       cancelAnimationFrame(raf);
+      live = null;
       // le masque est invisible entre deux navigations : son bitmap n'a pas a
       // rester alloue
       cv.width = 0;
@@ -561,9 +564,21 @@ export function RouteWipe() {
       show(false);
     };
 
+    // le masque est taille une fois pour l'ecran de depart. S'il ne le couvre
+    // plus — fenetre agrandie, rotation, barre d'adresse qui se retracte — il
+    // laisserait une bande de page a nu : on le retire net plutot que de
+    // masquer a moitie.
+    const onResize = () => {
+      if (!live) return;
+      if (live.cols * live.cell < window.innerWidth || live.rows * live.cell < window.innerHeight) {
+        stop();
+      }
+    };
+
     const start = (to: string) => {
       cancelAnimationFrame(raf);
       const f = planFall(to);
+      live = f;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       cv.width = f.cols * f.cell * dpr;
       cv.height = f.rows * f.cell * dpr;
@@ -602,14 +617,15 @@ export function RouteWipe() {
         stop();
       }
     });
+    window.addEventListener("resize", onResize);
 
     return () => {
       dead = true;
       off();
-      cancelAnimationFrame(raf);
-      cv.width = 0;
-      cv.height = 0;
-      box.style.visibility = "hidden";
+      window.removeEventListener("resize", onResize);
+      // meme sortie que la fin d'une chute : bitmap libere, masque cache, et le
+      // signal `mire:wipe` remis a faux pour le curseur
+      stop();
     };
   }, [router]);
 
