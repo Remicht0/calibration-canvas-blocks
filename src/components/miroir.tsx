@@ -292,6 +292,9 @@ export function Miroir() {
   const idxCam = useRef(0);
   const facing = useRef<"user" | "environment">("user");
   const demande = useRef(0);
+  /* Jeton de la lecture de fichier en cours : dit laquelle des lectures
+     perimees doit encore rendre la planche au repos (voir perimee). */
+  const lecture = useRef(0);
   /* Le focus est-il dans l'instrument, et un changement d'etat vient-il de
      retirer la commande qui le portait ? (voir le rattrapage plus bas) */
   const dedans = useRef(false);
@@ -526,6 +529,26 @@ export function Miroir() {
     [aller, dire],
   );
 
+  /**
+   * Une lecture perimee ne dit rien, sauf quand la planche affirme encore
+   * qu'elle lit. Le jeton est incremente par sept chemins, et trois d'entre eux
+   * (onglet cache, `pagehide`, retour de `bfcache`) perimaient la lecture en
+   * cours sans jamais toucher a l'etat : « LECTURE DU FICHIER » restait affiche
+   * pour toujours, sur une lecture que plus personne ne menait. Le garde-fou
+   * `lecture.current === id` distingue ce cas du seul autre qui compte : un
+   * second depot, qui a deja pris la main et dont la lecture, elle, avance.
+   */
+  const perimee = useCallback(
+    (id: number) => {
+      if (etatRef.current !== "lecture" || lecture.current !== id) return;
+      aller("repos");
+      setAvis(AUCUNE);
+      setDetail("");
+      dire("Lecture abandonnée.");
+    },
+    [aller, dire],
+  );
+
   const charger = useCallback(
     async (f: File) => {
       couper();
@@ -543,6 +566,7 @@ export function Miroir() {
       dire("Lecture du fichier.");
       // couper() vient d'incrementer le jeton : il date cette lecture
       const id = demande.current;
+      lecture.current = id;
       try {
         const u = await preparer(f);
         // FERMER, un changement de route ou un demontage pendant le decodage
@@ -550,11 +574,11 @@ export function Miroir() {
         // URL ne doit rester referencee par personne
         if (id !== demande.current) {
           URL.revokeObjectURL(u);
-          return;
+          return perimee(id);
         }
         poser(u, etiquette(f.name));
       } catch (err) {
-        if (id !== demande.current) return;
+        if (id !== demande.current) return perimee(id);
         const trop = err instanceof RangeError;
         aller("repos");
         setAvis(trop ? "IMAGE TROP GRANDE" : "FICHIER ILLISIBLE");
@@ -562,7 +586,7 @@ export function Miroir() {
         dire(trop ? "Image trop grande." : "Fichier illisible.");
       }
     },
-    [aller, couper, dire, poser],
+    [aller, couper, dire, perimee, poser],
   );
 
   const chargerRef = useRef(charger);

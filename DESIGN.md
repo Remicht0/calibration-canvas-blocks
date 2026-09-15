@@ -541,6 +541,11 @@ Regles propres a cet instrument, non negociables :
   remplacement de source — et meme quand la demande d'acces est encore en vol :
   une autorisation qui arrive apres la sortie est coupee a l'arrivee. L'etat
   affiche correspond toujours a l'etat reel du flux.
+- **Aucun etat affiche ne survit a ce qu'il decrit.** Les memes sorties
+  perimaient la lecture d'un fichier en cours sans toucher a l'interface :
+  « LECTURE DU FICHIER » restait ecrit sur une lecture que plus personne ne
+  menait. Une lecture perimee rend maintenant la planche au repos, sauf quand un
+  second depot a deja pris la main.
 - **Aucun message brut du navigateur.** Un refus, une camera absente, occupee ou
   perdue s'ecrivent dans l'alphabet de la mire (`SIGNAL REFUSE`, `AUCUNE
   CAMERA`, `CAMERA OCCUPEE`, `SIGNAL PERDU`), et le depot d'image reste
