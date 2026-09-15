@@ -581,13 +581,18 @@ Regles propres a cet instrument, non negociables :
   (`NoiseField`, `drive="scroll"`), jamais a chaque image.
 - Un canvas de travail hors DOM est reutilise (`sample()`, `captureInk()`),
   jamais alloue par image ; un masque invisible libere son bitmap (`RouteWipe`).
-- **Le clic ne paie pas la transition.** La carte d'encre de la page sortante
-  est relevee une fois par navigation, sur une grille d'une valeur par cellule
-  (72 x 45 en 1440 px), avec une seule lecture de pixels. Son cout est publie
-  en User Timing : `performance.getEntriesByName("mire:capture")` — mesure
-  2 a 3,5 ms en 1440 x 900 comme en 393 x 852. Au-dela d'une image (16 ms),
-  c'est un defaut : l'a-coup se verrait au clic, exactement la ou il se voit
-  le plus.
+- **Le clic ne paie pas la transition.** Tout ce que le clic prepare — la carte
+  d'encre de la page sortante (une valeur par cellule, 72 x 45 en 1440 px,
+  25 x 54 en 393 px, une seule lecture de pixels), les ordres de chute, le
+  titre d'arrivee compose en blocs et l'allocation du masque — est publie en
+  User Timing sous un seul nom :
+  `performance.getEntriesByName("mire:transition")`. La mesure couvre la
+  preparation entiere, pas la seule carte d'encre : sur trente navigations
+  enchainees (index, atelier, contact, projet), 3 a 8 ms en 1440 x 900 et
+  2 a 6 ms en 393 x 852, la premiere navigation d'une session etant toujours
+  la plus chere — la composition du titre y paie ses metriques de fonte, et un
+  seul releve a touche 17 ms. Au-dela d'une image (16 ms), c'est un defaut :
+  l'a-coup se verrait au clic, exactement la ou il se voit le plus.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.

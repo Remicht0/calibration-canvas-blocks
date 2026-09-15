@@ -341,12 +341,6 @@ function planFall(to: string): Fall {
 
   const t0 = performance.now();
   const ink = captureInk(cell, cols, rows);
-  try {
-    // cout de la capture, lisible en User Timing : c'est le budget du clic
-    performance.measure("mire:capture", { start: t0, end: performance.now() });
-  } catch {
-    // User Timing indisponible : la mesure n'est qu'un diagnostic
-  }
 
   // ordre de chute du site : les cellules basses lachent d'abord, certaines
   // colonnes tiennent plus longtemps que les autres
@@ -424,6 +418,19 @@ function planFall(to: string): Fall {
     counterX: (Math.floor(window.innerWidth / cell) - 1 - textCols("000")) * cell,
     counterY: (Math.floor(window.innerHeight / cell) - 1 - 5) * cell,
   };
+}
+
+/**
+ * Cout du travail paye par le clic — carte d'encre, ordres de chute, titre
+ * d'arrivee et allocation du masque — publie en User Timing. C'est la mesure
+ * qui verifie la regle du budget de rendu : le clic ne paie pas la transition.
+ */
+function publierLeCoutDuClic(start: number) {
+  try {
+    performance.measure("mire:transition", { start, end: performance.now() });
+  } catch {
+    // User Timing indisponible : la mesure n'est qu'un diagnostic
+  }
 }
 
 const MENTION = "MIRE / RECALIBRAGE";
@@ -563,6 +570,7 @@ export function RouteWipe() {
       cv.style.width = `${f.cols * f.cell}px`;
       cv.style.height = `${f.rows * f.cell}px`;
       show(true);
+      publierLeCoutDuClic(f.t0);
 
       const step = (t: number) => {
         if (dead) return;
