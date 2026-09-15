@@ -16,10 +16,15 @@ import { luminance } from "./mire";
  * Elements susceptibles de porter une surface d'encre a l'echelle de la cellule.
  * Liste bornee : la capture a lieu au clic, elle ne peut pas parcourir tout le DOM.
  */
-const SURFACES = "canvas,main,section,header,footer,nav,aside,article,[class*='bg-'],.u-bloc";
+const SURFACES =
+  "canvas,main,section,header,footer,nav,aside,article,[class*='bg-'],[class*='border-'],.u-bloc";
 
-/** Un filet plus fin qu'une cellule mais franc (10 px macro, 6 px console) se cale sur la grille. */
-const SNAP = 6;
+/**
+ * Un filet plus fin qu'une cellule mais franc se cale sur la grille plutot que
+ * de disparaitre au seuil. Le site n'a que deux filets (DESIGN.md section 1) :
+ * `border-[10px]` en macro et `border-[3px]` en cadre — les deux passent ici.
+ */
+const SNAP = 3;
 
 /** Canvas de travail hors DOM, reutilise d'une capture a l'autre (budget de rendu). */
 let scratch: HTMLCanvasElement | null = null;

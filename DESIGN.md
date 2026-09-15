@@ -218,8 +218,9 @@ que le reste du site. Deux sources, dans l'ordre du document : les **canvas
 deja presents** (planches, titres en blocs, bandes de calibration), redessines
 a l'echelle de la grille, et les **surfaces du DOM** dont le fond ou le filet
 resolus sont sombres — sections `.on-black`, filets de separation, blocs en
-etat inverse. Un filet franc plus fin qu'une cellule (10 px macro, 6 px
-console) se cale sur la grille plutot que de disparaitre au seuil. Sous
+etat inverse. Un filet franc plus fin qu'une cellule se cale sur la grille
+plutot que de disparaitre au seuil : les deux filets du site y passent,
+`border-[10px]` en macro comme `border-[3px]` en cadre (section 1). Sous
 `mire-negative`, la carte est inversee : l'ecran montre le negatif de ce que
 les styles declarent. Ce qui est plus fin que la cellule — le mono des
 etiquettes, le texte courant — n'entre pas dans la carte : la silhouette est
