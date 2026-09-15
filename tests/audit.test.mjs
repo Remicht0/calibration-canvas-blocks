@@ -73,11 +73,8 @@ test("checklist DESIGN.md section 8 sur 3 largeurs x 5 routes", async () => {
         };
       });
       const tag = `${l}x${h} ${route}`;
-      verifie(
-        `${tag} : reponse`,
-        rep.status() === 200 || route === "/inconnue",
-        String(rep.status()),
-      );
+      const statut = route === "/inconnue" ? 404 : 200;
+      verifie(`${tag} : reponse`, rep.status() === statut, `${rep.status()} (attendu ${statut})`);
       verifie(
         `${tag} : scrollWidth === innerWidth`,
         r.scrollWidth === r.innerWidth,
