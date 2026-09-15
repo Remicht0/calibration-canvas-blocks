@@ -46,9 +46,6 @@ export default tseslint.config(
       sourceType: "module",
       globals: { ...globals.node, ...globals.browser },
     },
-    rules: {
-      "no-empty": ["error", { allowEmptyCatch: true }],
-    },
   },
   eslintPluginPrettier,
 );
