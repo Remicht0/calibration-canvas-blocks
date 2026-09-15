@@ -257,6 +257,10 @@ src/
     bars.tsx           CalibrationBand, Ticker
     boot.tsx           BootSequence, GridCursor, NegativeSwitch
     bitmap-extras.tsx  BitmapClock, BitmapBoard (automate 23/3), NoiseField
+  hooks/
+    use-mobile.tsx     useIsMobile() — reste du gabarit, mais `__root.tsx`
+                       s'en sert pour choisir la reglette (bureau) ou la
+                       console (mobile) : ne pas le retirer sans le remplacer
   routes/
     __root.tsx         chrome global : ScanLine, GridCursor, NegativeSwitch,
                        BootSequence, fontes, métadonnées de base
@@ -503,6 +507,26 @@ Fait :
       region aria-live ecrite par le visiteur seulement ; figure nommee ;
       CSS sans le kit shadcn ni tw-animate-css (78 Ko -> 20 Ko) ;
       react-query retire.
+- [x] Kit shadcn du gabarit supprime du depot : `src/components/ui/`
+      (46 fichiers, 145 Ko de source), `src/lib/utils.ts` (`cn()`, devenu
+      orphelin) et `components.json` retires, avec les 42 dependances qui
+      n'existaient que pour lui (26 `@radix-ui/*`, `lucide-react`, `recharts`,
+      `react-hook-form`, `zod`, `date-fns`, `cmdk`, `vaul`, `sonner`, `clsx`,
+      `tailwind-merge`, etc.) : 50 dependances d'execution, il en reste 8. Le
+      garde-fou `@source not "../src/components/ui"` de `styles.css` est tombe
+      avec le dossier. JS client inchange a l'octet pres (419 153 o) : le kit
+      n'etait deja plus compile. Lint a zero erreur et zero avertissement.
+- [x] Jetons shadcn retires de `styles.css` avec le kit : les 33 mappages
+      `--color-*` du `@theme inline`, les 32 valeurs `oklch` de `:root`, le
+      bloc `.dark` entier et la variante `dark` sur mesure. Aucun `dark:` ni
+      aucune de ces classes (`bg-card`, `text-muted-foreground`, `bg-chart-1`,
+      `bg-sidebar`...) n'existait dans le site : le navigateur recevait 64
+      valeurs `oklch` mortes, dont des teintes hors palette (`--chart-*`
+      orange et jaune, `--sidebar-*` bleutes, `--destructive` rouge-orange)
+      contraires a la section 2. Seule regle qui s'en servait : le
+      `* { border-color }` de base, repointe sur `var(--ink)`. CSS client
+      20 564 o -> 18 148 o ; rendu inchange (bordures, rayons et contours
+      identiques sur 390 elements, 7 pages x 393/1440 px).
 
 ### Le miroir (instrument 05)
 
