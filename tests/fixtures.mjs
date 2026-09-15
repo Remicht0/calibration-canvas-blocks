@@ -111,7 +111,13 @@ export function fabriquer() {
   const faits = {};
   for (const [nom, faire] of PIECES) {
     const cible = path.join(ATELIER, nom);
-    if (!fs.existsSync(cible) || fs.statSync(cible).size === 0) faire(cible);
+    if (!fs.existsSync(cible) || fs.statSync(cible).size === 0) {
+      /* En deux temps : une campagne interrompue en pleine ecriture laisserait
+         sinon une piece tronquee, qui serait reprise telle quelle ensuite. */
+      const brouillon = cible + ".part";
+      faire(brouillon);
+      fs.renameSync(brouillon, cible);
+    }
     faits[nom] = cible;
   }
   return faits;
