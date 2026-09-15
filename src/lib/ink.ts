@@ -10,7 +10,7 @@
 // Tout le reste est du papier. Aucun rendu n'en depend : en cas d'echec la
 // transition retombe sur son motif de recouvrement.
 
-import { luminance } from "./mire";
+import { bitsFromRGBA, luminance } from "./mire";
 
 /**
  * Elements susceptibles de porter une surface d'encre a l'echelle de la cellule.
@@ -68,7 +68,6 @@ export function captureInk(cell: number, cols: number, rows: number): Uint8Array
 
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    let seen = 0;
 
     /** Pose un filet : sous `SNAP` il garde son epaisseur, au-dela il prend la cellule entiere. */
     const filet = (x: number, y: number, w: number, h: number) => {
@@ -83,13 +82,12 @@ export function captureInk(cell: number, cols: number, rows: number): Uint8Array
       ctx.fillRect(x, y, w, h);
     };
 
-    /** Un cote de cadre : rien si la couleur est illisible ou le trait nul. */
-    const side = (width: string, color: string, x: number, y: number, w: number, h: number) => {
+    /** Un cote de cadre : rien si la couleur est illisible. */
+    const side = (color: string, x: number, y: number, w: number, h: number) => {
       const t = tone(color);
-      if (t === null || !(parseFloat(width) > 0)) return;
+      if (t === null) return;
       ctx.fillStyle = t < 0.5 ? "#000000" : "#FFFFFF";
       filet(x, y, w, h);
-      seen++;
     };
 
     for (const el of document.querySelectorAll<HTMLElement>(SURFACES)) {
@@ -101,7 +99,6 @@ export function captureInk(cell: number, cols: number, rows: number): Uint8Array
       if (el instanceof HTMLCanvasElement) {
         if (!el.width || !el.height) continue;
         ctx.drawImage(el, r.left, r.top, r.width, r.height);
-        seen++;
         continue;
       }
 
@@ -112,7 +109,6 @@ export function captureInk(cell: number, cols: number, rows: number): Uint8Array
       if (bg !== null) {
         ctx.fillStyle = bg < 0.5 ? "#000000" : "#FFFFFF";
         ctx.fillRect(r.left, r.top, r.width, r.height);
-        seen++;
       }
 
       // filets : ce sont eux qui donnent au site ses lignes franches
@@ -120,23 +116,21 @@ export function captureInk(cell: number, cols: number, rows: number): Uint8Array
       const bb = parseFloat(cs.borderBottomWidth) || 0;
       const bl = parseFloat(cs.borderLeftWidth) || 0;
       const br = parseFloat(cs.borderRightWidth) || 0;
-      if (bt) side(cs.borderTopWidth, cs.borderTopColor, r.left, r.top, r.width, bt);
-      if (bb) side(cs.borderBottomWidth, cs.borderBottomColor, r.left, r.bottom - bb, r.width, bb);
-      if (bl) side(cs.borderLeftWidth, cs.borderLeftColor, r.left, r.top, bl, r.height);
-      if (br) side(cs.borderRightWidth, cs.borderRightColor, r.right - br, r.top, br, r.height);
+      if (bt) side(cs.borderTopColor, r.left, r.top, r.width, bt);
+      if (bb) side(cs.borderBottomColor, r.left, r.bottom - bb, r.width, bb);
+      if (bl) side(cs.borderLeftColor, r.left, r.top, bl, r.height);
+      if (br) side(cs.borderRightColor, r.right - br, r.top, br, r.height);
     }
 
-    if (!seen) return null;
-
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    const px = ctx.getImageData(0, 0, cols, rows).data;
-    const data = new Uint8Array(cols * rows);
+    // meme seuil que partout ailleurs sur le site : `bitsFromRGBA`
+    const { data } = bitsFromRGBA(ctx.getImageData(0, 0, cols, rows).data, cols, rows);
     // le signal inverse (touche N) porte sur `main` et le chrome : l'ecran montre
     // le negatif de ce que les styles declarent, la carte le suit
     const neg = document.documentElement.classList.contains("mire-negative") ? 1 : 0;
     let inked = 0;
     for (let i = 0; i < data.length; i++) {
-      const v = (luminance(px[i * 4]!, px[i * 4 + 1]!, px[i * 4 + 2]!) < 0.5 ? 1 : 0) ^ neg;
+      const v = data[i]! ^ neg;
       data[i] = v;
       inked += v;
     }
