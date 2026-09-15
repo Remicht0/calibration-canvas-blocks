@@ -117,6 +117,27 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
   `prefers-reduced-motion`. Un seul `requestAnimationFrame` par titre porte
   la séquence, la lecture et l'usure ; il s'arrête quand l'onglet est caché.
 
+Les **bandes de calibration** (`CalibrationBand`) respirent seules — hauteur de
+colonne quantifiée, seuil dur — et **encaissent le pointeur** : là où il passe,
+un voisinage CARRÉ de 3 colonnes de part et d'autre (jamais un disque, jamais
+une rampe — même règle que l'usure d'un titre) va chercher la rangée sous le
+pointeur. Les 7 colonnes visent **la même rangée** : un plateau franc, aucune
+diagonale, aucune marche intermédiaire. Une bosse quand le pointeur longe le
+haut, un creux quand il longe le bas. L'emprise monte en 150 ms tant que le
+pointeur est là, retombe en 620 ms dès qu'il part, et la bande reprend sa
+respiration ; chaque colonne garde en mémoire la rangée vers laquelle elle a
+été poussée, si bien qu'une colonne que le pointeur vient de quitter relâche
+depuis là au lieu de sauter d'un coup vers la nouvelle rangée visée. Un
+redimensionnement ne remet pas l'emprise à plat : les colonnes communes
+gardent leur enfoncement. Les hauteurs restent des
+nombres entiers de cellules : la bande se déforme, elle ne se fond pas — aucune
+couleur, aucun fondu, aucun flou. Rien de tout cela sur une bande `still`, sous
+`prefers-reduced-motion` ou sur `pointer: coarse` : aucun écouteur n'y est même
+posé, le comportement est identique à celui d'avant. Le pointeur ne fait que
+déplacer la cellule visée ; **il ne planifie aucune image** — tout est calculé
+et peint dans le `requestAnimationFrame` de la respiration, qui reste seul et
+s'arrête toujours hors écran, sous `mire:modal` et en onglet caché.
+
 ### Chrome commun
 
 - `TopBar` (`chrome.tsx`) sur chaque page : `MIRE` puis `INDEX / ATELIER /
@@ -190,9 +211,24 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
   sont pas filtres. Le repere est en z 130, au-dessus de la reglette ; le
   curseur s'efface quand sa cellule croise la ligne rouge (un blanc en
   difference sur du rouge donnerait du cyan).
+- **L'inversion est memorisee** (`localStorage`, cle `mire-negative`) : qui lit
+  en negatif retrouve le negatif au rechargement et a la visite suivante, sans
+  eclat blanc au passage. Un script d'amorce de deux lignes, pose dans le
+  `<head>` du document (`NEGATIVE_BOOT_SCRIPT`, `boot.tsx`), applique la classe
+  `mire-negative` sur `<html>` avant la premiere peinture. Le rendu serveur
+  ignore le stockage : le bouton part au positif et rejoint la classe en couche
+  de mise en page, donc avant peinture et sans ecart d'hydratation. La classe
+  sur la racine est la source unique — `aria-pressed`, le libelle de
+  l'inverseur, le bouton de la console (qui la lit en `MutationObserver`) et le
+  drapeau ecrit bougent ensemble, y compris au retour arriere et a la
+  restauration bfcache (`pageshow` les remet d'accord). Le stockage peut lever
+  (navigation privee, donnees de site bloquees) : lecture et ecriture sont sous
+  `try/catch`, une valeur inconnue vaut positif, et faute de stockage
+  l'inversion reste parfaitement valable pour la visite en cours.
 - `CalibrationBand` : `negative` (fond noir, colonnes blanches) pour un
   conteneur noir ; `still` (une rangee de blocs, aucune animation) pour une
-  ligne sans signal. `BlockType` accepte `negative`.
+  ligne sans signal. `BlockType` accepte `negative`. Une bande qui respire
+  **encaisse le pointeur** (voir Mouvement).
 - 404 et erreur sont des mires : TopBar, titre en blocs (`PAS DE SIGNAL` en
   boucle : le signal qui ne tient pas ; `SIGNAL CORROMPU` une fois), bande
   `still`, copie, actions en `Bloc`. La page d'erreur est en `.on-black`.
@@ -570,6 +606,16 @@ Fait :
       `* { border-color }` de base, repointe sur `var(--ink)`. CSS client
       20 564 o -> 18 148 o ; rendu inchange (bordures, rayons et contours
       identiques sur 390 elements, 7 pages x 393/1440 px).
+- [x] Negatif memorise : cle `mire-negative` en `localStorage`, posee par un
+      script d'amorce dans le `<head>` avant la premiere peinture ; classe de
+      racine, `aria-pressed`, libelle et drapeau toujours d'accord, y compris
+      au retour arriere et au bfcache ; stockage indisponible tolere.
+- [x] Bandes de calibration reactives au pointeur : voisinage carre de
+      3 colonnes qui va chercher la rangee visee en plateau franc (aucune
+      rampe), rangee memorisee par colonne, retour au repos en 620 ms,
+      emprise conservee au redimensionnement, aucune image de rendu ajoutee ;
+      inerte en `still`, sous `prefers-reduced-motion` et sur
+      `pointer: coarse`.
 
 ### Le miroir (instrument 05)
 
@@ -652,6 +698,11 @@ Regles propres a cet instrument, non negociables :
   la plus chere — la composition du titre y paie ses metriques de fonte, et un
   seul releve a touche 17 ms. Au-dela d'une image (16 ms), c'est un defaut :
   l'a-coup se verrait au clic, exactement la ou il se voit le plus.
+- Une reaction au pointeur ne planifie jamais d'image a elle seule : l'ecouteur
+  se contente de noter la cellule visee, la boucle deja en cours s'en sert a
+  l'image suivante (`CalibrationBand`, `BlockType`). La ou il n'y a pas de
+  boucle — bande `still`, mouvement reduit, `pointer: coarse` — aucun ecouteur
+  n'est pose.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
@@ -663,7 +714,9 @@ Reste a faire :
 1. Une seule ligne rouge visible à l'écran, alignée sur le pas de grille.
 2. Zoom 400 % : aucun bloc coupé, aucun demi-pixel.
 3. Mobile 393 px : les blocs restent gros, la grille ne devient jamais fine.
-4. Touche `N` (négatif) : tout s'inverse, le repère rouge reste rouge.
+4. Touche `N` (négatif) : tout s'inverse, le repère rouge reste rouge ; après
+   rechargement le négatif est toujours là, sans éclat blanc, et le bouton
+   affiche `POSITIF [N]`.
 5. Console vide, build sans erreur, aucun `border-radius` dans le rendu.
 6. 393 / 820 / 1440 px : `document.documentElement.scrollWidth === innerWidth`.
 
