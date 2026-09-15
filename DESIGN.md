@@ -253,6 +253,7 @@ src/
     miroir.tsx         Miroir — la camera ou une image du visiteur, en local
     miroir-reduction.worker.ts
                        reduction d'une photo deposee, hors fil principal
+                       (importe en `?worker&inline` : aucun telechargement)
     bloc.tsx           Bloc — bouton / lien cadre 1 bit (.u-bloc)
     chrome.tsx         TopBar — barre haute commune
     help.tsx           KeyHelp — fiche de commande (raccourcis)
@@ -524,8 +525,12 @@ Regles propres a cet instrument, non negociables :
   `localStorage`, ni `sessionStorage`, ni `IndexedDB`), aucune copie qui
   survive a la fermeture. Le worker qui reduit une photo deposee n'echappe pas
   a la regle : il est cree pour une image, vide ses canvas, ferme la source et
-  est supprime des qu'elle est reduite. La phrase ecrite au visiteur est un
-  engagement :
+  est supprime des qu'elle est reduite. Il voyage **dans** le lot de
+  l'instrument (`?worker&inline`, URL de blob), jamais en fichier separe : un
+  chunk telecharge au premier depot ferait figurer dans le journal du serveur
+  l'heure exacte a laquelle un visiteur pose une photo. Poser une image ne
+  declenche aucune requete reseau, pas meme vers ce site. La phrase ecrite au
+  visiteur est un engagement :
   « RIEN N'EST ENVOYE. LA MIRE EST CALCULEE DANS VOTRE NAVIGATEUR, LA SOURCE NE
   QUITTE JAMAIS VOTRE APPAREIL. »
 - **Aucun chemin ne laisse la camera allumee.** Les pistes sont arretees au
@@ -559,11 +564,12 @@ Regles propres a cet instrument, non negociables :
 - Aucun traitement d'une source apportee par le visiteur ne tient le fil
   principal plus d'une image. La reduction d'une photo deposee dans le miroir
   part dans un worker avec `OffscreenCanvas`
-  (`miroir-reduction.worker.ts`) : la photo y est **transferee**, pas copiee, et
-  le worker est cree pour elle puis supprime avec elle — jamais au chargement
-  du module (le rendu serveur n'a pas de `Worker`), jamais garde entre deux
-  images. Sur une photo de 48 Mpx, le plus long blocage du fil principal passe
-  de ~200 ms a ~30 ms, pour un rendu 1-bit identique au pixel.
+  (`miroir-reduction.worker.ts`, importe en `?worker&inline` — voir la regle de
+  vie privee) : la photo y est **transferee**, pas copiee, et le worker est cree
+  pour elle puis supprime avec elle — jamais au chargement du module (le rendu
+  serveur n'a pas de `Worker`), jamais garde entre deux images. Sur une photo de
+  48 Mpx, le plus long blocage du fil principal passe de ~200 ms a ~30 ms, pour
+  un rendu 1-bit identique au pixel.
 - Un navigateur sans `Worker` ou sans `OffscreenCanvas` garde le chemin
   synchrone : le repli est plus lent, il n'est jamais absent.
 

@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
+/* `?worker&inline` : le reducteur voyage dans le meme fichier que l'instrument,
+   en clair dans le lot, et devient un worker par URL de blob. C'est la seule
+   forme compatible avec « Rien ne sort de l'appareil » : un chunk separe se
+   telecharge au premier depot, et l'horodatage de cette requete dirait au
+   serveur, a la seconde pres, qu'un visiteur vient de poser une photo. Rien
+   n'est construit au chargement du module — le rendu serveur n'a ni `Worker`
+   ni `Blob`, et l'usine ci-dessous n'est appelee qu'au depot. */
+import Reducteur from "@/components/miroir-reduction.worker?worker&inline";
 import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
 import { BitReadout } from "@/components/readout";
@@ -85,10 +93,11 @@ const MAX_COTE = 1600;
    ce plafond : deux pyramides differentes donneraient deux trames. */
 const FACTEUR = 6;
 
-/* Le reducteur hors fil principal se charge en quelques millisecondes. Au-dela,
-   quelque chose l'en empeche (hors ligne, chunk absent, portee bridee) : la
-   reduction repart sur le fil principal plutot que d'attendre indefiniment
-   devant « LECTURE DU FICHIER ». */
+/* Le reducteur est inline : rien a telecharger, il s'ouvre en quelques
+   millisecondes. Au-dela, quelque chose l'en empeche (portee bridee, memoire
+   refusee, URL de blob interdite par une politique de securite) : la reduction
+   repart sur le fil principal plutot que d'attendre indefiniment devant
+   « LECTURE DU FICHIER ». */
 const ATTENTE_REDUCTEUR = 4000;
 
 /* Canvas de travail partages du chemin de repli, comme sample() : un canvas
@@ -175,7 +184,7 @@ function ouvrirReducteur(): Promise<Worker | null> {
     return Promise.resolve(null);
   let w: Worker;
   try {
-    w = new Worker(new URL("./miroir-reduction.worker.ts", import.meta.url), { type: "module" });
+    w = new Reducteur();
   } catch {
     return Promise.resolve(null);
   }
