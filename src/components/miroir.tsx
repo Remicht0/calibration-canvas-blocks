@@ -12,6 +12,7 @@ import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
 import { BitReadout } from "@/components/readout";
 import { releaseSampleBuffer } from "@/lib/bitmap";
+import { pyramide, viderToiles } from "@/lib/reduction";
 import { mireText } from "@/lib/glyphs";
 import { cellSizeFor } from "@/lib/mire";
 
@@ -85,14 +86,6 @@ const MAX_PIXELS = 50_000_000;
 /* 1600 px sur le grand cote : ~16 pixels source par cellule, meme en plein cadre. */
 const MAX_COTE = 1600;
 
-/* Rapport de reduction encore bon marche en une seule passe. Mesure sur ce
-   navigateur, source 8000 x 6000 vers 1600 x 1200 (rapport 5) : une passe
-   coute 30 ms, trois passes par moities en coutent 573 — ce sont les canvas
-   intermediaires de 48 et 24 Mo qui coutent, pas le reechantillonnage. Les
-   moities ne redeviennent utiles qu'au-dela. Le worker et le repli partagent
-   ce plafond : deux pyramides differentes donneraient deux trames. */
-const FACTEUR = 6;
-
 /* Le reducteur est inline : rien a telecharger, il s'ouvre en quelques
    millisecondes. Au-dela, quelque chose l'en empeche (portee bridee, memoire
    refusee, URL de blob interdite par une politique de securite) : la reduction
@@ -105,36 +98,10 @@ const ATTENTE_REDUCTEUR = 4000;
 let passeA: HTMLCanvasElement | null = null;
 let passeB: HTMLCanvasElement | null = null;
 
-/**
- * Rend le backing store des deux canvas de reduction. Contrairement au canvas
- * de sample(), dimensionne a quelques milliers de pixels, celui-ci porte la
- * photo du visiteur reduite a 1600 px — jusqu'a 10 Mo d'image personnelle qui
- * resteraient lisibles par n'importe quel script de la page, sur toutes les
- * pages de la session, longtemps apres « SOURCE FERMEE ». Mettre la largeur a
- * 0 vide le bitmap sans detruire l'element partage.
- */
-function libererPasses() {
-  if (passeA) passeA.width = passeA.height = 0;
-  if (passeB) passeB.width = passeB.height = 0;
-}
-
-function reduirePasse(
-  src: CanvasImageSource,
-  sw: number,
-  sh: number,
-  dw: number,
-  dh: number,
-  cible: HTMLCanvasElement,
-) {
-  cible.width = dw;
-  cible.height = dh;
-  const c = cible.getContext("2d");
-  if (!c) throw new Error("canvas indisponible");
-  c.imageSmoothingEnabled = true;
-  c.imageSmoothingQuality = "high";
-  c.clearRect(0, 0, dw, dh);
-  c.drawImage(src, 0, 0, sw, sh, 0, 0, dw, dh);
-}
+/* Rend leur bitmap : la photo du visiteur ne reste pas lisible par le fil une
+   fois « SOURCE FERMEE » (voir viderToiles). Le worker en fait autant du sien,
+   mais il est de toute facon supprime avec l'image. */
+const libererPasses = () => viderToiles(passeA, passeB);
 
 /* Le reechantillonnage par createImageBitmap(bmp, { resizeWidth, resizeHeight,
    resizeQuality: "high" }) a ete mesure sur la meme photo de 48 Mpx : trame
@@ -147,25 +114,13 @@ function reduirePasse(
  * Reduction sur le fil principal : le repli, quand le navigateur n'a ni Worker
  * ni OffscreenCanvas, ou que le reducteur n'a pas repondu. Elle gele la page le
  * temps de la pyramide et de l'encodage — c'est exactement ce qu'on evite
- * ailleurs, mais mieux vaut une page qui bloque qu'une page qui refuse.
+ * ailleurs, mais mieux vaut une page qui bloque qu'une page qui refuse. Meme
+ * pyramide que le worker, au sens strict : c'est la meme fonction.
  */
 async function reduireIci(bmp: ImageBitmap, tw: number, th: number): Promise<Blob> {
   passeA ??= document.createElement("canvas");
   passeB ??= document.createElement("canvas");
-  let source: CanvasImageSource = bmp;
-  let sw = bmp.width;
-  let sh = bmp.height;
-  let cible = passeA;
-  while (sw > tw * FACTEUR || sh > th * FACTEUR) {
-    const dw = Math.max(tw, Math.round(sw / 2));
-    const dh = Math.max(th, Math.round(sh / 2));
-    reduirePasse(source, sw, sh, dw, dh, cible);
-    source = cible;
-    sw = dw;
-    sh = dh;
-    cible = cible === passeA ? passeB : passeA;
-  }
-  reduirePasse(source, sw, sh, tw, th, cible);
+  const cible = pyramide(bmp, tw, th, passeA, passeB);
   const blob = await new Promise<Blob | null>((ok) => cible.toBlob(ok, "image/png"));
   if (!blob) throw new Error("encodage impossible");
   return blob;
@@ -224,7 +179,7 @@ function reduireHorsFil(w: Worker, bmp: ImageBitmap, tw: number, th: number): Pr
       },
       { once: true },
     );
-    w.postMessage({ bmp, tw, th, facteur: FACTEUR }, [bmp]);
+    w.postMessage({ bmp, tw, th }, [bmp]);
   });
 }
 

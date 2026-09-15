@@ -236,6 +236,8 @@ src/
                        textBlockHeight, fallOrder, drawBits, cellSizeFor
     bitmap.ts          noyau hybride : sample(), paintBlocks(), BitMode,
                        quantification en paliers, loupe, support vidéo
+    reduction.ts       pyramide de reduction d'une photo du visiteur, partagee
+                       par le worker du miroir et son repli sur le fil principal
     projects.ts        source de vérité des projets (slug, num, titre,
                        année, nature, client, image, lignes, resume, alt)
     glyphs.ts          fonte bitmap 3x5 (capitales, chiffres, ponctuation),
@@ -571,7 +573,10 @@ Regles propres a cet instrument, non negociables :
   48 Mpx, le plus long blocage du fil principal passe de ~200 ms a ~30 ms, pour
   un rendu 1-bit identique au pixel.
 - Un navigateur sans `Worker` ou sans `OffscreenCanvas` garde le chemin
-  synchrone : le repli est plus lent, il n'est jamais absent.
+  synchrone : le repli est plus lent, il n'est jamais absent. Les deux chemins
+  appellent la **meme** fonction (`src/lib/reduction.ts`) : la trame 1-bit ne
+  peut pas dependre de celui qu'on a pris. Deux copies du meme algorithme
+  seraient une regle a tenir a la main, donc une regle perdue.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
