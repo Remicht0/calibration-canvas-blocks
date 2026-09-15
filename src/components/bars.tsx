@@ -7,8 +7,10 @@ import { cellSizeFor, prefersReducedMotion } from "@/lib/mire";
 
 /**
  * Emprise du pointeur sur une bande qui respire : voisinage CARRE (jamais un
- * disque) de POINTER_R colonnes de part et d'autre, monte en PUSH_MS tant que
- * le pointeur est la, retombe en RELAX_MS des qu'il part. Les hauteurs restent
+ * disque, jamais une rampe) de POINTER_R colonnes de part et d'autre, comme
+ * l'usure d'un titre. Tout le voisinage va chercher la meme rangee : un
+ * plateau franc, aucune diagonale. L'emprise monte en PUSH_MS tant que le
+ * pointeur est la, retombe en RELAX_MS des qu'il part. Les hauteurs restent
  * des nombres entiers de cellules : la bande se deforme, elle ne se fond pas.
  */
 const POINTER_R = 3;
@@ -45,10 +47,11 @@ export function CalibrationBand({
     const rows = height;
     let phase = new Float32Array(0);
     let width = new Float32Array(0);
-    // emprise du pointeur par colonne (0..1), rangee visee, horloge de la derniere image
+    // emprise du pointeur par colonne (0..1) et rangee visee memorisee par
+    // colonne, plus l'horloge de la derniere image
     let push = new Float32Array(0);
+    let aim = new Float32Array(0);
     let hot: { x: number; y: number } | null = null;
-    let level = 1;
     let last = 0;
 
     const size = () => {
@@ -63,7 +66,14 @@ export function CalibrationBand({
       const rnd = () => ((s = (s * 9301 + 49297) % 233280), s / 233280);
       phase = new Float32Array(cols);
       width = new Float32Array(cols);
+      // un redimensionnement ne remet pas l'emprise a plat d'un coup : les
+      // colonnes communes gardent leur enfoncement et relachent normalement
+      const keptPush = push;
+      const keptAim = aim;
       push = new Float32Array(cols);
+      aim = new Float32Array(cols);
+      push.set(keptPush.subarray(0, Math.min(keptPush.length, cols)));
+      aim.set(keptAim.subarray(0, Math.min(keptAim.length, cols)));
       for (let x = 0; x < cols; x++) {
         phase[x] = rnd() * Math.PI * 2;
         width[x] = 0.4 + rnd() * 1.4;
@@ -84,12 +94,15 @@ export function CalibrationBand({
         for (let x = 0; x < cols; x++)
           if (push[x]! > 0) push[x] = Math.max(0, push[x]! - dt / RELAX_MS);
         if (hot) {
-          level = Math.min(rows, Math.max(1, rows - hot.y));
+          const level = Math.min(rows, Math.max(1, rows - hot.y));
           const lo = Math.max(0, hot.x - POINTER_R);
           const hi = Math.min(cols - 1, hot.x + POINTER_R);
           for (let x = lo; x <= hi; x++) {
-            const target = 1 - Math.abs(x - hot.x) / (POINTER_R + 1);
-            if (target > push[x]!) push[x] = Math.min(target, push[x]! + dt / PUSH_MS);
+            // la colonne visee garde la rangee vers laquelle on l'a poussee :
+            // quand le pointeur s'en va viser ailleurs, elle relache depuis la
+            // au lieu de sauter d'un coup a la nouvelle rangee
+            aim[x] = level;
+            if (push[x]! < 1) push[x] = Math.min(1, push[x]! + dt / PUSH_MS);
           }
         }
         last = t;
@@ -108,7 +121,7 @@ export function CalibrationBand({
           // la ou le pointeur passe, la colonne va chercher sa rangee, puis elle
           // relache et reprend sa respiration : toujours un compte entier de blocs
           if (reacts && push[x]! > 0)
-            h = Math.max(1, Math.min(rows, Math.round(h + (level - h) * push[x]!)));
+            h = Math.max(1, Math.min(rows, Math.round(h + (aim[x]! - h) * push[x]!)));
           ctx.fillRect(x * cell, (rows - h) * cell, cell, h * cell);
         }
       }

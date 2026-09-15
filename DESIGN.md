@@ -119,12 +119,17 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
 
 Les **bandes de calibration** (`CalibrationBand`) respirent seules — hauteur de
 colonne quantifiée, seuil dur — et **encaissent le pointeur** : là où il passe,
-un voisinage CARRÉ de 3 colonnes de part et d'autre (jamais un disque) va
-chercher la rangée sous le pointeur. Au centre la colonne l'atteint exactement,
-et l'emprise retire une marche par colonne en s'éloignant (1 / 0,75 / 0,5 /
-0,25) : une bosse quand le pointeur longe le haut, un creux quand il longe le
-bas. L'emprise monte en 150 ms tant que le pointeur est là, retombe en 620 ms
-dès qu'il part, et la bande reprend sa respiration. Les hauteurs restent des
+un voisinage CARRÉ de 3 colonnes de part et d'autre (jamais un disque, jamais
+une rampe — même règle que l'usure d'un titre) va chercher la rangée sous le
+pointeur. Les 7 colonnes visent **la même rangée** : un plateau franc, aucune
+diagonale, aucune marche intermédiaire. Une bosse quand le pointeur longe le
+haut, un creux quand il longe le bas. L'emprise monte en 150 ms tant que le
+pointeur est là, retombe en 620 ms dès qu'il part, et la bande reprend sa
+respiration ; chaque colonne garde en mémoire la rangée vers laquelle elle a
+été poussée, si bien qu'une colonne que le pointeur vient de quitter relâche
+depuis là au lieu de sauter d'un coup vers la nouvelle rangée visée. Un
+redimensionnement ne remet pas l'emprise à plat : les colonnes communes
+gardent leur enfoncement. Les hauteurs restent des
 nombres entiers de cellules : la bande se déforme, elle ne se fond pas — aucune
 couleur, aucun fondu, aucun flou. Rien de tout cela sur une bande `still`, sous
 `prefers-reduced-motion` ou sur `pointer: coarse` : aucun écouteur n'y est même
@@ -539,9 +544,11 @@ Fait :
       racine, `aria-pressed`, libelle et drapeau toujours d'accord, y compris
       au retour arriere et au bfcache ; stockage indisponible tolere.
 - [x] Bandes de calibration reactives au pointeur : voisinage carre de
-      3 colonnes qui va chercher la rangee visee, retour au repos en 620 ms,
-      aucune image de rendu ajoutee ; inerte en `still`, sous
-      `prefers-reduced-motion` et sur `pointer: coarse`.
+      3 colonnes qui va chercher la rangee visee en plateau franc (aucune
+      rampe), rangee memorisee par colonne, retour au repos en 620 ms,
+      emprise conservee au redimensionnement, aucune image de rendu ajoutee ;
+      inerte en `still`, sous `prefers-reduced-motion` et sur
+      `pointer: coarse`.
 
 ### Le miroir (instrument 05)
 
