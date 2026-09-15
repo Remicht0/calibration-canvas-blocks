@@ -236,6 +236,8 @@ src/
                        textBlockHeight, fallOrder, drawBits, cellSizeFor
     bitmap.ts          noyau hybride : sample(), paintBlocks(), BitMode,
                        quantification en paliers, loupe, support vidéo
+    reduction.ts       pyramide de reduction d'une photo du visiteur, partagee
+                       par le worker du miroir et son repli sur le fil principal
     projects.ts        source de vérité des projets (slug, num, titre,
                        année, nature, client, image, lignes, resume, alt)
     glyphs.ts          fonte bitmap 3x5 (capitales, chiffres, ponctuation),
@@ -251,6 +253,9 @@ src/
     instruments.tsx    Histogramme (20 tranches x 8 rangs, plein / cadre),
                        InstrumentSeuil (planche BIN pilotee par l'histogramme)
     miroir.tsx         Miroir — la camera ou une image du visiteur, en local
+    miroir-reduction.worker.ts
+                       reduction d'une photo deposee, hors fil principal
+                       (importe en `?worker&inline` : aucun telechargement)
     bloc.tsx           Bloc — bouton / lien cadre 1 bit (.u-bloc)
     chrome.tsx         TopBar — barre haute commune
     help.tsx           KeyHelp — fiche de commande (raccourcis)
@@ -495,6 +500,10 @@ Fait :
       dans la grille, tout en local, avec enregistrement de la trame en PNG.
       Relu par quatre relecteurs adversariaux (vie privee, regles, code,
       accessibilite) ; 23 constats corriges, 85 tests de navigateur.
+- [x] Reduction d'une photo deposee hors fil principal (worker +
+      `OffscreenCanvas`, repli synchrone la ou ils manquent) : sur 48 Mpx, le
+      plus long blocage tombe de ~200 ms a ~30 ms, pour une trame 1-bit
+      identique au pixel.
 - [x] Negatif : filtre sur `main` et le chrome fixe, plus sur `body` (les
       elements fixes defilaient avec la page) ; repere au-dessus de la
       reglette ; curseur efface sur la ligne rouge.
@@ -540,7 +549,14 @@ Regles propres a cet instrument, non negociables :
 
 - **Rien ne sort de l'appareil.** Aucune requete, aucun stockage (ni
   `localStorage`, ni `sessionStorage`, ni `IndexedDB`), aucune copie qui
-  survive a la fermeture. La phrase ecrite au visiteur est un engagement :
+  survive a la fermeture. Le worker qui reduit une photo deposee n'echappe pas
+  a la regle : il est cree pour une image, vide ses canvas, ferme la source et
+  est supprime des qu'elle est reduite. Il voyage **dans** le lot de
+  l'instrument (`?worker&inline`, URL de blob), jamais en fichier separe : un
+  chunk telecharge au premier depot ferait figurer dans le journal du serveur
+  l'heure exacte a laquelle un visiteur pose une photo. Poser une image ne
+  declenche aucune requete reseau, pas meme vers ce site. La phrase ecrite au
+  visiteur est un engagement :
   « RIEN N'EST ENVOYE. LA MIRE EST CALCULEE DANS VOTRE NAVIGATEUR, LA SOURCE NE
   QUITTE JAMAIS VOTRE APPAREIL. »
 - **Aucun chemin ne laisse la camera allumee.** Les pistes sont arretees au
@@ -549,6 +565,11 @@ Regles propres a cet instrument, non negociables :
   remplacement de source — et meme quand la demande d'acces est encore en vol :
   une autorisation qui arrive apres la sortie est coupee a l'arrivee. L'etat
   affiche correspond toujours a l'etat reel du flux.
+- **Aucun etat affiche ne survit a ce qu'il decrit.** Les memes sorties
+  perimaient la lecture d'un fichier en cours sans toucher a l'interface :
+  « LECTURE DU FICHIER » restait ecrit sur une lecture que plus personne ne
+  menait. Une lecture perimee rend maintenant la planche au repos, sauf quand un
+  second depot a deja pris la main.
 - **Aucun message brut du navigateur.** Un refus, une camera absente, occupee ou
   perdue s'ecrivent dans l'alphabet de la mire (`SIGNAL REFUSE`, `AUCUNE
   CAMERA`, `CAMERA OCCUPEE`, `SIGNAL PERDU`), et le depot d'image reste
@@ -571,6 +592,20 @@ Regles propres a cet instrument, non negociables :
   (`NoiseField`, `drive="scroll"`), jamais a chaque image.
 - Un canvas de travail hors DOM est reutilise (`sample()`), jamais alloue par
   image ; un masque invisible libere son bitmap (`RouteWipe`).
+- Aucun traitement d'une source apportee par le visiteur ne tient le fil
+  principal plus d'une image. La reduction d'une photo deposee dans le miroir
+  part dans un worker avec `OffscreenCanvas`
+  (`miroir-reduction.worker.ts`, importe en `?worker&inline` — voir la regle de
+  vie privee) : la photo y est **transferee**, pas copiee, et le worker est cree
+  pour elle puis supprime avec elle — jamais au chargement du module (le rendu
+  serveur n'a pas de `Worker`), jamais garde entre deux images. Sur une photo de
+  48 Mpx, le plus long blocage du fil principal passe de ~200 ms a ~30 ms, pour
+  un rendu 1-bit identique au pixel.
+- Un navigateur sans `Worker` ou sans `OffscreenCanvas` garde le chemin
+  synchrone : le repli est plus lent, il n'est jamais absent. Les deux chemins
+  appellent la **meme** fonction (`src/lib/reduction.ts`) : la trame 1-bit ne
+  peut pas dependre de celui qu'on a pris. Deux copies du meme algorithme
+  seraient une regle a tenir a la main, donc une regle perdue.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
