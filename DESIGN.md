@@ -516,6 +516,17 @@ Fait :
       garde-fou `@source not "../src/components/ui"` de `styles.css` est tombe
       avec le dossier. JS client inchange a l'octet pres (419 153 o) : le kit
       n'etait deja plus compile. Lint a zero erreur et zero avertissement.
+- [x] Jetons shadcn retires de `styles.css` avec le kit : les 33 mappages
+      `--color-*` du `@theme inline`, les 32 valeurs `oklch` de `:root`, le
+      bloc `.dark` entier et la variante `dark` sur mesure. Aucun `dark:` ni
+      aucune de ces classes (`bg-card`, `text-muted-foreground`, `bg-chart-1`,
+      `bg-sidebar`...) n'existait dans le site : le navigateur recevait 64
+      valeurs `oklch` mortes, dont des teintes hors palette (`--chart-*`
+      orange et jaune, `--sidebar-*` bleutes, `--destructive` rouge-orange)
+      contraires a la section 2. Seule regle qui s'en servait : le
+      `* { border-color }` de base, repointe sur `var(--ink)`. CSS client
+      20 564 o -> 18 148 o ; rendu inchange (bordures, rayons et contours
+      identiques sur 390 elements, 7 pages x 393/1440 px).
 
 ### Le miroir (instrument 05)
 
