@@ -561,3 +561,30 @@ Reste a faire :
 4. Touche `N` (négatif) : tout s'inverse, le repère rouge reste rouge.
 5. Console vide, build sans erreur, aucun `border-radius` dans le rendu.
 6. 393 / 820 / 1440 px : `document.documentElement.scrollWidth === innerWidth`.
+
+### La campagne
+
+```
+bun run test
+```
+
+Une seule commande, depuis un clone propre : elle fabrique les pieces lourdes
+(bobine `y4m` de la camera factice, photo de 48 Mpx), construit la sortie
+serveur, la sert, joue les suites de `tests/` dans un Chromium pilote, puis
+arrete tout — meme en cas d'echec. Elle sort en 0 ou en 1.
+
+Les suites couvrent la checklist ci-dessus sur 3 largeurs et 5 routes, puis
+l'instrument 05 : cycle de vie de la camera, vie privee, clavier et focus,
+creux et cartouche, etiquette, photo demesuree, non-regressions du reste du
+site.
+
+Trois variables d'environnement, toutes facultatives :
+
+| variable        | defaut                  | effet                                     |
+| --------------- | ----------------------- | ----------------------------------------- |
+| `MIRE_PORT`     | `4288`                  | port du serveur monte pour la campagne    |
+| `MIRE_BASE`     | —                       | joue contre un serveur deja debout        |
+| `MIRE_SUITES`   | toutes                  | liste de suites, separees par des virgules |
+
+Les pieces fabriquees (`tests/.fixtures/`) et les captures d'ecran laissees
+derriere (`tests/.captures/`) ne sont pas versionnees.
