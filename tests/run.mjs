@@ -6,6 +6,7 @@
  *   MIRE_PORT=4250 bun run test       sur un autre port
  *   MIRE_BASE=http://... bun run test contre un serveur deja debout
  *   MIRE_SUITES=miroir,clavier        seulement ces suites
+ *   MIRE_CHROMIUM=/chemin/chromium    un autre navigateur pilote
  */
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -39,15 +40,23 @@ fs.rmSync(CAPTURES, { recursive: true, force: true });
 
 console.log("[pieces] fabrication des fixtures");
 for (const [nom, chemin] of Object.entries(fabriquer()))
-  console.log(`  ${nom} — ${(fs.statSync(chemin).size / 1024) | 0} Ko`);
+  console.log(`  ${nom} — ${(fs.statSync(chemin).size / 1024).toFixed(1)} Ko`);
 
 const externe = !!process.env["MIRE_BASE"];
 const base = process.env["MIRE_BASE"] ?? `http://127.0.0.1:${PORT}`;
 let arreter = null;
+/** Le processus qui joue les suites : a couper avant le serveur, sinon il
+    reste debout avec ses navigateurs quand la campagne est interrompue. */
+let suitesEnCours = null;
+/** Renseigne si le serveur tombe en pleine campagne : le verdict ne peut plus
+    etre vert, quoi que rendent les suites deja jouees. */
+let serveurTombe = null;
 let code = 1;
 const depart = Date.now();
 
 const tomber = async () => {
+  if (suitesEnCours && suitesEnCours.exitCode === null) suitesEnCours.kill("SIGTERM");
+  suitesEnCours = null;
   if (arreter) await arreter();
   arreter = null;
 };
@@ -59,7 +68,11 @@ for (const signal of ["SIGINT", "SIGTERM"])
 try {
   if (!externe) {
     await construire();
-    arreter = await demarrer(PORT);
+    arreter = await demarrer(PORT, (raison) => {
+      serveurTombe = raison;
+      console.error(`\n[serveur] arret inattendu (${raison}) — la campagne est coupee\n`);
+      if (suitesEnCours && suitesEnCours.exitCode === null) suitesEnCours.kill("SIGTERM");
+    });
   } else {
     console.log(`[serveur] fourni : ${base}`);
   }
@@ -75,6 +88,7 @@ try {
         stdio: ["ignore", "inherit", "inherit"],
       },
     );
+    suitesEnCours = p;
     p.on("error", () => resoudre(1));
     p.on("exit", (c) => resoudre(c ?? 1));
   });
@@ -84,6 +98,8 @@ try {
 } finally {
   await tomber();
 }
+
+if (serveurTombe !== null) code = 1;
 
 let assertions = 0;
 if (fs.existsSync(COMPTEURS))
