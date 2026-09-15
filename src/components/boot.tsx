@@ -331,7 +331,8 @@ type Fall = {
 /**
  * Fige la transition au declenchement : la carte d'encre de la page sortante est
  * relevee ici, avant que la route ne change, et c'est elle qui tombe.
- * Le cout de la capture est publie en mesure `mire:capture` (budget de rendu).
+ * Tout ce que le clic paie tient ici ; le cout est publie en mesure
+ * `mire:transition` (budget de rendu).
  */
 function planFall(to: string): Fall {
   const cell = cellSizeFor(window.innerWidth);
