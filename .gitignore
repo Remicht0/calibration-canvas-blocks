@@ -33,3 +33,7 @@ dist-ssr
 
 # Outillage local (worktrees temporaires des agents)
 .claude/
+
+# Campagne de tests : pieces fabriquees et captures
+tests/.fixtures/
+tests/.captures/

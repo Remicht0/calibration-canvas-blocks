@@ -36,5 +36,16 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  {
+    // Les suites pilotent un navigateur depuis Node : elles voient les deux
+    // mondes, celui du script et celui de la page (`page.evaluate`).
+    extends: [js.configs.recommended],
+    files: ["tests/**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "module",
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
   eslintPluginPrettier,
 );
