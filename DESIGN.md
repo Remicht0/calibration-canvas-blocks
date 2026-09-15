@@ -503,6 +503,16 @@ Fait :
       region aria-live ecrite par le visiteur seulement ; figure nommee ;
       CSS sans le kit shadcn ni tw-animate-css (78 Ko -> 20 Ko) ;
       react-query retire.
+- [x] Kit shadcn du gabarit supprime du depot : `src/components/ui/`
+      (46 fichiers, 264 Ko), `src/lib/utils.ts` (`cn()`, devenu orphelin) et
+      `components.json` retires, avec les 42 dependances qui n'existaient que
+      pour lui (26 `@radix-ui/*`, `lucide-react`, `recharts`, `react-hook-form`,
+      `zod`, `date-fns`, `cmdk`, `vaul`, `sonner`, `clsx`, `tailwind-merge`,
+      etc.) : 50 dependances d'execution, il en reste 8. Le garde-fou
+      `@source not "../src/components/ui"` de `styles.css` est tombe avec le
+      dossier. Bundle client inchange a l'octet pres (419 153 o de JS,
+      20 564 o de CSS) : le kit n'etait deja plus compile. Lint a zero erreur
+      et zero avertissement.
 
 ### Le miroir (instrument 05)
 
