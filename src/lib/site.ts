@@ -21,7 +21,11 @@ export const siteOrigin = createIsomorphicFn()
 /** Chemin public de la carte de partage d'un projet, ou de la carte du studio. */
 export const ogPath = (slug?: string) => `/og/${slug ?? "mire"}.png`;
 
-/** Identite du studio, source unique pour le colophon, le contact et les donnees structurees. */
+/**
+ * Identite du studio, source unique pour le colophon, la fiche de contact et
+ * les donnees structurees. Ecrite hors mire (francais courant, accentue) : les
+ * vues la passent par mireText() pour l'afficher dans la grille.
+ */
 export const STUDIO = {
   name: "MIRE",
   legalName: "MIRE — Studio de design graphique",
@@ -32,4 +36,14 @@ export const STUDIO = {
   city: "Paris",
   country: "FR",
   founded: "2019",
+  siret: "000 000 000 00000",
 } as const;
+
+/** Adresse postale sur une ligne. */
+export const adresse = `${STUDIO.street}, ${STUDIO.postalCode} ${STUDIO.city}`;
+
+/** Lien d'ecriture vers le studio. */
+export const mailtoHref = `mailto:${STUDIO.email}`;
+
+/** Lien d'appel : le numero sans espaces ni ponctuation, indicatif conserve. */
+export const telHref = `tel:${STUDIO.phone.replace(/[^\d+]/g, "")}`;

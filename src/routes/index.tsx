@@ -6,7 +6,9 @@ import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
 import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar } from "@/components/chrome";
+import { mireText } from "@/lib/glyphs";
 import { projects } from "@/lib/projects";
+import { STUDIO } from "@/lib/site";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -370,8 +372,8 @@ export function Colophon() {
         </div>
         <div>
           <Link to="/contact">CONTACT</Link>
-          <div>STUDIO@MIRE.FR</div>
-          <div>+33 1 00 00 00 00</div>
+          <div>{mireText(STUDIO.email)}</div>
+          <div>{mireText(STUDIO.phone)}</div>
         </div>
         <div>
           <div>PROCEDE</div>

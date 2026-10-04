@@ -5,6 +5,8 @@ import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar } from "@/components/chrome";
 import { Bloc } from "@/components/bloc";
 import { Colophon } from "./index";
+import { mireText } from "@/lib/glyphs";
+import { adresse, mailtoHref, STUDIO, telHref } from "@/lib/site";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -28,11 +30,11 @@ export const Route = createFileRoute("/contact")({
 });
 
 const FICHE = [
-  { k: "COURRIEL", v: "STUDIO@MIRE.FR" },
-  { k: "TELEPHONE", v: "+33 1 00 00 00 00" },
-  { k: "ADRESSE", v: "12 RUE DE LA MIRE, 75011 PARIS" },
+  { k: "COURRIEL", v: mireText(STUDIO.email) },
+  { k: "TELEPHONE", v: mireText(STUDIO.phone) },
+  { k: "ADRESSE", v: mireText(adresse) },
   { k: "HORAIRES", v: "LUNDI — VENDREDI / 09H — 19H" },
-  { k: "SIRET", v: "000 000 000 00000" },
+  { k: "SIRET", v: mireText(STUDIO.siret) },
   { k: "DELAI DE REPONSE", v: "48 HEURES OUVREES" },
 ];
 
@@ -65,10 +67,10 @@ function Contact() {
           ))}
         </dl>
         <div className="mt-cell4 flex flex-wrap gap-cell2">
-          <Bloc as="a" href="mailto:studio@mire.fr">
+          <Bloc as="a" href={mailtoHref}>
             ECRIRE AU STUDIO
           </Bloc>
-          <Bloc as="a" href="tel:+33100000000">
+          <Bloc as="a" href={telHref}>
             APPELER
           </Bloc>
         </div>
