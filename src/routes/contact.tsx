@@ -11,16 +11,16 @@ import { adresse, mailtoHref, STUDIO, telHref } from "@/lib/site";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Contact — MIRE, studio de design graphique" },
+      { title: "Contact — MIRE, graphiste indépendant" },
       {
         name: "description",
         content:
-          "Contacter le studio MIRE : adresse, téléphone, courriel et fiche de calibration. Identité, édition, signalétique.",
+          "Contacter MIRE, graphiste indépendant à Bordeaux : courriel, téléphone, adresse. Identité visuelle et édition.",
       },
-      { property: "og:title", content: "Contact — MIRE, studio de design graphique" },
+      { property: "og:title", content: "Contact — MIRE, graphiste indépendant" },
       {
         property: "og:description",
-        content: "Fiche de calibration du studio MIRE : courriel, téléphone, adresse, mentions.",
+        content: "Fiche de calibration de MIRE : courriel, téléphone, adresse, horaires.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -34,7 +34,7 @@ const FICHE = [
   { k: "TELEPHONE", v: mireText(STUDIO.phone) },
   { k: "ADRESSE", v: mireText(adresse) },
   { k: "HORAIRES", v: "LUNDI — VENDREDI / 09H — 19H" },
-  { k: "SIRET", v: mireText(STUDIO.siret) },
+  ...(STUDIO.siret ? [{ k: "SIRET", v: mireText(STUDIO.siret) }] : []),
   { k: "DELAI DE REPONSE", v: "48 HEURES OUVREES" },
 ];
 
@@ -56,11 +56,18 @@ function Contact() {
       <section data-mire="COORDONNEES" className="on-black bg-black px-cell py-cell4 text-white">
         <div className="u-mono mb-cell2 flex flex-wrap justify-between gap-cell">
           <h2>FICHE DE CALIBRATION</h2>
-          <BitmapClock label="HEURE STUDIO" />
+          <BitmapClock label={`HEURE ${mireText(STUDIO.city)}`} timeZone={STUDIO.timeZone} />
         </div>
         <dl className="u-mono grid gap-y-cell2 md:grid-cols-2 md:gap-x-cell">
-          {FICHE.map((f) => (
-            <div key={f.k} className="border-t-[3px] border-white pt-cell">
+          {FICHE.map((f, i) => (
+            <div
+              key={f.k}
+              className={
+                FICHE.length % 2 && i === FICHE.length - 1
+                  ? "border-t-[3px] border-white pt-cell md:col-span-2"
+                  : "border-t-[3px] border-white pt-cell"
+              }
+            >
               <dt>{f.k}</dt>
               <dd className="mt-[3px]">{f.v}</dd>
             </div>
@@ -68,7 +75,7 @@ function Contact() {
         </dl>
         <div className="mt-cell4 flex flex-wrap gap-cell2">
           <Bloc as="a" href={mailtoHref}>
-            ECRIRE AU STUDIO
+            ECRIRE
           </Bloc>
           <Bloc as="a" href={telHref}>
             APPELER
@@ -78,11 +85,9 @@ function Contact() {
 
       <Ticker
         items={[
-          "IDENTITE",
-          "EDITION",
-          "SIGNALETIQUE",
-          "HABILLAGE D'ANTENNE",
-          "DIRECTION ARTISTIQUE",
+          mireText(STUDIO.role),
+          mireText(STUDIO.city),
+          ...STUDIO.domaines.map(mireText),
           "REPONSE 48 H",
         ]}
       />

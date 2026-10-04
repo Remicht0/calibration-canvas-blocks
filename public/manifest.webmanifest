@@ -1,7 +1,7 @@
 {
-  "name": "MIRE — Studio de design graphique",
+  "name": "MIRE — Graphiste indépendant",
   "short_name": "MIRE",
-  "description": "Studio de design graphique. Un site construit comme une image de calibration.",
+  "description": "Graphiste indépendant à Bordeaux. Un site construit comme une image de calibration.",
   "lang": "fr",
   "start_url": "/",
   "display": "standalone",

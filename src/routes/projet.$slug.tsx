@@ -16,7 +16,7 @@ export const Route = createFileRoute("/projet/$slug")({
   },
   head: ({ loaderData }) => {
     const t = loaderData ? `${loaderData.title} — MIRE` : "Projet — MIRE";
-    const d = loaderData ? loaderData.resume : "Projet du studio de design graphique MIRE.";
+    const d = loaderData ? loaderData.resume : "Projet de MIRE, graphiste indépendant.";
     // carte de partage 1-bit generee par `bun run og` (scripts/og.ts)
     const img = loaderData ? `${loaderData.origin}${ogPath(loaderData.slug)}` : null;
     const imgAlt = loaderData

@@ -14,13 +14,13 @@ export const Route = createFileRoute("/atelier")({
       {
         name: "description",
         content:
-          "L'atelier de MIRE : horloge 1-bit, table de composition en blocs, planche de bruit, histogramme et seuil, miroir de votre caméra ou de votre image. Le protocole de calibration du studio, manipulable directement.",
+          "L'atelier de MIRE : horloge 1-bit, table de composition en blocs, planche de bruit, histogramme et seuil, miroir de votre caméra ou de votre image. Le protocole de calibration de MIRE, manipulable directement.",
       },
       { property: "og:title", content: "Atelier — MIRE, banc de calibration" },
       {
         property: "og:description",
         content:
-          "Horloge en blocs, automate cellulaire, planche de bruit, histogramme et seuil, miroir local : les outils du studio MIRE en libre manipulation.",
+          "Horloge en blocs, automate cellulaire, planche de bruit, histogramme et seuil, miroir local : les outils de MIRE en libre manipulation.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

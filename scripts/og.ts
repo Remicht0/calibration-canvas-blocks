@@ -181,7 +181,7 @@ function studioCard(): Raster {
   const word = "MIRE";
   const x = Math.round((W - textCols(word) * unit) / 2 / CELL) * CELL;
   drawText(asCtx(r), word, unit, x, CELL * 8);
-  drawText(asCtx(r), "STUDIO DE DESIGN GRAPHIQUE", U_LABEL, x, H - CELL * 2 - U_LABEL);
+  drawText(asCtx(r), "GRAPHISTE INDEPENDANT", U_LABEL, x, H - CELL * 2 - U_LABEL);
   return r;
 }
 
