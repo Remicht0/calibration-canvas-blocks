@@ -757,6 +757,11 @@ Reste a faire :
 - [ ] Hebergeur dans les mentions legales (`STUDIO.hebergeur` : nom, adresse,
       telephone de l'hebergeur de production).
 - [ ] SIRET des l'immatriculation (`STUDIO.siret`).
+- [ ] Badge « Edit with Lovable » : il n'est ni dans le code ni dans le build
+      (verifie : aucune occurrence dans le HTML servi ni dans les fichiers
+      livres). L'hebergement Lovable l'ajoute a la volee sur `*.lovable.app`.
+      Le masquer dans les reglages du projet Lovable, ou heberger ailleurs :
+      le build cible deja Cloudflare (`wrangler.json` genere).
 - [ ] Video reelle sur au moins une page projet, testee en `gris` et `brut`.
 
 
