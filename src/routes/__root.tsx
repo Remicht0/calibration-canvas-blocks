@@ -22,7 +22,15 @@ import { MireConsole, ScrollRail } from "@/components/console";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { KeyHelp } from "@/components/help";
 import { BlockType, ScanLine } from "@/components/mire";
-import { ogPath, signature, siteOrigin, STUDIO } from "@/lib/site";
+import {
+  domainesPhrase,
+  metier,
+  ogPath,
+  presentation,
+  signature,
+  siteOrigin,
+  STUDIO,
+} from "@/lib/site";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -129,8 +137,7 @@ export const Route = createRootRoute({
         { title: signature },
         {
           name: "description",
-          content:
-            "MIRE, graphiste indépendant à Bordeaux. Un site construit comme une image de calibration.",
+          content: `${presentation}. Un site construit comme une image de calibration.`,
         },
         { name: "author", content: "MIRE" },
         { name: "theme-color", content: "#000000" },
@@ -139,7 +146,7 @@ export const Route = createRootRoute({
         { property: "og:title", content: signature },
         {
           property: "og:description",
-          content: "Identité visuelle et édition. Rendu 1-bit par blocs.",
+          content: `${domainesPhrase}. Rendu 1-bit par blocs.`,
         },
         { property: "og:type", content: "website" },
         { property: "og:url", content: `${origin}${path}` },
@@ -149,7 +156,7 @@ export const Route = createRootRoute({
         { property: "og:image:type", content: "image/png" },
         {
           property: "og:image:alt",
-          content: "MIRE en lettres de blocs sous une bande de calibration, noir sur blanc.",
+          content: `${STUDIO.name} en lettres de blocs sous une bande de calibration, avec la mention « ${metier} », noir sur blanc.`,
         },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:image", content: `${origin}${ogPath()}` },

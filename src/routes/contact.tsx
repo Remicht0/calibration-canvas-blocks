@@ -6,21 +6,28 @@ import { TopBar } from "@/components/chrome";
 import { Bloc } from "@/components/bloc";
 import { Colophon } from "./index";
 import { mireText } from "@/lib/glyphs";
-import { adresse, mailtoHref, STUDIO, telHref } from "@/lib/site";
+import {
+  adresse,
+  domainesPhrase,
+  mailtoHref,
+  metier,
+  presentation,
+  STUDIO,
+  telHref,
+} from "@/lib/site";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Contact — MIRE, graphiste indépendant" },
+      { title: `Contact — ${STUDIO.name}, ${metier}` },
       {
         name: "description",
-        content:
-          "Contacter MIRE, graphiste indépendant à Bordeaux : courriel, téléphone, adresse. Identité visuelle et édition.",
+        content: `Contacter ${presentation} : courriel, téléphone, adresse. ${domainesPhrase}.`,
       },
-      { property: "og:title", content: "Contact — MIRE, graphiste indépendant" },
+      { property: "og:title", content: `Contact — ${STUDIO.name}, ${metier}` },
       {
         property: "og:description",
-        content: "Fiche de calibration de MIRE : courriel, téléphone, adresse, horaires.",
+        content: `Fiche de calibration de ${STUDIO.name} : courriel, téléphone, adresse, horaires, mentions légales.`,
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -29,14 +36,58 @@ export const Route = createFileRoute("/contact")({
   component: Contact,
 });
 
-const FICHE = [
+type Ligne = { k: string; v: string };
+
+const FICHE: Ligne[] = [
   { k: "COURRIEL", v: mireText(STUDIO.email) },
   { k: "TELEPHONE", v: mireText(STUDIO.phone) },
   { k: "ADRESSE", v: mireText(adresse) },
   { k: "HORAIRES", v: "LUNDI — VENDREDI / 09H — 19H" },
   ...(STUDIO.siret ? [{ k: "SIRET", v: mireText(STUDIO.siret) }] : []),
-  { k: "DELAI DE REPONSE", v: "48 HEURES OUVREES" },
+  { k: "DELAI DE REPONSE", v: mireText(STUDIO.delaiReponse) },
 ];
+
+/* Identification de l'editeur et de l'hebergeur (loi pour la confiance dans l'economie
+   numerique, art. 6) : les lignes facultatives n'apparaissent que renseignees. */
+const MENTIONS: Ligne[] = [
+  { k: "EDITEUR", v: mireText(`${STUDIO.legalName}, ${metier}, sous le nom ${STUDIO.name}`) },
+  { k: "ADRESSE", v: mireText(adresse) },
+  { k: "CONTACT", v: `${mireText(STUDIO.email)} / ${mireText(STUDIO.phone)}` },
+  { k: "DIRECTEUR DE LA PUBLICATION", v: mireText(STUDIO.legalName) },
+  ...(STUDIO.siret ? [{ k: "SIRET", v: mireText(STUDIO.siret) }] : []),
+  ...(STUDIO.hebergeur
+    ? [
+        {
+          k: "HEBERGEUR",
+          v: mireText(
+            `${STUDIO.hebergeur.nom}, ${STUDIO.hebergeur.adresse}, ${STUDIO.hebergeur.telephone}`,
+          ),
+        },
+      ]
+    : []),
+];
+
+/** Releve en deux colonnes ; un nombre impair de lignes etend la derniere, sans laisser de trou. */
+function Releve({ lignes, filet }: { lignes: Ligne[]; filet: "blanc" | "noir" }) {
+  const bord = filet === "blanc" ? "border-white" : "border-black";
+  return (
+    <dl className="u-mono grid gap-y-cell2 md:grid-cols-2 md:gap-x-cell">
+      {lignes.map((f, i) => (
+        <div
+          key={f.k}
+          className={
+            lignes.length % 2 && i === lignes.length - 1
+              ? `border-t-[3px] ${bord} pt-cell md:col-span-2`
+              : `border-t-[3px] ${bord} pt-cell`
+          }
+        >
+          <dt>{f.k}</dt>
+          <dd className="mt-[3px] text-pretty">{f.v}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 function Contact() {
   return (
@@ -47,7 +98,7 @@ function Contact() {
         <BlockType text="CONTACT" loop={false} drive="scan" />
         <p className="u-copy mt-cell2 max-w-[52ch]">
           UN PROJET SE MESURE AVANT DE SE DESSINER. ECRIRE AVEC : NATURE, CALENDRIER, BUDGET,
-          SUPPORTS. REPONSE SOUS 48 HEURES.
+          SUPPORTS. REPONSE SOUS {mireText(STUDIO.delaiReponse)}.
         </p>
       </section>
 
@@ -58,21 +109,7 @@ function Contact() {
           <h2>FICHE DE CALIBRATION</h2>
           <BitmapClock label={`HEURE ${mireText(STUDIO.city)}`} timeZone={STUDIO.timeZone} />
         </div>
-        <dl className="u-mono grid gap-y-cell2 md:grid-cols-2 md:gap-x-cell">
-          {FICHE.map((f, i) => (
-            <div
-              key={f.k}
-              className={
-                FICHE.length % 2 && i === FICHE.length - 1
-                  ? "border-t-[3px] border-white pt-cell md:col-span-2"
-                  : "border-t-[3px] border-white pt-cell"
-              }
-            >
-              <dt>{f.k}</dt>
-              <dd className="mt-[3px]">{f.v}</dd>
-            </div>
-          ))}
-        </dl>
+        <Releve lignes={FICHE} filet="blanc" />
         <div className="mt-cell4 flex flex-wrap gap-cell2">
           <Bloc as="a" href={mailtoHref}>
             ECRIRE
@@ -88,7 +125,7 @@ function Contact() {
           mireText(STUDIO.role),
           mireText(STUDIO.city),
           ...STUDIO.domaines.map(mireText),
-          "REPONSE 48 H",
+          `REPONSE ${mireText(STUDIO.delaiReponse)}`,
         ]}
       />
 
@@ -106,6 +143,15 @@ function Contact() {
             INDEX DES PROJETS
           </Bloc>
         </div>
+      </section>
+
+      <section
+        id="mentions"
+        data-mire="MENTIONS"
+        className="border-t-[10px] border-black px-cell py-cell4"
+      >
+        <h2 className="u-mono mb-cell2">MENTIONS LEGALES</h2>
+        <Releve lignes={MENTIONS} filet="noir" />
       </section>
 
       <Colophon />

@@ -5,7 +5,7 @@ import { TopBar } from "@/components/chrome";
 import { HybridMedia } from "@/components/media";
 import { CalibrationBand } from "@/components/bars";
 import { bySlug, projects } from "@/lib/projects";
-import { ogPath, siteOrigin } from "@/lib/site";
+import { metier, ogPath, siteOrigin, STUDIO } from "@/lib/site";
 import { Colophon } from "./index";
 
 export const Route = createFileRoute("/projet/$slug")({
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/projet/$slug")({
   },
   head: ({ loaderData }) => {
     const t = loaderData ? `${loaderData.title} — MIRE` : "Projet — MIRE";
-    const d = loaderData ? loaderData.resume : "Projet de MIRE, graphiste indépendant.";
+    const d = loaderData ? loaderData.resume : `Projet de ${STUDIO.name}, ${metier}.`;
     // carte de partage 1-bit generee par `bun run og` (scripts/og.ts)
     const img = loaderData ? `${loaderData.origin}${ogPath(loaderData.slug)}` : null;
     const imgAlt = loaderData

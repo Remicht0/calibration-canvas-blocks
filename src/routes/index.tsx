@@ -7,8 +7,8 @@ import { HybridMedia } from "@/components/media";
 import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar } from "@/components/chrome";
 import { mireText } from "@/lib/glyphs";
-import { projects } from "@/lib/projects";
-import { signature, STUDIO } from "@/lib/site";
+import { periode, projects } from "@/lib/projects";
+import { domainesPhrase, presentation, signature, STUDIO } from "@/lib/site";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -16,14 +16,12 @@ export const Route = createFileRoute("/")({
       { title: signature },
       {
         name: "description",
-        content:
-          "MIRE, graphiste indépendant à Bordeaux. Identité visuelle et édition. Un site construit comme une image de calibration : 1-bit, grille de blocs, une seule ligne rouge.",
+        content: `${presentation}. ${domainesPhrase}. Un site construit comme une image de calibration : 1-bit, grille de blocs, une seule ligne rouge.`,
       },
       { property: "og:title", content: signature },
       {
         property: "og:description",
-        content:
-          "Identité visuelle et édition. Rendu 1-bit par blocs, dissolution par chute de blocs.",
+        content: `${domainesPhrase}. Rendu 1-bit par blocs, dissolution par chute de blocs.`,
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -205,7 +203,7 @@ function Index() {
         >
           <div className="u-mono grid grid-cols-[4ch_1fr] gap-x-cell px-cell py-cell2">
             <span>IDX</span>
-            <h2>PROJETS 2022 — 2024</h2>
+            <h2>PROJETS {periode}</h2>
           </div>
           <ul>
             {projects.map((p, i) => (
@@ -381,9 +379,12 @@ export function Colophon() {
       </div>
       <div className="u-mono mt-cell4 flex flex-wrap items-center justify-between gap-cell">
         <span>2026</span>
-        <BitmapClock label="HEURE" />
+        <BitmapClock label="HEURE LOCALE" />
         <Link to="/atelier">ATELIER / BANC</Link>
         <Link to="/contact">CONTACT</Link>
+        <Link to="/contact" hash="mentions">
+          MENTIONS LEGALES
+        </Link>
         <span>FIN DE MIRE</span>
       </div>
     </footer>
