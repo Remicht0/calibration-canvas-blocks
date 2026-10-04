@@ -10,7 +10,13 @@ import { Component, useEffect, type ReactNode } from "react";
 
 import { CalibrationBand } from "@/components/bars";
 import { Bloc } from "@/components/bloc";
-import { BootSequence, GridCursor, NegativeSwitch, RouteWipe } from "@/components/boot";
+import {
+  BootSequence,
+  GridCursor,
+  NEGATIVE_BOOT_SCRIPT,
+  NegativeSwitch,
+  RouteWipe,
+} from "@/components/boot";
 import { TopBar } from "@/components/chrome";
 import { MireConsole, ScrollRail } from "@/components/console";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -203,6 +209,9 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="fr">
       <head>
         <HeadContent />
+        {/* inversion memorisee posee avant la premiere peinture : jamais d'eclat
+            blanc au chargement pour qui lit en negatif */}
+        <script dangerouslySetInnerHTML={{ __html: NEGATIVE_BOOT_SCRIPT }} />
       </head>
       <body>
         {children}

@@ -7,7 +7,7 @@ import { BitReadout } from "@/components/readout";
 /* Avancement de lecture : 0 -> 1, cale sur la frame                    */
 /* ------------------------------------------------------------------ */
 
-export function useScrollProgress() {
+function useScrollProgress() {
   const [p, setP] = useState(0);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ export function useScrollProgress() {
 
 type Track = { label: string; start: number };
 
-export function useTracks() {
+function useTracks() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [tracks, setTracks] = useState<Track[]>([]);
   const [index, setIndex] = useState(0);

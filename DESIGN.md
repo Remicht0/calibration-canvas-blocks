@@ -117,6 +117,27 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
   `prefers-reduced-motion`. Un seul `requestAnimationFrame` par titre porte
   la séquence, la lecture et l'usure ; il s'arrête quand l'onglet est caché.
 
+Les **bandes de calibration** (`CalibrationBand`) respirent seules — hauteur de
+colonne quantifiée, seuil dur — et **encaissent le pointeur** : là où il passe,
+un voisinage CARRÉ de 3 colonnes de part et d'autre (jamais un disque, jamais
+une rampe — même règle que l'usure d'un titre) va chercher la rangée sous le
+pointeur. Les 7 colonnes visent **la même rangée** : un plateau franc, aucune
+diagonale, aucune marche intermédiaire. Une bosse quand le pointeur longe le
+haut, un creux quand il longe le bas. L'emprise monte en 150 ms tant que le
+pointeur est là, retombe en 620 ms dès qu'il part, et la bande reprend sa
+respiration ; chaque colonne garde en mémoire la rangée vers laquelle elle a
+été poussée, si bien qu'une colonne que le pointeur vient de quitter relâche
+depuis là au lieu de sauter d'un coup vers la nouvelle rangée visée. Un
+redimensionnement ne remet pas l'emprise à plat : les colonnes communes
+gardent leur enfoncement. Les hauteurs restent des
+nombres entiers de cellules : la bande se déforme, elle ne se fond pas — aucune
+couleur, aucun fondu, aucun flou. Rien de tout cela sur une bande `still`, sous
+`prefers-reduced-motion` ou sur `pointer: coarse` : aucun écouteur n'y est même
+posé, le comportement est identique à celui d'avant. Le pointeur ne fait que
+déplacer la cellule visée ; **il ne planifie aucune image** — tout est calculé
+et peint dans le `requestAnimationFrame` de la respiration, qui reste seul et
+s'arrête toujours hors écran, sous `mire:modal` et en onglet caché.
+
 ### Chrome commun
 
 - `TopBar` (`chrome.tsx`) sur chaque page : `MIRE` puis `INDEX / ATELIER /
@@ -190,22 +211,64 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
   sont pas filtres. Le repere est en z 130, au-dessus de la reglette ; le
   curseur s'efface quand sa cellule croise la ligne rouge (un blanc en
   difference sur du rouge donnerait du cyan).
+- **L'inversion est memorisee** (`localStorage`, cle `mire-negative`) : qui lit
+  en negatif retrouve le negatif au rechargement et a la visite suivante, sans
+  eclat blanc au passage. Un script d'amorce de deux lignes, pose dans le
+  `<head>` du document (`NEGATIVE_BOOT_SCRIPT`, `boot.tsx`), applique la classe
+  `mire-negative` sur `<html>` avant la premiere peinture. Le rendu serveur
+  ignore le stockage : le bouton part au positif et rejoint la classe en couche
+  de mise en page, donc avant peinture et sans ecart d'hydratation. La classe
+  sur la racine est la source unique — `aria-pressed`, le libelle de
+  l'inverseur, le bouton de la console (qui la lit en `MutationObserver`) et le
+  drapeau ecrit bougent ensemble, y compris au retour arriere et a la
+  restauration bfcache (`pageshow` les remet d'accord). Le stockage peut lever
+  (navigation privee, donnees de site bloquees) : lecture et ecriture sont sous
+  `try/catch`, une valeur inconnue vaut positif, et faute de stockage
+  l'inversion reste parfaitement valable pour la visite en cours.
 - `CalibrationBand` : `negative` (fond noir, colonnes blanches) pour un
   conteneur noir ; `still` (une rangee de blocs, aucune animation) pour une
-  ligne sans signal. `BlockType` accepte `negative`.
+  ligne sans signal. `BlockType` accepte `negative`. Une bande qui respire
+  **encaisse le pointeur** (voir Mouvement).
 - 404 et erreur sont des mires : TopBar, titre en blocs (`PAS DE SIGNAL` en
   boucle : le signal qui ne tient pas ; `SIGNAL CORROMPU` une fois), bande
   `still`, copie, actions en `Bloc`. La page d'erreur est en `.on-black`.
 
 ### Transition de page (`RouteWipe`)
 
-1500 ms, trois temps, jamais de fondu :
+**Une seule chute, d'un bout a l'autre.** Au clic, ce sont les blocs de la page
+sortante qui tombent, et cette chute devient le masque : ce que je regardais
+s'effondre, l'effondrement remplit l'ecran, la page suivante se leve de la meme
+matiere. 1500 ms, trois temps, jamais de fondu :
 
-| Temps | Part | Rendu |
-| --- | --- | --- |
-| Recouvrement | 0 → 0,40 | les blocs noirs tombent du haut, `easeOutCubic`, bruit par colonne |
-| Palier | 0,40 → 0,56 | ecran noir plein, un seul repere rouge balaye la surface |
-| Chute | 0,56 → 1 | les blocs se vident du bas vers le haut, `easeInOutCubic`, 6 % de cellules resistent |
+| Temps | Part | Duree | Rendu |
+| --- | --- | --- | --- |
+| Effondrement | 0 → 0,42 | 0 → 630 ms | le masque **reproduit la page sortante** (papier compris) ; ses cellules d'encre lachent de bas en haut selon `fallOrder` (graine 61) et s'empilent au bas de leur colonne ; une crue acheve de remplir l'ecran. `easeInOutCubic` |
+| Palier | 0,42 → 0,58 | 630 → 870 ms | ecran noir plein, un seul repere rouge balaye la surface |
+| Levee | 0,58 → 1 | 870 → 1500 ms | les blocs se vident du bas vers le haut, `easeInOutCubic`, 6 % de cellules resistent — et le titre d'arrivee resiste le plus longtemps |
+
+**La carte d'encre** (`lib/ink.ts`, `captureInk`) est relevee sur l'evenement
+`onBeforeNavigate` du routeur — donc avant que React ne compose la page
+d'arrivee, quand le DOM est encore celui que le visiteur regarde. Elle donne
+une valeur par cellule de grille, au pas `cellSizeFor`, sur les memes cellules
+que le reste du site. Deux sources, dans l'ordre du document : les **canvas
+deja presents** (planches, titres en blocs, bandes de calibration), redessines
+a l'echelle de la grille, et les **surfaces du DOM** dont le fond ou le filet
+resolus sont sombres — sections `.on-black`, filets de separation, blocs en
+etat inverse. Un filet franc plus fin qu'une cellule se cale sur la grille
+plutot que de disparaitre au seuil : les deux filets du site y passent,
+`border-[10px]` en macro comme `border-[3px]` en cadre (section 1). Sous
+`mire-negative`, la carte est inversee : l'ecran montre le negatif de ce que
+les styles declarent. Ce qui est plus fin que la cellule — le mono des
+etiquettes, le texte courant — n'entre pas dans la carte : la silhouette est
+faite de blocs, comme le reste du site.
+
+**Repli obligatoire.** Si la capture echoue ou ne trouve aucune encre (page
+sans surface lisible, tampon illisible, arrivee sans page precedente), le
+premier temps redevient un recouvrement du haut vers le bas en `easeOutCubic`
+avec bruit par colonne, sans silhouette : le comportement d'avant. Les deux
+autres temps sont identiques dans les deux cas. Sous
+`prefers-reduced-motion`, aucun masque n'est monte et la navigation reste
+instantanee.
 
 Tout est dessine dans le canvas du masque, jamais en HTML : le compteur
 `000 → 100` (fonte 3x5, un bloc = une cellule, en bas a droite) et la mention
@@ -213,13 +276,18 @@ Tout est dessine dans le canvas du masque, jamais en HTML : le compteur
 XOR par cellule — blanc sur une cellule noire, noir sur une cellule vide, rien
 sur la rangee rouge — et restent lisibles pendant les trois temps. **Le titre
 de la page de destination traverse la transition** (MIRE, ATELIER, CONTACT ou
-le titre du projet) : compose en blocs Anton pleine largeur, centre, avec son
-propre `fallOrder` (graine 13), il se compose avec le recouvrement, tient au
-palier et tombe avec le masque, en blanc uniquement sur les cellules noires.
-S'il depasse `rows - 6`, il est compose sur moins de colonnes plutot que
-coupe. Aucun `mix-blend-mode` ni opacite sur ce calque. Plan z : curseur 250
-> fiche de commande 240 > boot 200 > masque de transition 195 > bouton AIDE
-180 > inverseur 160 > ScanLine 50.
+le titre du projet, lu sur le chemin vise) : compose en blocs Anton pleine
+largeur, centre, avec son propre `fallOrder` (graine 13), il se compose avec
+l'effondrement, tient au palier, puis resiste a la levee (`+0,30` sur l'ordre
+de chute de ses cellules) avant de tomber a son tour — le temps que le vrai
+titre de la page se compose dessous. En blanc uniquement sur les cellules
+noires. S'il depasse `rows - 6`, il est compose sur moins de colonnes plutot
+que coupe. Aucun `mix-blend-mode` ni opacite sur ce calque. Plan z : curseur
+250 > fiche de commande 240 > boot 200 > masque de transition 195 > bouton
+AIDE 180 > inverseur 160 > ScanLine 50.
+
+Le repere rouge n'apparait que pendant le palier, quand le masque couvre tout :
+jamais deux lignes rouges a l'ecran.
 
 ---
 
@@ -236,10 +304,14 @@ src/
                        textBlockHeight, fallOrder, drawBits, cellSizeFor
     bitmap.ts          noyau hybride : sample(), paintBlocks(), BitMode,
                        quantification en paliers, loupe, support vidéo
+    reduction.ts       pyramide de reduction d'une photo du visiteur, partagee
+                       par le worker du miroir et son repli sur le fil principal
     projects.ts        source de vérité des projets (slug, num, titre,
                        année, nature, client, image, lignes, resume, alt)
     glyphs.ts          fonte bitmap 3x5 (capitales, chiffres, ponctuation),
                        mireText() : capitales sans accents
+    ink.ts             captureInk() : carte d'encre de l'ecran, une valeur par
+                       cellule, relevee sur les canvas et les surfaces du DOM
     site.ts            origine absolue du site (og:image, canonical, sitemap),
                        chemin des cartes, identite du studio (STUDIO)
     modal.ts           lockPage / unlockPage : verrou de page partage par les
@@ -251,15 +323,22 @@ src/
     instruments.tsx    Histogramme (20 tranches x 8 rangs, plein / cadre),
                        InstrumentSeuil (planche BIN pilotee par l'histogramme)
     miroir.tsx         Miroir — la camera ou une image du visiteur, en local
+    miroir-reduction.worker.ts
+                       reduction d'une photo deposee, hors fil principal
+                       (importe en `?worker&inline` : aucun telechargement)
     bloc.tsx           Bloc — bouton / lien cadre 1 bit (.u-bloc)
     chrome.tsx         TopBar — barre haute commune
     help.tsx           KeyHelp — fiche de commande (raccourcis)
     bars.tsx           CalibrationBand, Ticker
-    boot.tsx           BootSequence, GridCursor, NegativeSwitch
+    boot.tsx           BootSequence, GridCursor, NegativeSwitch, RouteWipe
     bitmap-extras.tsx  BitmapClock, BitmapBoard (automate 23/3), NoiseField
+  hooks/
+    use-mobile.tsx     useIsMobile() — reste du gabarit, mais `__root.tsx`
+                       s'en sert pour choisir la reglette (bureau) ou la
+                       console (mobile) : ne pas le retirer sans le remplacer
   routes/
     __root.tsx         chrome global : ScanLine, GridCursor, NegativeSwitch,
-                       BootSequence, fontes, métadonnées de base
+                       BootSequence, RouteWipe, fontes, métadonnées de base
     index.tsx          entrée + index + banc d'essai + procédé + atelier
                        (manifeste) + Colophon (exporté et réutilisé)
     projet.$slug.tsx   page projet
@@ -491,6 +570,10 @@ Fait :
       dans la grille, tout en local, avec enregistrement de la trame en PNG.
       Relu par quatre relecteurs adversariaux (vie privee, regles, code,
       accessibilite) ; 23 constats corriges, 85 tests de navigateur.
+- [x] Reduction d'une photo deposee hors fil principal (worker +
+      `OffscreenCanvas`, repli synchrone la ou ils manquent) : sur 48 Mpx, le
+      plus long blocage tombe de ~200 ms a ~30 ms, pour une trame 1-bit
+      identique au pixel.
 - [x] Negatif : filtre sur `main` et le chrome fixe, plus sur `body` (les
       elements fixes defilaient avec la page) ; repere au-dessus de la
       reglette ; curseur efface sur la ligne rouge.
@@ -503,6 +586,36 @@ Fait :
       region aria-live ecrite par le visiteur seulement ; figure nommee ;
       CSS sans le kit shadcn ni tw-animate-css (78 Ko -> 20 Ko) ;
       react-query retire.
+- [x] Kit shadcn du gabarit supprime du depot : `src/components/ui/`
+      (46 fichiers, 145 Ko de source), `src/lib/utils.ts` (`cn()`, devenu
+      orphelin) et `components.json` retires, avec les 42 dependances qui
+      n'existaient que pour lui (26 `@radix-ui/*`, `lucide-react`, `recharts`,
+      `react-hook-form`, `zod`, `date-fns`, `cmdk`, `vaul`, `sonner`, `clsx`,
+      `tailwind-merge`, etc.) : 50 dependances d'execution, il en reste 8. Le
+      garde-fou `@source not "../src/components/ui"` de `styles.css` est tombe
+      avec le dossier. JS client inchange a l'octet pres (419 153 o) : le kit
+      n'etait deja plus compile. Lint a zero erreur et zero avertissement.
+- [x] Jetons shadcn retires de `styles.css` avec le kit : les 33 mappages
+      `--color-*` du `@theme inline`, les 32 valeurs `oklch` de `:root`, le
+      bloc `.dark` entier et la variante `dark` sur mesure. Aucun `dark:` ni
+      aucune de ces classes (`bg-card`, `text-muted-foreground`, `bg-chart-1`,
+      `bg-sidebar`...) n'existait dans le site : le navigateur recevait 64
+      valeurs `oklch` mortes, dont des teintes hors palette (`--chart-*`
+      orange et jaune, `--sidebar-*` bleutes, `--destructive` rouge-orange)
+      contraires a la section 2. Seule regle qui s'en servait : le
+      `* { border-color }` de base, repointe sur `var(--ink)`. CSS client
+      20 564 o -> 18 148 o ; rendu inchange (bordures, rayons et contours
+      identiques sur 390 elements, 7 pages x 393/1440 px).
+- [x] Negatif memorise : cle `mire-negative` en `localStorage`, posee par un
+      script d'amorce dans le `<head>` avant la premiere peinture ; classe de
+      racine, `aria-pressed`, libelle et drapeau toujours d'accord, y compris
+      au retour arriere et au bfcache ; stockage indisponible tolere.
+- [x] Bandes de calibration reactives au pointeur : voisinage carre de
+      3 colonnes qui va chercher la rangee visee en plateau franc (aucune
+      rampe), rangee memorisee par colonne, retour au repos en 620 ms,
+      emprise conservee au redimensionnement, aucune image de rendu ajoutee ;
+      inerte en `still`, sous `prefers-reduced-motion` et sur
+      `pointer: coarse`.
 
 ### Le miroir (instrument 05)
 
@@ -516,7 +629,14 @@ Regles propres a cet instrument, non negociables :
 
 - **Rien ne sort de l'appareil.** Aucune requete, aucun stockage (ni
   `localStorage`, ni `sessionStorage`, ni `IndexedDB`), aucune copie qui
-  survive a la fermeture. La phrase ecrite au visiteur est un engagement :
+  survive a la fermeture. Le worker qui reduit une photo deposee n'echappe pas
+  a la regle : il est cree pour une image, vide ses canvas, ferme la source et
+  est supprime des qu'elle est reduite. Il voyage **dans** le lot de
+  l'instrument (`?worker&inline`, URL de blob), jamais en fichier separe : un
+  chunk telecharge au premier depot ferait figurer dans le journal du serveur
+  l'heure exacte a laquelle un visiteur pose une photo. Poser une image ne
+  declenche aucune requete reseau, pas meme vers ce site. La phrase ecrite au
+  visiteur est un engagement :
   « RIEN N'EST ENVOYE. LA MIRE EST CALCULEE DANS VOTRE NAVIGATEUR, LA SOURCE NE
   QUITTE JAMAIS VOTRE APPAREIL. »
 - **Aucun chemin ne laisse la camera allumee.** Les pistes sont arretees au
@@ -525,6 +645,11 @@ Regles propres a cet instrument, non negociables :
   remplacement de source — et meme quand la demande d'acces est encore en vol :
   une autorisation qui arrive apres la sortie est coupee a l'arrivee. L'etat
   affiche correspond toujours a l'etat reel du flux.
+- **Aucun etat affiche ne survit a ce qu'il decrit.** Les memes sorties
+  perimaient la lecture d'un fichier en cours sans toucher a l'interface :
+  « LECTURE DU FICHIER » restait ecrit sur une lecture que plus personne ne
+  menait. Une lecture perimee rend maintenant la planche au repos, sauf quand un
+  second depot a deja pris la main.
 - **Aucun message brut du navigateur.** Un refus, une camera absente, occupee ou
   perdue s'ecrivent dans l'alphabet de la mire (`SIGNAL REFUSE`, `AUCUNE
   CAMERA`, `CAMERA OCCUPEE`, `SIGNAL PERDU`), et le depot d'image reste
@@ -545,8 +670,39 @@ Regles propres a cet instrument, non negociables :
   `visibilitychange`, comme `HybridMedia`, `CalibrationBand`, `BlockType`.
 - Ce qui ne change qu'avec le defilement se redessine au defilement
   (`NoiseField`, `drive="scroll"`), jamais a chaque image.
-- Un canvas de travail hors DOM est reutilise (`sample()`), jamais alloue par
-  image ; un masque invisible libere son bitmap (`RouteWipe`).
+- Un canvas de travail hors DOM est reutilise (`sample()`, `captureInk()`),
+  jamais alloue par image ; un masque invisible libere son bitmap (`RouteWipe`).
+- Aucun traitement d'une source apportee par le visiteur ne tient le fil
+  principal plus d'une image. La reduction d'une photo deposee dans le miroir
+  part dans un worker avec `OffscreenCanvas`
+  (`miroir-reduction.worker.ts`, importe en `?worker&inline` — voir la regle de
+  vie privee) : la photo y est **transferee**, pas copiee, et le worker est cree
+  pour elle puis supprime avec elle — jamais au chargement du module (le rendu
+  serveur n'a pas de `Worker`), jamais garde entre deux images. Sur une photo de
+  48 Mpx, le plus long blocage du fil principal passe de ~200 ms a ~30 ms, pour
+  un rendu 1-bit identique au pixel.
+- Un navigateur sans `Worker` ou sans `OffscreenCanvas` garde le chemin
+  synchrone : le repli est plus lent, il n'est jamais absent. Les deux chemins
+  appellent la **meme** fonction (`src/lib/reduction.ts`) : la trame 1-bit ne
+  peut pas dependre de celui qu'on a pris. Deux copies du meme algorithme
+  seraient une regle a tenir a la main, donc une regle perdue.
+- **Le clic ne paie pas la transition.** Tout ce que le clic prepare — la carte
+  d'encre de la page sortante (une valeur par cellule, 72 x 45 en 1440 px,
+  25 x 54 en 393 px, une seule lecture de pixels), les ordres de chute, le
+  titre d'arrivee compose en blocs et l'allocation du masque — est publie en
+  User Timing sous un seul nom :
+  `performance.getEntriesByName("mire:transition")`. La mesure couvre la
+  preparation entiere, pas la seule carte d'encre : sur trente navigations
+  enchainees (index, atelier, contact, projet), 3 a 8 ms en 1440 x 900 et
+  2 a 6 ms en 393 x 852, la premiere navigation d'une session etant toujours
+  la plus chere — la composition du titre y paie ses metriques de fonte, et un
+  seul releve a touche 17 ms. Au-dela d'une image (16 ms), c'est un defaut :
+  l'a-coup se verrait au clic, exactement la ou il se voit le plus.
+- Une reaction au pointeur ne planifie jamais d'image a elle seule : l'ecouteur
+  se contente de noter la cellule visee, la boucle deja en cours s'en sert a
+  l'image suivante (`CalibrationBand`, `BlockType`). La ou il n'y a pas de
+  boucle — bande `still`, mouvement reduit, `pointer: coarse` — aucun ecouteur
+  n'est pose.
 
 Reste a faire :
 - [ ] Remplacer les 4 images de demonstration par les vrais projets.
@@ -558,6 +714,42 @@ Reste a faire :
 1. Une seule ligne rouge visible à l'écran, alignée sur le pas de grille.
 2. Zoom 400 % : aucun bloc coupé, aucun demi-pixel.
 3. Mobile 393 px : les blocs restent gros, la grille ne devient jamais fine.
-4. Touche `N` (négatif) : tout s'inverse, le repère rouge reste rouge.
+4. Touche `N` (négatif) : tout s'inverse, le repère rouge reste rouge ; après
+   rechargement le négatif est toujours là, sans éclat blanc, et le bouton
+   affiche `POSITIF [N]`.
 5. Console vide, build sans erreur, aucun `border-radius` dans le rendu.
 6. 393 / 820 / 1440 px : `document.documentElement.scrollWidth === innerWidth`.
+
+### La campagne
+
+```
+bun run test
+```
+
+Une seule commande, depuis un clone propre : elle fabrique les pieces lourdes
+(bobine `y4m` de la camera factice, photo de 48 Mpx), construit la sortie
+serveur, la sert, joue les suites de `tests/` dans un Chromium pilote, puis
+arrete tout — meme en cas d'echec. Elle sort en 0 ou en 1.
+
+Les suites couvrent la checklist ci-dessus sur 3 largeurs et 5 routes, puis
+l'instrument 05 : cycle de vie de la camera, vie privee, clavier et focus,
+creux et cartouche, etiquette, photo demesuree, non-regressions du reste du
+site.
+
+Avec `run` : `bun test` appellerait le coureur de bun, qui ne monte ni les
+pieces ni le serveur. Elle demande Node 22 ou plus a cote de bun, le lanceur
+s'appuyant sur `node --test`. Le port est verifie libre avant le demarrage, et
+un serveur qui tombe en cours de route coupe la campagne au lieu de la laisser
+jouer contre un port muet.
+
+Quatre variables d'environnement, toutes facultatives :
+
+| variable        | defaut                   | effet                                       |
+| --------------- | ------------------------ | ------------------------------------------- |
+| `MIRE_PORT`     | `4288`                   | port du serveur monte pour la campagne      |
+| `MIRE_BASE`     | —                        | joue contre un serveur deja debout          |
+| `MIRE_SUITES`   | toutes                   | liste de suites, separees par des virgules  |
+| `MIRE_CHROMIUM` | `/opt/pw-browsers/chromium` | chemin du navigateur pilote              |
+
+Les pieces fabriquees (`tests/.fixtures/`) et les captures d'ecran laissees
+derriere (`tests/.captures/`) ne sont pas versionnees.
