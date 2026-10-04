@@ -87,3 +87,12 @@ export const projects: Project[] = [
 ];
 
 export const bySlug = (slug: string) => projects.find((p) => p.slug === slug);
+
+/** Annees couvertes par l'index, deduites des projets : « 2022 — 2024 », ou une seule annee. */
+export const periode = (() => {
+  const ans = projects.flatMap((p) => (p.year.match(/\d{4}/g) ?? []).map(Number));
+  if (!ans.length) return "";
+  const a = Math.min(...ans);
+  const b = Math.max(...ans);
+  return a === b ? String(a) : `${a} — ${b}`;
+})();

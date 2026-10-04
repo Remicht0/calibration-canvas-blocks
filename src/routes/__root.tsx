@@ -22,7 +22,15 @@ import { MireConsole, ScrollRail } from "@/components/console";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { KeyHelp } from "@/components/help";
 import { BlockType, ScanLine } from "@/components/mire";
-import { ogPath, siteOrigin, STUDIO } from "@/lib/site";
+import {
+  domainesPhrase,
+  metier,
+  ogPath,
+  presentation,
+  signature,
+  siteOrigin,
+  STUDIO,
+} from "@/lib/site";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -126,20 +134,19 @@ export const Route = createRootRoute({
       meta: [
         { charSet: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
-        { title: "MIRE — Studio de design graphique" },
+        { title: signature },
         {
           name: "description",
-          content:
-            "MIRE, studio de design graphique. Un site construit comme une image de calibration.",
+          content: `${presentation}. Un site construit comme une image de calibration.`,
         },
         { name: "author", content: "MIRE" },
         { name: "theme-color", content: "#000000" },
         { property: "og:site_name", content: "MIRE" },
         { property: "og:locale", content: "fr_FR" },
-        { property: "og:title", content: "MIRE — Studio de design graphique" },
+        { property: "og:title", content: signature },
         {
           property: "og:description",
-          content: "Identité, édition, signalétique. Rendu 1-bit par blocs.",
+          content: `${domainesPhrase}. Rendu 1-bit par blocs.`,
         },
         { property: "og:type", content: "website" },
         { property: "og:url", content: `${origin}${path}` },
@@ -149,7 +156,7 @@ export const Route = createRootRoute({
         { property: "og:image:type", content: "image/png" },
         {
           property: "og:image:alt",
-          content: "MIRE en lettres de blocs sous une bande de calibration, noir sur blanc.",
+          content: `${STUDIO.name} en lettres de blocs sous une bande de calibration, avec la mention « ${metier} », noir sur blanc.`,
         },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:image", content: `${origin}${ogPath()}` },
@@ -159,6 +166,8 @@ export const Route = createRootRoute({
             "@type": "Organization",
             name: STUDIO.name,
             legalName: STUDIO.legalName,
+            founder: { "@type": "Person", name: STUDIO.legalName, jobTitle: STUDIO.role },
+            knowsAbout: STUDIO.domaines,
             url: origin || undefined,
             logo: origin ? `${origin}/icons/icon-512.png` : undefined,
             email: STUDIO.email,

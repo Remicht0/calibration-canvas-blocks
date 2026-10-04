@@ -1,11 +1,13 @@
 /// <reference types="node" />
 // MIRE — export des cartes de partage (og:image).
 //
-// Un PNG 1-bit de 1200 x 630 par projet, plus la carte du studio, generes depuis
+// Un PNG 1-bit de 1200 x 630 par projet, plus la carte de MIRE, generes depuis
 // la planche de chaque projet avec le noyau du site (src/lib/mire.ts : recadrage
 // cover + seuil dur) et la fonte bitmap 3x5 (src/lib/glyphs.ts). Aucun navigateur,
 // aucun filtre : decodage JPEG en pur JS, moyenne par bloc, seuillage, puis un PNG
 // a 1 bit par pixel ecrit a la main (zlib de Node). Sortie : public/og/*.png.
+// Refait aussi les icones et le manifeste d'application : la carte de MIRE et le
+// manifeste lisent l'identite (src/lib/identite.ts), a relancer quand elle change.
 //
 //   bun run og
 
@@ -17,6 +19,7 @@ import { decode } from "jpeg-js";
 import { projects, type Project } from "../src/lib/projects";
 import { bitsFromRGBA, coverCrop, luminance, otsuThreshold, type Bits } from "../src/lib/mire";
 import { drawText, mireText, textCols } from "../src/lib/glyphs";
+import { signature, STUDIO } from "../src/lib/identite";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "public", "og");
@@ -161,7 +164,7 @@ function projectCard(p: Project): { raster: Raster; threshold: number } {
   return { raster: r, threshold };
 }
 
-/* ---- carte du studio : bande de calibration + MIRE en blocs ---- */
+/* ---- carte de MIRE : bande de calibration + MIRE en blocs + role ---- */
 function studioCard(): Raster {
   const r = new Raster();
   const cols = W / CELL;
@@ -178,10 +181,10 @@ function studioCard(): Raster {
     r.fillRect(x * CELL, (rows - h) * CELL, CELL, h * CELL);
   }
   const unit = CELL * 2; // 60 : un glyphe = 3 x 5 cellules de 2 x 2
-  const word = "MIRE";
+  const word = mireText(STUDIO.name);
   const x = Math.round((W - textCols(word) * unit) / 2 / CELL) * CELL;
   drawText(asCtx(r), word, unit, x, CELL * 8);
-  drawText(asCtx(r), "STUDIO DE DESIGN GRAPHIQUE", U_LABEL, x, H - CELL * 2 - U_LABEL);
+  drawText(asCtx(r), mireText(STUDIO.role), U_LABEL, x, H - CELL * 2 - U_LABEL);
   return r;
 }
 
@@ -303,3 +306,13 @@ for (const [name, size] of [
 writeFileSync(join(ROOT, "public", "favicon.ico"), ico(png1bit(icon(32)), 32));
 writeFileSync(join(ROOT, "public", "favicon.svg"), faviconSvg());
 console.log("favicon.ico 32x32 (PNG 1-bit) + favicon.svg");
+
+// manifeste d'application : nom et description suivent l'identite
+const MANIFEST = join(ROOT, "public", "manifest.webmanifest");
+type Manifeste = { name: string; short_name: string; description: string; [cle: string]: unknown };
+const manifeste = JSON.parse(readFileSync(MANIFEST, "utf8")) as Manifeste;
+manifeste.name = signature;
+manifeste.short_name = STUDIO.name;
+manifeste.description = `${STUDIO.role} à ${STUDIO.city}. Un site construit comme une image de calibration.`;
+writeFileSync(MANIFEST, `${JSON.stringify(manifeste, null, 2)}\n`);
+console.log(`manifest.webmanifest : ${signature}`);

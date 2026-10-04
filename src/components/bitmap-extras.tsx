@@ -11,8 +11,11 @@ import { Bloc } from "@/components/bloc";
 export function BitmapClock({
   label = "HEURE ATELIER",
   size = "etiquette",
+  timeZone,
 }: {
   label?: string;
+  /** Fuseau IANA a afficher ; absent, l'heure est celle du visiteur. */
+  timeZone?: string;
   /** etiquette : un glyphe = une cellule de haut ; display : un bloc = une cellule. */
   size?: "etiquette" | "display";
 }) {
@@ -20,15 +23,31 @@ export function BitmapClock({
   const [txt, setTxt] = useState("00:00:00");
 
   useEffect(() => {
+    // h23 : minuit s'ecrit 00, jamais 24
+    const fmt = timeZone
+      ? new Intl.DateTimeFormat("fr-FR", {
+          timeZone,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hourCycle: "h23",
+        })
+      : null;
     const tick = () => {
       const d = new Date();
+      if (fmt) {
+        const parts = fmt.formatToParts(d);
+        const v = (t: string) => parts.find((x) => x.type === t)?.value ?? "00";
+        setTxt(`${v("hour")}:${v("minute")}:${v("second")}`);
+        return;
+      }
       const p = (n: number) => String(n).padStart(2, "0");
       setTxt(`${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`);
     };
     tick();
     const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [timeZone]);
 
   useEffect(() => {
     const cv = canvas.current;

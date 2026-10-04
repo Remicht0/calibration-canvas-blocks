@@ -18,18 +18,17 @@ export const siteOrigin = createIsomorphicFn()
   .server(() => originOf(getRequest()))
   .client(() => configured() ?? window.location.origin);
 
-/** Chemin public de la carte de partage d'un projet, ou de la carte du studio. */
+/** Chemin public de la carte de partage d'un projet, ou de la carte de MIRE. */
 export const ogPath = (slug?: string) => `/og/${slug ?? "mire"}.png`;
 
-/** Identite du studio, source unique pour le colophon, le contact et les donnees structurees. */
-export const STUDIO = {
-  name: "MIRE",
-  legalName: "MIRE — Studio de design graphique",
-  email: "studio@mire.fr",
-  phone: "+33 1 00 00 00 00",
-  street: "12 rue de la Mire",
-  postalCode: "75011",
-  city: "Paris",
-  country: "FR",
-  founded: "2019",
-} as const;
+export {
+  adresse,
+  domainesPhrase,
+  mailtoHref,
+  metier,
+  presentation,
+  signature,
+  STUDIO,
+  telHref,
+  type Studio,
+} from "./identite";

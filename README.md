@@ -1,6 +1,6 @@
 # MIRE Calibration Studio
 
-Portfolio d'un studio de design graphique nommé MIRE.
+Portfolio de Rémi Marty, graphiste indépendant à Bordeaux, qui signe MIRE.
 
 Une seule idée directrice, exécutée sans compromis : le site 
 
@@ -139,16 +139,6 @@ aucun dégradé, aucune deuxième couleur. Le site est propre,
 dur et vide. La force vient du contraste et du vide, pas de 
 
 l'accumulation.
-
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/8d8f352d-4e8e-4314-8eb0-dda1c8b892c8).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 

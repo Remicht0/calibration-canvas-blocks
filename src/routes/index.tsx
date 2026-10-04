@@ -6,22 +6,22 @@ import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
 import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar } from "@/components/chrome";
-import { projects } from "@/lib/projects";
+import { mireText } from "@/lib/glyphs";
+import { periode, projects } from "@/lib/projects";
+import { domainesPhrase, presentation, signature, STUDIO } from "@/lib/site";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "MIRE — Studio de design graphique" },
+      { title: signature },
       {
         name: "description",
-        content:
-          "MIRE, studio de design graphique. Identité, édition, signalétique. Un site construit comme une image de calibration : 1-bit, grille de blocs, une seule ligne rouge.",
+        content: `${presentation}. ${domainesPhrase}. Un site construit comme une image de calibration : 1-bit, grille de blocs, une seule ligne rouge.`,
       },
-      { property: "og:title", content: "MIRE — Studio de design graphique" },
+      { property: "og:title", content: signature },
       {
         property: "og:description",
-        content:
-          "Identité, édition, signalétique. Rendu 1-bit par blocs, dissolution par chute de blocs.",
+        content: `${domainesPhrase}. Rendu 1-bit par blocs, dissolution par chute de blocs.`,
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -148,14 +148,7 @@ function Index() {
         data-mire="ENTREE"
         className="flex min-h-screen flex-col justify-between px-cell py-cell2"
       >
-        <TopBar
-          right={
-            <>
-              <span className="hidden md:inline">STUDIO DE DESIGN GRAPHIQUE</span>
-              <span className="md:hidden">STUDIO GRAPHIQUE</span>
-            </>
-          }
-        />
+        <TopBar right={mireText(STUDIO.role)} />
 
         <div>
           <BlockType text="MIRE" drive="scan" />
@@ -166,7 +159,7 @@ function Index() {
         </div>
 
         <div className="u-mono flex justify-between">
-          <span>PARIS</span>
+          <span>{mireText(STUDIO.city)}</span>
           <span>{projects.length} PROJETS / INDEX CI-DESSOUS</span>
         </div>
       </section>
@@ -210,7 +203,7 @@ function Index() {
         >
           <div className="u-mono grid grid-cols-[4ch_1fr] gap-x-cell px-cell py-cell2">
             <span>IDX</span>
-            <h2>PROJETS 2022 — 2024</h2>
+            <h2>PROJETS {periode}</h2>
           </div>
           <ul>
             {projects.map((p, i) => (
@@ -343,7 +336,7 @@ function Index() {
         </h2>
         <div className="u-mono mt-cell4 grid gap-y-cell2 md:grid-cols-3 md:gap-x-cell">
           <p className="u-copy max-w-[34ch]">
-            ATELIER FONDE EN 2019. IDENTITE, EDITION, SIGNALETIQUE, HABILLAGE D&apos;ANTENNE.
+            {mireText(`${STUDIO.role} depuis ${STUDIO.founded}. ${STUDIO.domaines.join(", ")}.`)}
           </p>
           <p className="u-copy max-w-[34ch]">
             CHAQUE PROJET COMMENCE PAR UNE MESURE : PAS DE GRILLE, TAUX D&apos;ENCRAGE, DISTANCE DE
@@ -366,12 +359,12 @@ export function Colophon() {
       <div className="u-mono grid gap-y-cell md:grid-cols-4">
         <div>
           <h2>FICHE DE CALIBRATION</h2>
-          <div>MIRE — STUDIO</div>
+          <div>MIRE — {mireText(STUDIO.role)}</div>
         </div>
         <div>
           <Link to="/contact">CONTACT</Link>
-          <div>STUDIO@MIRE.FR</div>
-          <div>+33 1 00 00 00 00</div>
+          <div>{mireText(STUDIO.email)}</div>
+          <div>{mireText(STUDIO.phone)}</div>
         </div>
         <div>
           <div>PROCEDE</div>
@@ -386,9 +379,12 @@ export function Colophon() {
       </div>
       <div className="u-mono mt-cell4 flex flex-wrap items-center justify-between gap-cell">
         <span>2026</span>
-        <BitmapClock label="HEURE" />
+        <BitmapClock label="HEURE LOCALE" />
         <Link to="/atelier">ATELIER / BANC</Link>
         <Link to="/contact">CONTACT</Link>
+        <Link to="/contact" hash="mentions">
+          MENTIONS LEGALES
+        </Link>
         <span>FIN DE MIRE</span>
       </div>
     </footer>
