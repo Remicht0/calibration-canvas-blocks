@@ -1,6 +1,6 @@
 # MIRE Calibration Studio
 
-Portfolio d'un studio de design graphique nommé MIRE.
+Portfolio de Rémi Marty, graphiste indépendant à Bordeaux, qui signe MIRE.
 
 Une seule idée directrice, exécutée sans compromis : le site 
 

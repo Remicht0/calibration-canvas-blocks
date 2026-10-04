@@ -53,7 +53,8 @@ La force vient du contraste et du vide, jamais de l'accumulation.
   `round(cell / 5)` (4 px bureau, 3 px mobile : un glyphe = une cellule de
   haut), et **display**, un bloc = une cellule. `BitReadout` prend l'etiquette
   par defaut et la suit au redimensionnement ; `BitmapClock` expose
-  `size="etiquette" | "display"`. Aucun autre corps, aucune table dupliquee.
+  `size="etiquette" | "display"` et un `timeZone` facultatif (voir Chrome
+  commun, horloges). Aucun autre corps, aucune table dupliquee.
 - Deux fontes maximum, une seule graisse par fonte. Texte en **français, en
   capitales, sans accents** dans l'interface (contrainte de mire).
 - Les deux fontes sont **auto-hébergées** (`public/fonts/*.woff2`, sous-ensemble
@@ -142,8 +143,22 @@ s'arrête toujours hors écran, sous `mire:modal` et en onglet caché.
 
 - `TopBar` (`chrome.tsx`) sur chaque page : `MIRE` puis `INDEX / ATELIER /
   CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`, et un
-  emplacement à droite propre à la page (studio, numéro / année, horloge,
-  fiche). Sous 768 px, la console en bas d'écran porte la navigation.
+  emplacement à droite propre à la page (rôle de MIRE, numéro / année,
+  horloge, fiche). Sous 768 px, la console en bas d'écran porte la navigation.
+- Colophon (`index.tsx`, exporté et repris par chaque page) : signature
+  `MIRE — GRAPHISTE INDEPENDANT`, courriel et téléphone, procédé, encres ; en
+  bas, l'année, `HEURE LOCALE`, et les liens `ATELIER / BANC`, `CONTACT`,
+  `MENTIONS LEGALES` (`/contact#mentions`).
+- Horloges : sans fuseau, une horloge donne l'heure du visiteur et le dit
+  (`HEURE LOCALE` au colophon, `HEURE ATELIER` sur l'établi). La fiche de
+  contact est la seule à donner l'heure de la ville (`STUDIO.timeZone`),
+  étiquetée `HEURE BORDEAUX` : elle se lit à côté des horaires. Deux horloges
+  sur une même page portent toujours deux étiquettes qui disent laquelle est
+  laquelle.
+- Relevés (fiche de contact, mentions légales, composant `Releve`) : deux
+  colonnes à partir de 768 px ; un nombre impair de lignes étend la dernière
+  sur toute la largeur au lieu de laisser un trou. Une ligne facultative
+  (SIRET, hébergeur) n'apparaît que renseignée : jamais de valeur inventée.
 - Gouttières bureau : la réglette occupe la marge gauche (2 cellules),
   l'inverseur `NEGATIF [N]` la marge droite (3 cellules). Aucun contenu ne
   passe sous l'un ou l'autre.
@@ -312,8 +327,12 @@ src/
                        mireText() : capitales sans accents
     ink.ts             captureInk() : carte d'encre de l'ecran, une valeur par
                        cellule, relevee sur les canvas et les surfaces du DOM
+    identite.ts        identite de MIRE (STUDIO) : Remi Marty, graphiste
+                       independant ; seule source des coordonnees, du role,
+                       des domaines, du delai de reponse et des mentions.
+                       Sans framework : lue par site.ts et par scripts/og.ts
     site.ts            origine absolue du site (og:image, canonical, sitemap),
-                       chemin des cartes, identite du studio (STUDIO)
+                       chemin des cartes ; re-exporte l'identite
     modal.ts           lockPage / unlockPage : verrou de page partage par les
                        masques (inert, mire-modal, overflow), imbricable
   components/
@@ -331,7 +350,8 @@ src/
     help.tsx           KeyHelp — fiche de commande (raccourcis)
     bars.tsx           CalibrationBand, Ticker
     boot.tsx           BootSequence, GridCursor, NegativeSwitch, RouteWipe
-    bitmap-extras.tsx  BitmapClock, BitmapBoard (automate 23/3), NoiseField
+    bitmap-extras.tsx  BitmapClock (fuseau facultatif), BitmapBoard
+                       (automate 23/3), NoiseField
   hooks/
     use-mobile.tsx     useIsMobile() — reste du gabarit, mais `__root.tsx`
                        s'en sert pour choisir la reglette (bureau) ou la
@@ -343,11 +363,13 @@ src/
                        (manifeste) + Colophon (exporté et réutilisé)
     projet.$slug.tsx   page projet
     atelier.tsx        instruments manipulables
-    contact.tsx        fiche de calibration (coordonnees, horaires, mentions)
+    contact.tsx        fiche de calibration (coordonnees, horaires, delai),
+                       mentions legales (#mentions)
     sitemap[.]xml.tsx  route serveur : plan du site en URL absolues
     robots[.]txt.tsx   route serveur : robots.txt qui declare le sitemap
 scripts/
-  og.ts                export 1-bit : cartes de partage, icones, favicon
+  og.ts                export 1-bit : cartes de partage, icones, favicon ;
+                       nom et description du manifeste, depuis l'identite
 public/og/             cartes generees (mire.png + une par slug), versionnees
 public/icons/          icones PWA / iOS generees (M en 5 x 5 blocs, 1 bit)
 public/fonts/          Anton et JetBrains Mono auto-hebergees (woff2)
@@ -357,8 +379,11 @@ public/fonts/          Anton et JetBrains Mono auto-hebergees (woff2)
 
 - `<link rel="canonical">` et `og:url` sur chaque page, en URL absolue.
 - `og:site_name`, `og:locale`, `theme-color`, `manifest.webmanifest`
-  (installation sur ecran d'accueil : tuile noire, M blanc en blocs).
-- Donnees structurees JSON-LD : `Organization` (racine, depuis `STUDIO`) et
+  (installation sur ecran d'accueil : tuile noire, M blanc en blocs ; nom et
+  description reecrits par `bun run og` depuis l'identite).
+- Donnees structurees JSON-LD : `Organization` (racine, depuis `STUDIO` :
+  `legalName`, `founder` = `Person` avec son `jobTitle`, `knowsAbout` = les
+  domaines, adresse postale) et
   `CreativeWork` par projet (titre, annee, nature, client, carte 1 bit).
 - `/sitemap.xml` et `/robots.txt` sont des routes serveur : l'origine vient de
   la requete (ou de `VITE_SITE_URL`), rien n'est code en dur.
@@ -369,7 +394,8 @@ public/fonts/          Anton et JetBrains Mono auto-hebergees (woff2)
 ### Cartes de partage (`og:image`)
 
 `bun run og` genere `public/og/<slug>.png` pour chaque projet et
-`public/og/mire.png` pour le studio : des **PNG a 1 bit par pixel**, 1200 x 630,
+`public/og/mire.png` pour MIRE (le nom en blocs sous une bande de calibration,
+le role en fonte 3x5 dessous) : des **PNG a 1 bit par pixel**, 1200 x 630,
 moins de 1 Ko chacun. Aucun navigateur : le JPEG est decode en pur JS, reduit
 par moyenne de bloc avec le meme recadrage `cover` que le site (`coverCrop`),
 seuille par `bitsFromRGBA` avec un seuil d'Otsu borne a 0,30–0,60
@@ -382,7 +408,7 @@ carte s'affiche a cote d'autres interfaces.
 Les routes declarent `og:image`, `og:image:width/height/type/alt` et
 `twitter:image` avec une URL absolue : `VITE_SITE_URL` si elle est definie,
 sinon l'origine de la requete (`siteOrigin`, `src/lib/site.ts`). Relancer
-`bun run og` a chaque ajout ou changement d'image de projet, et commiter les
+`bun run og` a chaque ajout ou changement d'image de projet ou d'identite, et commiter les
 PNG : ils sont servis tels quels depuis `public/`.
 
 ### Modes de lecture d'un média (`BitMode`)
@@ -415,6 +441,19 @@ image.
    (une phrase qui décrit réellement l'image, jamais le titre du projet).
 3. Rien d'autre : l'index, le survol en négatif, la page projet et le bloc
    « SUITE » se génèrent depuis ce fichier.
+
+### L'identité (coordonnées, rôle, domaines, mentions)
+
+1. Modifier `src/lib/identite.ts`, et lui seul : aucune coordonnée n'est écrite
+   ailleurs. Titres d'onglet, descriptions, fiche de contact, mentions
+   légales, colophon, bandeau, données structurées et horloge en découlent.
+2. `bun run og` : refait la carte de partage `mire.png` et le manifeste.
+3. `bun run test` (ou `MIRE_SUITES=identite bun run test`) : la suite
+   `identite` relit la source et vérifie que tout le site dit la même chose ;
+   elle échoue si une coordonnée est recopiée en dur hors de la source.
+
+`postalCode`, `siret` et `hebergeur` sont facultatifs : absents, leur ligne
+disparaît. Ne jamais remplir une valeur qu'on n'a pas.
 
 ### Une photo ou une vidéo personnelle
 
@@ -509,6 +548,13 @@ Fait :
 - [x] `/atelier` : automate 23/3, planche de bruit, horloge en blocs,
       histogramme et seuil (instrument 04), miroir (instrument 05).
 - [x] `/contact` : fiche de calibration + `head()` dedie.
+- [x] Identite reelle : Remi Marty, graphiste independant a Bordeaux, qui
+      signe MIRE. Source unique `identite.ts` ; coordonnees, role, domaines
+      (identite visuelle, edition), delai de reponse et mentions en
+      decoulent ; carte de partage et manifeste regeneres ; suite de tests
+      `identite`.
+- [x] Mentions legales sur `/contact#mentions`, liees depuis le colophon :
+      editeur, adresse, contact, directeur de la publication.
 - [x] 404 et page d'erreur redessinees en mire (aucun style shadcn residuel).
 - [x] Passe responsive 393 / 820 / 1440 px, aucun debordement horizontal.
 - [x] Transition de page en trois temps (`RouteWipe`, 1500 ms, masque plein
@@ -705,7 +751,12 @@ Regles propres a cet instrument, non negociables :
   n'est pose.
 
 Reste a faire :
-- [ ] Remplacer les 4 images de demonstration par les vrais projets.
+- [ ] Remplacer les 4 projets de demonstration par les vrais : images ET
+      textes (leurs clients, natures et annees sont fictifs). Bloquant pour
+      une mise en ligne publique.
+- [ ] Hebergeur dans les mentions legales (`STUDIO.hebergeur` : nom, adresse,
+      telephone de l'hebergeur de production).
+- [ ] SIRET des l'immatriculation (`STUDIO.siret`).
 - [ ] Video reelle sur au moins une page projet, testee en `gris` et `brut`.
 
 
@@ -734,7 +785,8 @@ arrete tout — meme en cas d'echec. Elle sort en 0 ou en 1.
 Les suites couvrent la checklist ci-dessus sur 3 largeurs et 5 routes, puis
 l'instrument 05 : cycle de vie de la camera, vie privee, clavier et focus,
 creux et cartouche, etiquette, photo demesuree, non-regressions du reste du
-site.
+site ; et l'identite : source unique, fiche, mentions, colophon, donnees
+structurees, heure de la ville.
 
 Avec `run` : `bun test` appellerait le coureur de bun, qui ne monte ni les
 pieces ni le serveur. Elle demande Node 22 ou plus a cote de bun, le lanceur
