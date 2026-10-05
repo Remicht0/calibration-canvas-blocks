@@ -153,6 +153,7 @@ export function BlockType({
   drive = "time",
   erodible = true,
   negative = false,
+  maxHeight,
 }: {
   text: string;
   className?: string;
@@ -163,6 +164,11 @@ export function BlockType({
   erodible?: boolean;
   /** blocs blancs sur fond noir (page d'erreur) */
   negative?: boolean;
+  /**
+   * Plafond de hauteur, en part de l'ecran : au-dela, le titre se compose sur
+   * moins de colonnes, cale a gauche, plutot que de repousser la page.
+   */
+  maxHeight?: number;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -235,7 +241,16 @@ export function BlockType({
       const w = el.clientWidth;
       cols = Math.max(8, Math.floor(w / cell));
       // sous 3 colonnes par caractere, le titre passe sur plusieurs lignes, calees a gauche
-      rows = Math.max(3, Math.round(textBlockHeight(text, DISPLAY_FONT, cols * cell, cell) / cell));
+      const hauteur = (c: number) =>
+        Math.max(3, Math.round(textBlockHeight(text, DISPLAY_FONT, c * cell, cell) / cell));
+      rows = hauteur(cols);
+      const plafond = maxHeight
+        ? Math.max(3, Math.floor((maxHeight * window.innerHeight) / cell))
+        : 0;
+      if (plafond && rows > plafond) {
+        cols = Math.max(8, Math.floor((cols * plafond) / rows));
+        rows = hauteur(cols);
+      }
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       cv.style.width = `${cols * cell}px`;
       cv.style.height = `${rows * cell}px`;
@@ -397,7 +412,7 @@ export function BlockType({
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [text, loop, drive, erodible, negative]);
+  }, [text, loop, drive, erodible, negative, maxHeight]);
 
   return (
     <div ref={wrap} className={className}>

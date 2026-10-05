@@ -116,13 +116,21 @@ const TITLE_GAP = 1;
 /**
  * Decoupe d'un titre pour cols colonnes. Une seule ligne tant que chaque
  * caractere garde TITLE_MIN_COLS colonnes ; sinon des lignes d'au plus
- * cols / TITLE_MIN_COLS caracteres, coupees entre les mots, jamais dans un mot :
- * un mot seul trop long garde sa ligne.
+ * cols / TITLE_MIN_COLS caracteres, coupees entre les mots. Un mot plus long
+ * que la ligne se coupe en morceaux egaux (CHAMPI / THEQUE) : garde entier, il
+ * passerait sous 3 colonnes par lettre et ne se lirait plus.
  */
 export function titleLines(text: string, cols: number): string[] {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  if (words.length < 2 || cols / text.length >= TITLE_MIN_COLS) return [text];
+  const t = text.trim();
+  if (!t || cols / t.length >= TITLE_MIN_COLS) return [text];
   const max = Math.max(1, Math.floor(cols / TITLE_MIN_COLS));
+  const words = t.split(/\s+/).flatMap((w) => {
+    if (w.length <= max) return [w];
+    const size = Math.ceil(w.length / Math.ceil(w.length / max));
+    const parts: string[] = [];
+    for (let i = 0; i < w.length; i += size) parts.push(w.slice(i, i + size));
+    return parts;
+  });
   const lines: string[] = [];
   let line = "";
   for (const w of words) {
@@ -157,14 +165,24 @@ function layoutTitle(
   c.font = `100px ${font}`;
   const ms = lines.map((l) => c.measureText(l));
   const k = cols / Math.max(1, ...ms.map((m) => m.width));
+  const cap = capAscent(c);
   let y = 0;
   const bands = ms.map((m) => {
-    const h = Math.max(1, Math.round((m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) * k));
+    const h = Math.max(1, Math.round((cap + m.actualBoundingBoxDescent) * k));
     const band = { y, h };
     y += h + TITLE_GAP;
     return band;
   });
   return { size: 100 * k, bands, rows: y - TITLE_GAP };
+}
+
+/**
+ * Hauteur de capitale de la fonte courante. Les titres se calent dessus et non
+ * sur la hauteur reelle du texte : le depassement optique d'un O ou d'un C ne
+ * laisse plus de bloc isole au-dessus de la ligne (MOIRE lu « MÒIRE »).
+ */
+function capAscent(c: CanvasRenderingContext2D) {
+  return c.measureText("H").actualBoundingBoxAscent;
 }
 
 /**
@@ -187,7 +205,7 @@ export function textBlockHeight(
   const size = (widthPx / Math.max(m.width, 1)) * 100;
   c.font = `${size}px ${font}`;
   const mm = c.measureText(text);
-  return Math.max(1, mm.actualBoundingBoxAscent + mm.actualBoundingBoxDescent);
+  return Math.max(1, capAscent(c) + mm.actualBoundingBoxDescent);
 }
 
 /**
@@ -218,12 +236,13 @@ export function blockifyText(
     const y0 = ((rows - lay.rows * f) / 2) * scale;
     c.textAlign = align;
     c.font = `${lay.size * f * scale}px ${font}`;
+    const cap = capAscent(c);
     lines.forEach((l, i) => {
       const m = c.measureText(l);
       const b = lay.bands[i]!;
-      const h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+      const h = cap + m.actualBoundingBoxDescent;
       const top = y0 + b.y * f * scale;
-      const baseline = top + (b.h * f * scale - h) / 2 + m.actualBoundingBoxAscent;
+      const baseline = top + (b.h * f * scale - h) / 2 + cap;
       c.fillText(l, align === "left" ? x0 : off.width / 2, baseline);
     });
   } else {
@@ -232,8 +251,9 @@ export function blockifyText(
     const size = (off.width / Math.max(c.measureText(text).width, 1)) * 100;
     c.font = `${size}px ${font}`;
     const m = c.measureText(text);
-    const h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
-    const baseline = (off.height - h) / 2 + m.actualBoundingBoxAscent;
+    const cap = capAscent(c);
+    const h = cap + m.actualBoundingBoxDescent;
+    const baseline = (off.height - h) / 2 + cap;
     c.fillText(text, off.width / 2, baseline);
   }
 

@@ -140,11 +140,21 @@ const lireTitre = (page) =>
     };
   });
 
-/** La decoupe de titleLines (src/lib/mire.ts) : sous 3 colonnes par caractere, coupee entre les mots. */
+/**
+ * La decoupe de titleLines (src/lib/mire.ts) : sous 3 colonnes par caractere,
+ * coupee entre les mots ; un mot plus long que la ligne en morceaux egaux.
+ */
 function lignesAttendues(texte, cols) {
-  const mots = texte.trim().split(/\s+/);
-  if (mots.length < 2 || cols / texte.length >= 3) return [texte];
+  const t = texte.trim();
+  if (!t || cols / t.length >= 3) return [texte];
   const max = Math.max(1, Math.floor(cols / 3));
+  const mots = t.split(/\s+/).flatMap((m) => {
+    if (m.length <= max) return [m];
+    const taille = Math.ceil(m.length / Math.ceil(m.length / max));
+    const morceaux = [];
+    for (let i = 0; i < m.length; i += taille) morceaux.push(m.slice(i, i + taille));
+    return morceaux;
+  });
   const lignes = [];
   let ligne = "";
   for (const m of mots) {
@@ -170,6 +180,11 @@ test("titres en blocs : sur plusieurs lignes quand ils ne tiennent pas, lus par 
       const attendu = lignesAttendues(t.texte, t.cols);
       const tag = `${l} px ${t.texte} (${t.cols} col.)`;
       verifie(`${tag} : sur la grille`, t.grille);
+      verifie(
+        `${tag} : chaque lettre garde au moins 3 colonnes`,
+        attendu.length === 1 || Math.max(...attendu.map((x) => x.length)) * 3 <= t.cols,
+        JSON.stringify(attendu),
+      );
       verifie(
         `${tag} : ${attendu.length} ligne(s), coupees entre les mots`,
         t.bandes.length === attendu.length,

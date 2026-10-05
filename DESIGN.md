@@ -116,8 +116,9 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
 Composition d'un titre en blocs (`titleLines`, `mire.ts`) : pleine largeur sur
 une ligne tant que chaque caractère garde au moins 3 colonnes
 (`TITLE_MIN_COLS`, espaces comptés). En dessous, il passe sur plusieurs lignes
-d'au plus `floor(cols / 3)` caractères, coupées entre les mots et jamais dans
-un mot (un mot seul trop long garde sa ligne). Toutes les lignes ont le même
+d'au plus `floor(cols / 3)` caractères, coupées entre les mots ; un mot plus
+long que la ligne se coupe en morceaux égaux, sans tiret (CHAMPI / THEQUE) :
+entier, il passerait sous 3 colonnes par lettre. Toutes les lignes ont le même
 corps, celui qui fait tenir la plus large ; chaque ligne occupe un nombre
 entier de rangées, avec une rangée vide d'interligne. Calées à gauche dans la
 page, centrées dans la transition. Exemple, CARTE POSTALE : 22 x 13 en 393 px,
