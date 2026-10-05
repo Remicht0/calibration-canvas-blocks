@@ -239,7 +239,9 @@ body {
 /* ---- Impression : noir seul, aucun repere rouge ---- */
 @media print {
   .mire-noprint,
-  .mire-keep {
+  .mire-keep,
+  /* un element fixe en difference est un instrument (curseur bloc, reglette) */
+  .fixed.mix-blend-difference {
     display: none !important;
   }
 
@@ -248,6 +250,28 @@ body {
     background: #ffffff !important;
     color: #000000 !important;
     filter: none !important;
+  }
+
+  /* le negatif est une lecture d'ecran : la feuille reste encre sur papier */
+  main,
+  .mire-chrome {
+    filter: none !important;
+  }
+
+  /* les aplats noirs (.on-black, blocs presses) sont de l'encre, pas un decor :
+     sans eux, l'encre blanche qu'ils portent disparaitrait sur le papier,
+     que l'option « graphiques d'arriere-plan » soit cochee ou non */
+  html {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* un canvas est compose a la largeur de l'ecran : sur la feuille il se
+     ramene a la page, proportions gardees, blocs francs (aucun lissage) */
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
+    image-rendering: pixelated;
   }
 
   * {
