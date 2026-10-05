@@ -85,8 +85,8 @@ export const projects: Project[] = [
     client: "MARQUE PERSONNELLE",
     image: moireLogotype,
     alt: "Le logotype « moiré » en lettres rouges épaisses et arrondies, imprimé en trame de points sur un fond crème.",
-    // le rouge passe en encre, le creme en blanc : le mot se lit en blocs
-    lecture: { mode: "bin", threshold: 0.5, ratio: 0.42 },
+    // en gris, les lettres rouges et leur ombre noire se separent ; en bin elles font un aplat
+    lecture: { mode: "gris", ratio: 0.42 },
     lines: [
       "Identite de MOIRE, ma marque de vetements. Un logotype en volume, decline en rouge et en bleu, lisse, gonfle ou trame.",
       "Un embleme en pixels sur une grille de 36 x 30 : un chevalier qui plante son epee dans un dragon, pense pour le tampon. Une couleur, un coup.",
@@ -213,7 +213,8 @@ export const projects: Project[] = [
     client: "PROJET BIOSPHERE URBAINE",
     image: champiDepliant,
     alt: "Les sept volets du livret « Champithèque urbaine » côte à côte : titres noirs condensés, pictogrammes noirs et pastilles vert sapin sur papier crème.",
-    lecture: { mode: "bin", threshold: 0.5, ratio: 0.4 },
+    // sept volets en 65 colonnes : les paliers gardent la texture que le seuil efface
+    lecture: { mode: "gris", ratio: 0.4 },
     lines: [
       "Champitheque urbaine : un mode d'emploi en sept volets pour construire une tour de culture de pleurotes et faire pousser le vivant en ville.",
       "Un volet par etape : pourquoi une filiere, le materiel, construire la tour, percer et suspendre, preparer le substrat, inoculer, incuber, fructifier.",
@@ -227,7 +228,7 @@ export const projects: Project[] = [
         alt: "Volets 1 et 2 : la couverture « Champithèque urbaine » avec une tour couverte de pleurotes, puis le cycle de la filière, de la paille à la récolte.",
         label: "VOLETS 01-02",
         mode: "bin",
-        threshold: 0.5,
+        threshold: 0.7,
         ratio: 1.41,
       },
       {
@@ -235,7 +236,7 @@ export const projects: Project[] = [
         alt: "Volets 3 et 4 : le matériel en pictogrammes (tasseaux, corde, chaux, gants, masque) et la construction de la tour en quatre étapes.",
         label: "VOLETS 03-04",
         mode: "bin",
-        threshold: 0.5,
+        threshold: 0.7,
         ratio: 1.41,
       },
       {
@@ -243,7 +244,7 @@ export const projects: Project[] = [
         alt: "Volets 5 à 7 : percer et suspendre la tour, préparer le substrat, puis inoculer, incuber et faire fructifier.",
         label: "VOLETS 05-07",
         mode: "bin",
-        threshold: 0.5,
+        threshold: 0.7,
         ratio: 0.94,
       },
     ],
@@ -262,7 +263,7 @@ export const projects: Project[] = [
     client: "PROJET DE GROUPE / MARQUE DE VETEMENTS",
     image: gnafLogo,
     alt: "Le logo « gnaf. » en minuscules noires aux contours découpés, suivi d'un point, sur fond blanc.",
-    lecture: { mode: "bin", threshold: 0.5, ratio: 0.72 },
+    lecture: { mode: "bin", threshold: 0.7, ratio: 0.72 },
     lines: [
       "GNAF est une marque de vetements imaginee en groupe. Ma part : le logotype et les recherches de lettrage.",
       "Dix pistes, des capitales taillees aux minuscules etroites, jusqu'au logo retenu : gnaf, en lettres decoupees, avec un point.",
@@ -275,7 +276,7 @@ export const projects: Project[] = [
         alt: "Planche de dix recherches de lettrage : GNAF en capitales à gauche, gnaf en minuscules à droite, dans des styles taillés, étroits ou irréguliers.",
         label: "RECHERCHES DE LETTRAGE",
         mode: "bin",
-        threshold: 0.5,
+        threshold: 0.7,
         ratio: 1.33,
       },
     ],
