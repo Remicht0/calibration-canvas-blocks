@@ -52,6 +52,12 @@ export const STUDIO: Studio = {
   founded: "2023",
   timeZone: "Europe/Paris",
   delaiReponse: "48 heures ouvrées",
+  // le site est servi par Cloudflare Workers (cible du build), sous le domaine de MIRE
+  hebergeur: {
+    nom: "Cloudflare, Inc.",
+    adresse: "101 Townsend St, San Francisco, CA 94107, États-Unis",
+    telephone: "+1 650 319 8930",
+  },
 };
 
 const minuscule = (s: string) => s.charAt(0).toLocaleLowerCase("fr") + s.slice(1);
