@@ -329,13 +329,19 @@ export function HybridMedia({
 
     // resolution du canvas : 2x suffit aux blocs ; une planche qui propose NET
     // va jusqu'a 3x, sinon l'image nette serait agrandie (donc douce) sur un
-    // telephone. Une seule regle pour build() et draw(), qui doivent s'accorder.
+    // telephone. build() la fixe ; draw() dessine a celle du bitmap, jamais a
+    // celle du moment (une fenetre glissee vers un autre ecran change de
+    // resolution sans changer de taille : le dessin serait decale).
     const dprOf = () => Math.min(window.devicePixelRatio || 1, net ? 3 : 2);
+    let lastCols = 0;
+    let lastRows = 0;
+    let lastCell = 0;
+    let lastDpr = 0;
 
     const draw = () => {
       const ctx = cv.getContext("2d");
       if (!ctx || !data) return;
-      const dpr = dprOf();
+      const dpr = lastDpr || dprOf();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const m = modeRef.current;
       // NET : la source elle-meme, a la resolution de l'ecran ; la loupe n'a plus rien a reveler
@@ -354,10 +360,6 @@ export function HybridMedia({
     };
     redraw.current = draw;
 
-    let lastCols = 0;
-    let lastRows = 0;
-    let lastCell = 0;
-    let lastDpr = 0;
     const build = () => {
       if (!media || !isReady(media)) return;
       cell = cellSizeFor(window.innerWidth);
@@ -672,6 +674,21 @@ export function HybridMedia({
     const ro = new ResizeObserver(() => build());
     ro.observe(el);
 
+    // changement de resolution a taille egale (fenetre glissee d'un ecran a
+    // l'autre) : le ResizeObserver ne voit rien, la planche se refait a la
+    // nouvelle resolution, sans retomber (progress est garde)
+    let resolution: MediaQueryList | null = null;
+    const onResolution = () => {
+      watchResolution();
+      build();
+    };
+    const watchResolution = () => {
+      resolution?.removeEventListener("change", onResolution);
+      resolution = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+      resolution.addEventListener("change", onResolution);
+    };
+    watchResolution();
+
     return () => {
       dead = true;
       disarm();
@@ -684,6 +701,7 @@ export function HybridMedia({
       window.removeEventListener("afterprint", onAfterPrint);
       io.disconnect();
       ro.disconnect();
+      resolution?.removeEventListener("change", onResolution);
       cv.removeEventListener("pointerenter", onEnter);
       cv.removeEventListener("pointerdown", onDown);
       cv.removeEventListener("pointermove", onMove);
@@ -756,7 +774,10 @@ export function HybridMedia({
             <span
               role="group"
               aria-label="Réglage de la planche"
-              className="flex min-h-cell2 min-w-0 basis-full flex-wrap items-center justify-end gap-[6px] sm:flex-1 sm:basis-auto"
+              // sous 640 px, dans la page, le reglage passe sous les modes : il disparait en
+              // BRUT et en NET sans faire remonter NET ni glisser PLEIN sous le doigt. Le
+              // cartouche du plein cadre est cale en bas : la, l'ordre d'origine tient les modes
+              className={`flex min-h-cell2 min-w-0 basis-full flex-wrap items-center justify-end gap-[6px] sm:flex-1 sm:basis-auto ${viewport ? "" : "order-last sm:order-none"}`}
             >
               <span>{mode === "bin" ? "SEUIL" : "PALIERS"}</span>
               <BitReadout
