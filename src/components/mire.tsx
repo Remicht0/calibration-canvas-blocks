@@ -461,8 +461,10 @@ export function BlockBackdrop({ src }: { src: string | null }) {
         size();
         const trame = sample(img, cols, rows);
         if (!trame) return;
-        // seuil d'Otsu borne sur la trame echantillonnee (comme AUTO et les cartes
-        // de partage) : un logotype rouge ou une photo sombre ne font pas un aplat
+        // seuil d'Otsu borne a 0,30-0,60 sur la trame echantillonnee, comme les
+        // cartes de partage (scripts/og.ts) : une photo sombre ou claire ne fait
+        // plus un aplat. Un recadrage qui n'est qu'une masse unie (le logotype de
+        // MOIRE dans la bande de la SUITE) le reste : aucun seuil n'y peut rien.
         const t = otsuThreshold(trame.lum, 0.3, 0.6);
         bits = { cols, rows, data: Uint8Array.from(trame.lum, (l) => (l < t ? 1 : 0)) };
         order = fallOrder(cols, rows, cols + 3);
