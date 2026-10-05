@@ -143,16 +143,24 @@ function Index() {
 
   return (
     <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
-      {/* ENTREE */}
+      {/* ENTREE — le premier ecran laisse voir sous elle l'en-tete IDX et la
+          premiere ligne de l'index, au-dessus du chrome fixe du bas. La hauteur
+          retiree a l'ecran est la somme : filet 10 px, en-tete (4 cellules + une
+          ligne mono), premiere ligne (2 cellules + 0,9 x le corps du titre, plus
+          la ligne annee / nature en mobile), gouttiere basse (console : 6
+          cellules en mobile ; AIDE : 3 cellules + 1 d'air au bureau). */}
       <section
         data-mire="ENTREE"
-        className="flex min-h-screen flex-col justify-between px-cell py-cell2"
+        className="flex min-h-[calc(100svh-var(--cell)*12-11.7vw-48px)] flex-col justify-between px-cell py-cell2 md:min-h-[calc(100svh-var(--cell)*10-4.95vw-29px)]"
       >
         <TopBar right={mireText(STUDIO.role)} />
 
-        <div>
-          <BlockType text="MIRE" drive="scan" />
-          <p className="u-copy mt-cell2 max-w-[46ch]">
+        {/* a partir de lg, la copie passe a droite du titre : sur pleine largeur,
+            MIRE fait plus de 500 px de haut en 1440 et repousserait l'index
+            sous le premier ecran */}
+        <div className="lg:flex lg:items-end lg:gap-cell2">
+          <BlockType text="MIRE" drive="scan" className="min-w-0 lg:flex-1" />
+          <p className="u-copy mt-cell2 max-w-[46ch] lg:mt-0 lg:shrink-0">
             IMAGE DE CALIBRATION — CHAQUE SURFACE EST REDUITE A DEUX VALEURS, NOIR PLEIN OU BLANC
             PLEIN, SUR UNE GRILLE DE BLOCS. LE SITE NE DECORE PAS. IL CALIBRE.
           </p>
@@ -166,21 +174,6 @@ function Index() {
           </Link>
         </div>
       </section>
-
-      <CalibrationBand height={6} seed={2} className="border-y-[10px] border-black" />
-
-      <Ticker
-        items={[
-          "SEUIL 0.45",
-          "NOIR 000000",
-          "BLANC FFFFFF",
-          "REPERE FF0000",
-          "PAS 16 / 20 PX",
-          "AUCUN DEGRADE",
-          "AUCUNE OMBRE",
-          "TOUCHE [N] — INVERSER LE SIGNAL",
-        ]}
-      />
 
       {/* INDEX */}
       <section
@@ -250,6 +243,21 @@ function Index() {
           <div className="h-cell4" />
         </div>
       </section>
+
+      <CalibrationBand height={6} seed={2} className="border-y-[10px] border-black" />
+
+      <Ticker
+        items={[
+          "SEUIL 0.45",
+          "NOIR 000000",
+          "BLANC FFFFFF",
+          "REPERE FF0000",
+          "PAS 16 / 20 PX",
+          "AUCUN DEGRADE",
+          "AUCUNE OMBRE",
+          "TOUCHE [N] — INVERSER LE SIGNAL",
+        ]}
+      />
 
       {/* BANC D'ESSAI — la meme source lue en trois profondeurs */}
       <section
