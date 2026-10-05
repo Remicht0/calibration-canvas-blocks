@@ -1,13 +1,14 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BlockBackdrop, BlockType } from "@/components/mire";
 import { TopBar } from "@/components/chrome";
 import { HybridMedia } from "@/components/media";
 import { CalibrationBand } from "@/components/bars";
 import type { BitMode } from "@/lib/bitmap";
 import { mireText } from "@/lib/glyphs";
-import { bySlug, projects, type Lecture, type Project } from "@/lib/projects";
+import { bySlug, fondOf, projects, type Lecture, type Project } from "@/lib/projects";
 import { metier, ogPath, siteOrigin, STUDIO } from "@/lib/site";
+import { useTeteTactile } from "@/lib/tete";
 import { Colophon } from "./index";
 
 export const Route = createFileRoute("/projet/$slug")({
@@ -116,7 +117,6 @@ function serieOf(p: Project): PlancheVue[] {
 function ProjectPage() {
   const p = Route.useLoaderData();
   const navigate = useNavigate();
-  const [hover, setHover] = useState<string | null>(null);
   const i = projects.findIndex((o) => o.slug === p.slug);
   const n = projects.length;
   const prev = projects[(i - 1 + n) % n]!;
@@ -287,44 +287,66 @@ function ProjectPage() {
         </div>
       </section>
 
-      {/* SUITE : les autres projets, l'image du projet survole se compose en negatif */}
-      <section data-mire="SUITE" className="on-black relative border-t-[10px] border-black">
-        <BlockBackdrop src={hover} />
-        <div
-          className="relative px-cell py-cell2"
-          style={{ mixBlendMode: "difference", color: "#FFFFFF" }}
-          onMouseLeave={() => setHover(null)}
-          onBlur={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget)) setHover(null);
-          }}
-        >
-          <div className="u-mono mb-cell2 flex flex-wrap justify-between gap-cell">
-            <h2>SUITE</h2>
-            <span className="hidden md:inline">FLECHES DU CLAVIER : PRECEDENT / SUIVANT</span>
-          </div>
-          <ul>
-            {others.map((o) => (
-              <li key={o.slug}>
-                <Link
-                  to="/projet/$slug"
-                  params={{ slug: o.slug }}
-                  onMouseEnter={() => setHover(o.image)}
-                  onFocus={() => setHover(o.image)}
-                  className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_12ch]"
-                >
-                  <span>{o.num}</span>
-                  <span className="u-display block text-[8vw] leading-[0.9] md:text-[3.2vw]">
-                    {o.title}
-                  </span>
-                  <span className="hidden md:block">{tag(o)}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+      <Suite key={p.slug} others={others} tag={tag} />
 
       <Colophon />
     </main>
+  );
+}
+
+/**
+ * SUITE : les autres projets. L'image du projet survole se compose en negatif ;
+ * en tactile, c'est celle de la ligne que croise la ligne rouge. Une instance
+ * par projet (cle = slug) : rien de la page precedente ne reste allume.
+ */
+function Suite({ others, tag }: { others: Project[]; tag: (o: Project) => string }) {
+  const [hover, setHover] = useState<string | null>(null);
+  const lignes = useRef<Array<HTMLElement | null>>([]);
+  useTeteTactile(lignes, (k) => {
+    const o = k === null ? undefined : others[k];
+    setHover(o ? fondOf(o) : null);
+  });
+
+  return (
+    <section data-mire="SUITE" className="on-black relative border-t-[10px] border-black">
+      <BlockBackdrop src={hover} />
+      <div
+        className="relative px-cell py-cell2"
+        style={{ mixBlendMode: "difference", color: "#FFFFFF" }}
+        onMouseLeave={() => setHover(null)}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget)) setHover(null);
+        }}
+      >
+        <div className="u-mono mb-cell2 flex flex-wrap justify-between gap-cell">
+          <h2>SUITE</h2>
+          <span className="hidden md:inline">FLECHES DU CLAVIER : PRECEDENT / SUIVANT</span>
+        </div>
+        <ul>
+          {others.map((o, k) => (
+            <li
+              key={o.slug}
+              ref={(el) => {
+                lignes.current[k] = el;
+              }}
+            >
+              <Link
+                to="/projet/$slug"
+                params={{ slug: o.slug }}
+                onMouseEnter={() => setHover(fondOf(o))}
+                onFocus={() => setHover(fondOf(o))}
+                className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_12ch]"
+              >
+                <span>{o.num}</span>
+                <span className="u-display block text-[8vw] leading-[0.9] md:text-[3.2vw]">
+                  {o.title}
+                </span>
+                <span className="hidden md:block">{tag(o)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
   );
 }
