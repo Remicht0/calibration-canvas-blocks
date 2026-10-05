@@ -7,11 +7,14 @@ import {
   erode,
   fallOrder,
   heal,
+  otsuThreshold,
   prefersReducedMotion,
   scanLineTop,
   textBlockHeight,
+  titleLines,
   type Bits,
 } from "@/lib/mire";
+import { sample } from "@/lib/bitmap";
 
 /* ------------------------------------------------------------------ */
 /* Image 1-bit qui se compose par chute de blocs a l'entree en ecran   */
@@ -151,6 +154,7 @@ export function BlockType({
   drive = "time",
   erodible = true,
   negative = false,
+  maxHeight,
 }: {
   text: string;
   className?: string;
@@ -161,6 +165,11 @@ export function BlockType({
   erodible?: boolean;
   /** blocs blancs sur fond noir (page d'erreur) */
   negative?: boolean;
+  /**
+   * Plafond de hauteur, en part de l'ecran : au-dela, le titre se compose sur
+   * moins de colonnes, cale a gauche, plutot que de repousser la page.
+   */
+  maxHeight?: number;
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -202,6 +211,9 @@ export function BlockType({
     let pr = new Float32Array(0);
     let mix = new Float32Array(0);
     let dirty = false;
+    // impression : le titre est pose entier, ni lu par la ligne rouge, ni use,
+    // ni en cours de sequence ; il retrouve son etat au retour (afterprint)
+    let printing = false;
 
     const schedule = () => {
       if (!raf && !dead) raf = requestAnimationFrame(tick);
@@ -213,6 +225,10 @@ export function BlockType({
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       ctx.scale(dpr, dpr);
+      if (printing) {
+        drawBits(ctx, bits, order, { cell, progress: 1, negative });
+        return;
+      }
       let progress: number | Float32Array = seq;
       if (scan) {
         for (let y = 0; y < rows; y++) mix[y] = Math.min(seq, pr[y]!);
@@ -225,13 +241,33 @@ export function BlockType({
       cell = cellSizeFor(window.innerWidth);
       const w = el.clientWidth;
       cols = Math.max(8, Math.floor(w / cell));
-      rows = Math.max(3, Math.round(textBlockHeight(text, DISPLAY_FONT, cols * cell) / cell));
+      // sous 3 colonnes par caractere, le titre passe sur plusieurs lignes, calees a gauche
+      const hauteur = (c: number) =>
+        Math.max(3, Math.round(textBlockHeight(text, DISPLAY_FONT, c * cell, cell) / cell));
+      rows = hauteur(cols);
+      const plafond = maxHeight
+        ? Math.max(3, Math.floor((maxHeight * window.innerHeight) / cell))
+        : 0;
+      if (plafond && rows > plafond) {
+        // on retire des colonnes tant que la coupe ne change pas : une ligne de
+        // plus rendrait le titre plus haut, pas plus bas
+        const n = titleLines(text, cols).length;
+        for (let c = cols - 1; c >= 8; c--) {
+          if (titleLines(text, c).length > n) break;
+          const r = hauteur(c);
+          if (r <= plafond) {
+            cols = c;
+            rows = r;
+            break;
+          }
+        }
+      }
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       cv.style.width = `${cols * cell}px`;
       cv.style.height = `${rows * cell}px`;
       cv.width = cols * cell * dpr;
       cv.height = rows * cell * dpr;
-      bits = blockifyText(text, DISPLAY_FONT, cols, rows);
+      bits = blockifyText(text, DISPLAY_FONT, cols, rows, "left");
       order = fallOrder(cols, rows, 13);
       pr = new Float32Array(rows).fill(1);
       mix = new Float32Array(rows);
@@ -335,6 +371,20 @@ export function BlockType({
     };
     document.addEventListener("visibilitychange", onVisible);
 
+    // Une page defilee a fait lire son titre par la ligne rouge : sur la
+    // feuille, il sortirait vide. Il est pose entier d'un seul dessin.
+    const onBeforePrint = () => {
+      printing = true;
+      paint();
+    };
+    const onAfterPrint = () => {
+      printing = false;
+      dirty = scan;
+      schedule();
+    };
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
+
     const onScroll = () => {
       dirty = true;
       schedule();
@@ -368,10 +418,12 @@ export function BlockType({
       cv.removeEventListener("pointermove", onPointerMove);
       cv.removeEventListener("pointerleave", onPointerLeave);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [text, loop, drive, erodible, negative]);
+  }, [text, loop, drive, erodible, negative, maxHeight]);
 
   return (
     <div ref={wrap} className={className}>
@@ -456,7 +508,14 @@ export function BlockBackdrop({ src }: { src: string | null }) {
       img.onload = () => {
         if (dead) return;
         size();
-        bits = blockifyImage(img, cols, rows, 0.45);
+        const trame = sample(img, cols, rows);
+        if (!trame) return;
+        // seuil d'Otsu borne a 0,30-0,60 sur la trame echantillonnee, comme les
+        // cartes de partage (scripts/og.ts) : une photo sombre ou claire ne fait
+        // plus un aplat. Un recadrage qui n'est qu'une masse unie (le logotype de
+        // MOIRE dans la bande de la SUITE) le reste : aucun seuil n'y peut rien.
+        const t = otsuThreshold(trame.lum, 0.3, 0.6);
+        bits = { cols, rows, data: Uint8Array.from(trame.lum, (l) => (l < t ? 1 : 0)) };
         order = fallOrder(cols, rows, cols + 3);
         progress = 0;
         animate(1);

@@ -82,7 +82,9 @@ export function KeyHelp() {
         aria-haspopup="dialog"
         aria-keyshortcuts="?"
         id="aide"
-        className="mire-chrome mire-noprint fixed bottom-cell right-cell z-[180] hidden md:inline-flex"
+        // vertical dans la gouttiere droite, comme l'inverseur : il ne passe jamais sur le contenu
+        className="mire-chrome mire-noprint fixed bottom-cell right-0 z-[180] hidden h-auto w-cell2 px-cell py-0 md:inline-flex"
+        style={{ writingMode: "vertical-rl" }}
       >
         AIDE [?]
       </Bloc>
@@ -99,7 +101,7 @@ export function KeyHelp() {
               closeBtn.current?.focus();
             }
           }}
-          className="on-black fixed inset-0 z-[240] flex flex-col justify-between overflow-y-auto bg-black px-cell py-cell2 text-white"
+          className="mire-noprint on-black fixed inset-0 z-[240] flex flex-col justify-between overflow-y-auto bg-black px-cell py-cell2 text-white"
         >
           <div className="u-mono flex items-center justify-between">
             <span>MIRE / FICHE DE COMMANDE</span>

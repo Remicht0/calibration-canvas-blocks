@@ -250,6 +250,36 @@ body {
     filter: none !important;
   }
 
+  /* le negatif est une lecture d'ecran : la feuille reste encre sur papier */
+  main,
+  .mire-chrome {
+    filter: none !important;
+  }
+
+  /* les aplats noirs (.on-black, blocs presses) sont de l'encre, pas un decor :
+     sans eux, l'encre blanche qu'ils portent disparaitrait sur le papier,
+     que l'option « graphiques d'arriere-plan » soit cochee ou non */
+  html {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* un canvas est compose a la largeur de l'ecran : sur la feuille il se
+     ramene a la page, proportions gardees, blocs francs (aucun lissage) */
+  canvas {
+    width: auto !important;
+    height: auto !important;
+    max-width: 100% !important;
+    /* une planche plus haute que la feuille est reduite, jamais coupee */
+    max-height: 240mm !important;
+    image-rendering: pixelated;
+  }
+
+  /* le cartouche reste avec sa planche */
+  figure {
+    break-inside: avoid;
+  }
+
   * {
     background-image: none !important;
     box-shadow: none !important;

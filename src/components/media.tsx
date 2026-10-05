@@ -287,6 +287,11 @@ export function HybridMedia({
     let lens: { x: number; y: number; r: number } | null = null;
     let lastInk = -1;
     let inkAt = 0;
+    // impression : la planche est posee entiere, quel que soit son pilotage ;
+    // progress d'avant, rendu au retour (null hors impression)
+    let printed: number | null = null;
+    // but de la course en cours : 0 pour une dissolution, a reprendre apres impression
+    let aim = 1;
 
     measure.current = () => {
       if (!data) return null;
@@ -355,7 +360,8 @@ export function HybridMedia({
       // les instruments exterieurs n'en recoivent que les echantillons de la boucle
       if (data && !live) sampleRef.current?.(data);
       setDims({ cols, rows });
-      if (scrolled) progress = scrollProgress();
+      if (printed !== null) progress = 1;
+      else if (scrolled) progress = scrollProgress();
       draw();
       measure.current();
     };
@@ -372,6 +378,7 @@ export function HybridMedia({
       if (scrollRaf) return;
       scrollRaf = requestAnimationFrame(() => {
         scrollRaf = 0;
+        if (printed !== null) return;
         const p = scrollProgress();
         if (p === progress) return;
         progress = p;
@@ -383,6 +390,9 @@ export function HybridMedia({
     // Une video continue d'etre echantillonnee tant qu'elle joue et que des blocs sont poses.
     const run = (from: number, to: number, dur: number, done?: () => void) => {
       cancelAnimationFrame(raf);
+      aim = to;
+      // a l'impression la planche reste posee : la reprise attend afterprint
+      if (printed !== null) return;
       if (scrolled) {
         progress = scrollProgress();
         draw();
@@ -521,6 +531,28 @@ export function HybridMedia({
     };
     window.addEventListener(MODAL_EVENT, onModal);
 
+    // Impression : une planche pilotee au defilement, ou pas encore entree en
+    // ecran, sortirait vide sur la feuille. Elle est posee entiere d'un seul
+    // dessin (aucune chute, aucune loupe), puis rendue a son pilotage.
+    const onBeforePrint = () => {
+      if (printed === null) printed = progress;
+      cancelAnimationFrame(raf);
+      progress = 1;
+      lens = null;
+      draw();
+    };
+    const onAfterPrint = () => {
+      if (printed === null) return;
+      progress = printed;
+      printed = null;
+      draw();
+      // une dissolution interrompue (plein cadre qui se ferme) va a son terme
+      if (aim === 0) dissolve.current();
+      else if (visible && !halted) resume();
+    };
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
+
     // loupe : un seul dessin par image, meme si le pointeur bouge plus vite
     let drawRaf = 0;
     const requestDraw = () => {
@@ -624,6 +656,8 @@ export function HybridMedia({
       cancelAnimationFrame(drawRaf);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener(MODAL_EVENT, onModal);
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
       io.disconnect();
       ro.disconnect();
       cv.removeEventListener("pointerenter", onEnter);
@@ -672,20 +706,22 @@ export function HybridMedia({
       </div>
       {controls && (
         <figcaption className="u-mono mt-[3px] flex shrink-0 flex-wrap items-center justify-between gap-x-cell gap-y-0 border-[3px] border-(--ink) px-[6px]">
-          <span className="flex min-h-cell2 min-w-0 flex-wrap items-center gap-[6px]">
+          {/* une etiquette longue renvoie ENCRE ou le format a la ligne : chaque
+              ligne garde deux cellules de haut, aucune ne colle au cadre */}
+          <span className="flex min-h-cell2 min-w-0 flex-wrap items-center gap-x-[6px]">
             {label && (
-              <span id={labelId} className="min-w-0 truncate">
+              <span id={labelId} className="min-w-0 break-words leading-[calc(var(--cell)*2)]">
                 {label}
               </span>
             )}
             {ink !== null && (
-              <span className="flex shrink-0 items-center gap-[4px]">
+              <span className="flex min-h-cell2 shrink-0 items-center gap-[4px]">
                 <span>ENCRE</span>
                 <BitReadout text={`${ink}%`} />
               </span>
             )}
             {dims && (
-              <span className="flex shrink-0 items-center pl-[10px]">
+              <span className="flex min-h-cell2 shrink-0 items-center pl-[10px]">
                 <BitReadout text={`${dims.cols} X ${dims.rows}`} />
               </span>
             )}

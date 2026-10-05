@@ -1,6 +1,7 @@
 /**
  * Non-regressions : le reste du site n'a pas bouge, la fiche de commande est a
- * jour, et le miroir reste utilisable sous mouvement reduit.
+ * jour, le miroir reste utilisable sous mouvement reduit, et l'impression pose
+ * planches et titre entiers sans casser leur pilotage.
  */
 import { after, before, test } from "node:test";
 import { chromium } from "playwright-core";
@@ -147,5 +148,98 @@ test("mouvement reduit : le miroir reste utilisable", async () => {
   await miroir(page).screenshot({ path: capture("regression-reduit-1440.png") });
   verifie("aucune erreur", page.erreurs.length === 0, page.erreurs.join(" | ").slice(0, 200));
   await ctx.close();
+  conclure();
+});
+
+test("impression : planches et titre poses entiers, puis rendus a leur pilotage", async () => {
+  // cellules non blanches d'un canvas, echantillonnees ; -1 pour un canvas sans trame
+  const encre = () => {
+    const mesure = (cv) => {
+      if (!cv || !cv.width) return -1;
+      const d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 64)
+        if (d[i + 3] > 0 && Math.min(d[i], d[i + 1], d[i + 2]) < 250) n++;
+      return n;
+    };
+    return {
+      titre: mesure(document.querySelector("h1.sr-only + canvas")),
+      planches: [...document.querySelectorAll('figure > [role="img"] canvas')].map(mesure),
+    };
+  };
+  const imprimer = (page, ev) => page.evaluate((e) => window.dispatchEvent(new Event(e)), ev);
+  for (const slug of SLUGS) {
+    const ctx = await navigateur.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await nouvellePage(ctx);
+    await page.goto(`${BASE}/projet/${slug}`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(3000);
+
+    // haut de page : les planches sous le pli (defilement ou pas encore entrees) sont vides
+    const haut = await page.evaluate(encre);
+    await imprimer(page, "beforeprint");
+    const feuille = await page.evaluate(encre);
+    await imprimer(page, "afterprint");
+    await page.waitForTimeout(400);
+    const retour = await page.evaluate(encre);
+    verifie(
+      `${slug} : en haut de page, une planche au moins attend son entree`,
+      haut.planches.some((n) => n === 0),
+      JSON.stringify(haut.planches),
+    );
+    verifie(
+      `${slug} : sur la feuille, toutes les planches sont posees`,
+      feuille.planches.length > 0 && feuille.planches.every((n) => n > 0),
+      JSON.stringify(feuille.planches),
+    );
+    verifie(
+      `${slug} : apres impression, chaque planche retrouve son etat`,
+      JSON.stringify(retour.planches) === JSON.stringify(haut.planches),
+      `${JSON.stringify(haut.planches)} / ${JSON.stringify(retour.planches)}`,
+    );
+
+    // bas de page : la ligne rouge a lu le titre, il est vide a l'ecran
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1200);
+    const bas = await page.evaluate(encre);
+    await imprimer(page, "beforeprint");
+    const titre = await page.evaluate(encre);
+    await imprimer(page, "afterprint");
+    await page.waitForTimeout(400);
+    const relu = await page.evaluate(encre);
+    verifie(`${slug} : en bas de page, le titre est lu (vide)`, bas.titre === 0, String(bas.titre));
+    verifie(
+      `${slug} : sur la feuille, le titre est pose entier`,
+      titre.titre > 0,
+      String(titre.titre),
+    );
+    verifie(
+      `${slug} : apres impression, le titre est relu par la ligne`,
+      relu.titre === 0,
+      String(relu.titre),
+    );
+
+    // un element fixe se repete sur chaque feuille : masque ouvert ou non, aucun ne s'imprime
+    await page.keyboard.press("?");
+    await page.waitForTimeout(400);
+    const ouverte = await page.evaluate(() => !!document.querySelector('[role="dialog"]'));
+    await page.emulateMedia({ media: "print" });
+    const fixes = await page.evaluate(() =>
+      [...document.querySelectorAll("body *")]
+        .filter((e) => getComputedStyle(e).position === "fixed" && e.getClientRects().length > 0)
+        .map((e) => `${e.tagName}.${String(e.className).split(" ").slice(0, 3).join(".")}`),
+    );
+    await page.emulateMedia({ media: "screen" });
+    verifie(
+      `${slug} : fiche ouverte, aucun element fixe sur la feuille`,
+      ouverte && fixes.length === 0,
+      ouverte ? fixes.join(" | ") : "la fiche ne s'est pas ouverte",
+    );
+    verifie(
+      `${slug} : console vide`,
+      page.erreurs.length === 0,
+      page.erreurs.join(" | ").slice(0, 200),
+    );
+    await ctx.close();
+  }
   conclure();
 });
