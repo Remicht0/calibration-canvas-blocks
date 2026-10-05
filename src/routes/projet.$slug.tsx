@@ -69,10 +69,14 @@ function ProjectPage() {
   const n = projects.length;
   const prev = projects[(i - 1 + n) % n]!;
   const next = projects[(i + 1) % n]!;
-  // la suite : les autres projets, precedent et suivant en tete
-  const others = [prev, next, ...projects.filter((o) => o !== prev && o !== next && o !== p)];
+  // la suite : les autres projets, precedent et suivant en tete, chacun une fois
+  // (a deux projets, precedent et suivant sont le meme) ; le loader renvoie une
+  // copie du projet courant, on le reconnait donc a son slug
+  const others = [prev, next, ...projects].filter(
+    (o, k, all) => o.slug !== p.slug && all.indexOf(o) === k,
+  );
   const tag = (o: (typeof projects)[number]) =>
-    o === prev ? "PRECEDENT" : o === next ? "SUIVANT" : "";
+    o === next ? "SUIVANT" : o === prev ? "PRECEDENT" : "";
 
   // fleches du clavier : precedent / suivant, comme on feuillette des planches ;
   // un chiffre saute directement au projet N
