@@ -119,13 +119,18 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
   atelier, contact et index (après sa séquence d'entrée).
 
 Composition d'un titre en blocs (`titleLines`, `mire.ts`) : pleine largeur sur
-une ligne tant que chaque caractère garde au moins 3 colonnes
-(`TITLE_MIN_COLS`, espaces comptés). En dessous, il passe sur plusieurs lignes
-d'au plus `floor(cols / 3)` caractères, coupées entre les mots ; un mot plus
-long que la ligne se coupe en morceaux égaux, sans tiret (CHAMPI / THEQUE) :
-entier, il passerait sous 3 colonnes par lettre. Toutes les lignes ont le même
-corps, celui qui fait tenir la plus large ; chaque ligne occupe un nombre
-entier de rangées, avec une rangée vide d'interligne. Calées à gauche dans la
+une ligne tant que chaque caractère garde au moins 4 colonnes
+(`TITLE_EASY_COLS`, espaces comptés). En dessous, s'il tient sur deux lignes à
+4 colonnes par caractère sans couper un mot, il y passe (LA POESIE / DES
+FORMES en 1440 px, plutôt qu'une ligne illisible à 3,2 colonnes). Sinon, une
+ligne tant qu'il garde 3 colonnes (`TITLE_MIN_COLS`), puis des lignes d'au
+plus `floor(cols / 3)` caractères, coupées entre les mots ; un mot plus long
+que la ligne se coupe en morceaux égaux, sans tiret (CHAMPI / THEQUE) :
+entier, il passerait sous 3 colonnes par lettre. Les lignes sont équilibrées
+(autant que le remplissage glouton en demande, la plus longue la plus courte
+possible) : toutes ont le même corps, celui qui fait tenir la plus large ;
+chaque ligne occupe un nombre entier de rangées, avec une rangée vide
+d'interligne. Calées à gauche dans la
 page, centrées dans la transition. Exemples : CARTE POSTALE ONIRIQUE donne
 CARTE / POSTALE / ONIR / IQUE en 393 px, CARTE / POSTALE / ONIRIQUE en 820 px ;
 CHAMPITHEQUE donne CHAMPI / THEQUE en 393 et 820 px, une ligne en 1440 px. Sur
@@ -205,8 +210,17 @@ CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`, et un
   planche seule finale en pleine largeur si elle est en paysage, sinon à la
   largeur d'une colonne, au milieu), puis SUITE. L'en-tête de la planche 01
   nomme NET (`NET = IMAGE NETTE`, suivi de `SURVOL = LOUPE` sur un pointeur
-  qui survole, ou de `APPUI LONG = LOUPE` dessous en tactile) : c'est là que
-  l'on cherche à bien voir.
+  qui survole, ou de `APPUI LONG = LOUPE` dessous en tactile) et porte le
+  bloc `TOUT EN NET` : c'est là que l'on cherche à bien voir.
+- `TOUT EN NET` (choix de Rémi) : un bloc à bascule (`aria-pressed`) qui
+  passe toutes les planches du projet en NET (planche 01, série, vidéo) par
+  la prop `force` de `HybridMedia`, sans annonce par planche (la page annonce
+  le bouton). Une planche reste réglable à la main ensuite ; relâché, chaque
+  planche retrouve sa lecture d'origine. Le choix tient la session
+  (`sessionStorage`, `lib/tout-net.ts`) : d'un projet à l'autre et au
+  rechargement, jamais d'une visite à l'autre ; le rendu serveur est en
+  blocs. À 360 px, un titre long sur deux lignes le pousse juste sous le
+  premier écran, en tête de la planche 01.
 - SUITE : les autres projets, survol en négatif de l'index (image `fondOf`),
   `PRECEDENT` / `SUIVANT` étiquetés, flèches du clavier pour feuilleter.
 - Vignettes de l'index (choix de Rémi) : chaque ligne porte l'image de son
@@ -381,6 +395,7 @@ src/
     tete.ts            useTeteTactile : la ligne rouge choisit la ligne de
                        liste en tactile (index, SUITE)
     arrivee-index.ts   focus de la section INDEX a l'arrivee par /#index
+    tout-net.ts        TOUT EN NET : le choix du visiteur, tenu la session
     bitmap.ts          noyau hybride : sample(), paintBlocks(), paintNet(),
                        BitMode / ReadMode, quantification en paliers, loupe,
                        support vidéo
@@ -677,7 +692,8 @@ Fait :
 - [x] Noyau 1-bit (`mire.ts`) : seuillage, chute de blocs, texte en blocs.
 - [x] Noyau hybride (`bitmap.ts`) : modes BIN / GRIS / BRUT, loupe, video.
 - [x] Lecture NET sur les planches de projet (choix de Remi) : l'image
-      d'origine nette et en couleurs, a la demande, plein cadre compris.
+      d'origine nette et en couleurs, a la demande, plein cadre compris ;
+      bloc TOUT EN NET pour tout le projet d'un geste.
 - [x] Chrome global : boot, curseur bloc, inversion `N`, ligne rouge.
 - [x] Accueil : entree, index en negatif au survol, banc d'essai, procede,
       manifeste, colophon.
@@ -907,10 +923,12 @@ Reste a faire :
       titres plus presents, nombre de planches, banc d'essai nomme, page
       projet avec planche 01 au premier ecran et serie de planches, titres en
       blocs sur plusieurs lignes, tete de lecture tactile, impression.
-- [ ] Videos des animations (Dalton, Pictogramme, Microunivers 3D, logo anime
-      Time To Travel) : exports legers (< 6 Mo) a deposer par Remi. Sans
-      video, ces projets ne sont pas publies (les illustrations de Time To
-      Travel sont un support commun de la classe, pas de Remi).
+- [x] Videos des animations (choix de Remi) : DALTON (generique, 2026),
+      MICROUNIVERS 3D (2025) et LA POESIE DES FORMES (cinq boucles, 2025)
+      sont publies, compresses en H.264 720p / 1080 carre, sans son (le site
+      les lit muets). Une image fixe tiree de chaque video sert de planche 01,
+      de vignette et de carte. Pictogramme n'a pas ete retenu ; Time To Travel
+      n'est pas publie (illustrations communes de la classe).
 - [ ] Credits nominatifs des co-auteurs de GNAF, avec leur accord.
 - [x] Hebergeur dans les mentions legales : Cloudflare, Inc.
       (`STUDIO.hebergeur`), le site etant servi par Cloudflare Workers sous

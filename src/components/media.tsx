@@ -61,6 +61,7 @@ type KeyLike = {
 
 export function HybridMedia({
   src = "",
+  webm,
   stream = null,
   alt,
   label,
@@ -75,6 +76,7 @@ export function HybridMedia({
   phase = "in",
   controls = true,
   net = false,
+  force,
   onSample,
   onDissolved,
   onFull,
@@ -83,6 +85,8 @@ export function HybridMedia({
 }: {
   /** URL d'une image ou d'une video de fichier. Vide quand la source est un flux. */
   src?: string | undefined;
+  /** La meme video en WebM (VP9), lue a la place du MP4 quand le navigateur la lit */
+  webm?: string | undefined;
   /** Source vivante (camera). La planche ne fait que la consommer : elle n'arrete jamais les pistes. */
   stream?: MediaStream | null | undefined;
   /** Description de l'image pour les lecteurs d'ecran : francais accentue, jamais en capitales. */
@@ -104,6 +108,12 @@ export function HybridMedia({
   controls?: boolean;
   /** Propose la lecture NET (l'image d'origine, nette) : planches de projet seulement */
   net?: boolean;
+  /**
+   * Lecture imposee par la page (TOUT EN NET) : la planche y passe sans annonce
+   * (la page annonce son propre bouton) ; null lui rend sa lecture d'origine.
+   * Le visiteur peut ensuite changer la lecture d'une seule planche.
+   */
+  force?: ReadMode | null | undefined;
   /** Trame echantillonnee, pour un instrument externe (video : au plus toutes les 600 ms) */
   onSample?: (s: Sampled) => void;
   onDissolved?: () => void;
@@ -178,14 +188,26 @@ export function HybridMedia({
   );
 
   const apply = useCallback(
-    (m: ReadMode) => {
+    (m: ReadMode, silent = false) => {
       modeRef.current = m;
       setMode(m);
       redraw.current();
-      say(m, tune.current, measure.current());
+      const inkNow = measure.current();
+      if (!silent) say(m, tune.current, inkNow);
     },
     [say],
   );
+
+  // lecture imposee par la page : seulement quand elle change, jamais au montage
+  // sans consigne (la planche garde alors sa lecture d'origine)
+  const forced = useRef<ReadMode | null | undefined>(null);
+  useEffect(() => {
+    if (force === undefined || force === forced.current) return;
+    forced.current = force;
+    const m = force ?? initial;
+    if (m === "net" && !net) return;
+    if (modeRef.current !== m) apply(m, true);
+  }, [force, initial, net, apply]);
 
   const setTune = useCallback(
     (patch: Partial<Tune>, silent = false) => {
@@ -503,7 +525,8 @@ export function HybridMedia({
         if (reduced) v.onloadeddata = figerReduit;
         void v.play().catch(() => {});
       } else {
-        v.src = src;
+        // VP9 d'abord quand il est lu (Chromium sans H.264, Firefox), le MP4 sinon (Safari)
+        v.src = webm && v.canPlayType('video/webm; codecs="vp9"') ? webm : src;
         v.loop = true;
         v.crossOrigin = "anonymous";
         v.onloadeddata = pret;
@@ -720,7 +743,7 @@ export function HybridMedia({
       canvasCb.current?.(null);
       hovered.current = false;
     };
-  }, [src, stream, live, ratio, lensRadius, video, drive, viewport, setTune, net]);
+  }, [src, webm, stream, live, ratio, lensRadius, video, drive, viewport, setTune, net]);
 
   const labelId = useId();
   const named = controls && !!label;
@@ -871,6 +894,7 @@ export function HybridMedia({
       {full && (
         <PleinCadre
           src={src}
+          webm={webm}
           stream={stream}
           alt={alt}
           label={label}

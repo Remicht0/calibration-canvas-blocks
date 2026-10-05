@@ -508,3 +508,148 @@ test("une fenetre qui change d'ecran (resolution) redessine la planche a la bonn
   await ctx.close();
   conclure();
 });
+
+const toutEnNet = (page) =>
+  page.locator('section[data-mire="PLANCHE 01"] button', { hasText: /^TOUT EN NET$/ });
+
+test("TOUT EN NET passe toutes les planches du projet en NET, et les rend a leurs blocs", async () => {
+  const ctx = await navigateur.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await nouvellePage(ctx);
+  for (const slug of SLUGS) {
+    await page.goto(`${BASE}/projet/${slug}`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    const avant = await lectures(page);
+    const bouton = toutEnNet(page);
+    verifie(
+      `${slug} : TOUT EN NET present, non presse`,
+      (await bouton.count()) === 1 && (await bouton.getAttribute("aria-pressed")) === "false",
+      String(await bouton.count()),
+    );
+    // le choix tient la session : on part d'un etat eteint sur chaque projet
+    if ((await bouton.getAttribute("aria-pressed")) === "true") await bouton.click();
+    await bouton.click();
+    await page.waitForTimeout(150);
+    const net = await lectures(page);
+    const annonce = await page.evaluate(
+      () =>
+        document.querySelector('section[data-mire="PLANCHE 01"] > div [aria-live="polite"]')
+          ?.textContent ?? "",
+    );
+    verifie(
+      `${slug} : toutes les planches en NET`,
+      net.length === avant.length && net.every((p) => p.lecture === "net" && p.net === "true"),
+      net.map((p) => p.lecture).join(" "),
+    );
+    verifie(
+      `${slug} : le bouton est presse et annonce`,
+      (await bouton.getAttribute("aria-pressed")) === "true" && /nette/.test(annonce),
+      annonce,
+    );
+    // une planche reprise a la main garde son choix
+    await page
+      .locator('section[data-mire="PLANCHE 01"] figure')
+      .locator("button", { hasText: /^BIN$/ })
+      .click();
+    const une = await page.evaluate(
+      () =>
+        document.querySelector('section[data-mire="PLANCHE 01"] figure canvas[data-lecture]')
+          .dataset.lecture,
+    );
+    verifie(`${slug} : une planche peut repasser seule en blocs`, une === "bin", une);
+    await bouton.click();
+    await page.waitForTimeout(150);
+    const apres = await lectures(page);
+    verifie(
+      `${slug} : rendu, chaque planche retrouve sa lecture d'origine`,
+      apres.map((p) => p.lecture).join(" ") === avant.map((p) => p.lecture).join(" "),
+      `${avant.map((p) => p.lecture).join(" ")} -> ${apres.map((p) => p.lecture).join(" ")}`,
+    );
+  }
+  verifie("console vide", page.erreurs.length === 0, page.erreurs.join(" | ").slice(0, 200));
+  await ctx.close();
+  conclure();
+});
+
+test("TOUT EN NET tient la session, d'un projet a l'autre, jamais d'une visite a l'autre", async () => {
+  const ctx = await navigateur.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await nouvellePage(ctx);
+  await page.goto(`${BASE}/projet/${SLUGS[0]}`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  await toutEnNet(page).click();
+  await page.mouse.move(5, 5);
+  await page.keyboard.press("ArrowRight");
+  await page.waitForURL(`**/projet/${SLUGS[1]}`);
+  await page.waitForTimeout(1500);
+  const suivant = await lectures(page);
+  verifie(
+    "projet suivant : toujours TOUT EN NET",
+    (await toutEnNet(page).getAttribute("aria-pressed")) === "true" &&
+      suivant.every((p) => p.lecture === "net"),
+    suivant.map((p) => p.lecture).join(" "),
+  );
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(1000);
+  const recharge = await lectures(page);
+  verifie(
+    "rechargement : toujours TOUT EN NET",
+    recharge.every((p) => p.lecture === "net"),
+    recharge.map((p) => p.lecture).join(" "),
+  );
+  await ctx.close();
+  const neuf = await navigateur.newContext({ viewport: { width: 1440, height: 900 } });
+  const p2 = await nouvellePage(neuf);
+  await p2.goto(`${BASE}/projet/${SLUGS[1]}`, { waitUntil: "networkidle" });
+  await p2.waitForTimeout(1000);
+  const visite = await lectures(p2);
+  verifie(
+    "nouvelle visite : les planches s'ouvrent en blocs",
+    (await toutEnNet(p2).getAttribute("aria-pressed")) === "false" &&
+      visite.every((p) => p.lecture !== "net"),
+    visite.map((p) => p.lecture).join(" "),
+  );
+  await neuf.close();
+  conclure();
+});
+
+test("TOUT EN NET au telephone : visible, au doigt, sans debordement", async () => {
+  for (const [l, h] of [
+    [393, 852],
+    [360, 740],
+  ]) {
+    const ctx = await navigateur.newContext({
+      viewport: { width: l, height: h },
+      hasTouch: true,
+      isMobile: true,
+      deviceScaleFactor: 3,
+    });
+    const page = await nouvellePage(ctx);
+    for (const slug of SLUGS) {
+      await page.goto(`${BASE}/projet/${slug}`, { waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      const b = toutEnNet(page);
+      const boite = await b.boundingBox();
+      await b.tap();
+      await page.waitForTimeout(150);
+      const r = await page.evaluate(() => ({
+        debord: document.documentElement.scrollWidth - window.innerWidth,
+        bas: window.innerHeight - parseFloat(getComputedStyle(document.body).paddingBottom),
+      }));
+      const l1 = await lectures(page);
+      // a 393, le bouton tient au premier ecran ; a 360, un titre long en blocs
+      // (deux lignes) le pousse juste dessous, en tete de la planche 01
+      verifie(
+        `${l} ${slug} : TOUT EN NET au doigt (>= 24 px)${l >= 393 ? ", au premier ecran" : ""}`,
+        !!boite && boite.height >= 24 && (l < 393 || boite.y + boite.height <= r.bas),
+        JSON.stringify(boite),
+      );
+      verifie(
+        `${l} ${slug} : toutes les planches en NET, aucun debordement`,
+        l1.every((p) => p.lecture === "net") && r.debord === 0,
+        `${l1.map((p) => p.lecture).join(" ")} / ${r.debord}`,
+      );
+      await b.tap();
+    }
+    await ctx.close();
+  }
+  conclure();
+});

@@ -24,6 +24,7 @@ const FOCUSABLE = 'button:not([disabled]), [tabindex="0"]';
 
 export function PleinCadre({
   src,
+  webm,
   stream = null,
   alt,
   label,
@@ -36,6 +37,7 @@ export function PleinCadre({
   onClose,
 }: {
   src?: string | undefined;
+  webm?: string | undefined;
   /** Source vivante : les deux planches consomment le meme flux, sans seconde acquisition. */
   stream?: MediaStream | null | undefined;
   alt: string;
@@ -149,6 +151,7 @@ export function PleinCadre({
       <div className="min-h-0 flex-1 px-cell pb-cell">
         <HybridMedia
           src={src}
+          webm={webm}
           stream={stream}
           alt={alt}
           label={label}
