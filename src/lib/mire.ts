@@ -114,33 +114,88 @@ export const TITLE_MIN_COLS = 3;
 const TITLE_GAP = 1;
 
 /**
- * Decoupe d'un titre pour cols colonnes. Une seule ligne tant que chaque
- * caractere garde TITLE_MIN_COLS colonnes ; sinon des lignes d'au plus
- * cols / TITLE_MIN_COLS caracteres, coupees entre les mots. Un mot plus long
- * que la ligne se coupe en morceaux egaux (CHAMPI / THEQUE) : garde entier, il
- * passerait sous 3 colonnes par lettre et ne se lirait plus.
+ * Au-dela de 3, une lettre en blocs se lit nettement mieux a 4 colonnes : un
+ * titre qui tient alors sur deux lignes au plus, sans couper un mot, vise 4
+ * colonnes par caractere (LA POESIE / DES FORMES en 1440 px plutot qu'une
+ * ligne a 3,2). Au-dela de deux lignes, il serait trop haut : la regle des 3
+ * colonnes reprend.
  */
-export function titleLines(text: string, cols: number): string[] {
-  const t = text.trim();
-  if (!t || cols / t.length >= TITLE_MIN_COLS) return [text];
-  const max = Math.max(1, Math.floor(cols / TITLE_MIN_COLS));
-  const words = t.split(/\s+/).flatMap((w) => {
+export const TITLE_EASY_COLS = 4;
+const TITLE_EASY_LINES = 2;
+
+/** Mots d'un titre, un mot plus long que max coupe en morceaux egaux (CHAMPI / THEQUE). */
+function cutWords(t: string, max: number): string[] {
+  return t.split(/\s+/).flatMap((w) => {
     if (w.length <= max) return [w];
     const size = Math.ceil(w.length / Math.ceil(w.length / max));
     const parts: string[] = [];
     for (let i = 0; i < w.length; i += size) parts.push(w.slice(i, i + size));
     return parts;
   });
-  const lines: string[] = [];
-  let line = "";
+}
+
+/**
+ * Lignes d'au plus max caracteres : autant que le remplissage glouton en
+ * demande, mais equilibrees (la plus longue la plus courte possible), car le
+ * corps du titre se regle sur la plus longue.
+ */
+function balanceLines(words: string[], max: number): string[] {
+  let n = 1;
+  let len = 0;
   for (const w of words) {
-    if (line && line.length + 1 + w.length > max) {
-      lines.push(line);
-      line = w;
-    } else line = line ? `${line} ${w}` : w;
+    if (len && len + 1 + w.length > max) {
+      n++;
+      len = w.length;
+    } else len = len ? len + 1 + w.length : w.length;
   }
-  lines.push(line);
+  const k = words.length;
+  const span = (i: number, j: number) =>
+    words.slice(i, j).reduce((a, w) => a + w.length, 0) + (j - i - 1);
+  // best[l][i] : plus longue ligne minimale pour poser words[i..] sur l lignes
+  const best: number[][] = Array.from({ length: n + 1 }, () => Array(k + 1).fill(Infinity));
+  const cut: number[][] = Array.from({ length: n + 1 }, () => Array(k + 1).fill(k));
+  best[0]![k] = 0;
+  for (let l = 1; l <= n; l++)
+    for (let i = k - 1; i >= 0; i--)
+      for (let j = i + 1; j <= k; j++) {
+        const w = span(i, j);
+        if (w > max) break;
+        const v = Math.max(w, best[l - 1]![j]!);
+        if (v < best[l]![i]!) {
+          best[l]![i] = v;
+          cut[l]![i] = j;
+        }
+      }
+  const lines: string[] = [];
+  for (let l = n, i = 0; l > 0 && i < k; l--) {
+    const j = cut[l]![i]!;
+    lines.push(words.slice(i, j).join(" "));
+    i = j;
+  }
   return lines;
+}
+
+/**
+ * Decoupe d'un titre pour cols colonnes. Une seule ligne tant que chaque
+ * caractere garde TITLE_EASY_COLS colonnes. Sinon, si le titre tient sur deux
+ * lignes a 4 colonnes par caractere sans couper un mot, il le fait ; a
+ * defaut, une seule ligne tant qu'il garde TITLE_MIN_COLS colonnes, puis des
+ * lignes d'au plus cols / TITLE_MIN_COLS caracteres, coupees entre les mots, un
+ * mot plus long que la ligne coupe en morceaux egaux (CHAMPI / THEQUE) : garde
+ * entier, il passerait sous 3 colonnes par lettre et ne se lirait plus. Les
+ * lignes sont equilibrees : le corps se regle sur la plus longue.
+ */
+export function titleLines(text: string, cols: number): string[] {
+  const t = text.trim();
+  if (!t || cols / t.length >= TITLE_EASY_COLS) return [text];
+  const easy = Math.max(1, Math.floor(cols / TITLE_EASY_COLS));
+  if (t.split(/\s+/).every((w) => w.length <= easy)) {
+    const lines = balanceLines(cutWords(t, easy), easy);
+    if (lines.length <= TITLE_EASY_LINES) return lines;
+  }
+  if (cols / t.length >= TITLE_MIN_COLS) return [text];
+  const max = Math.max(1, Math.floor(cols / TITLE_MIN_COLS));
+  return balanceLines(cutWords(t, max), max);
 }
 
 type TitleLayout = {

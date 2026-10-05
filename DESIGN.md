@@ -119,13 +119,18 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
   atelier, contact et index (après sa séquence d'entrée).
 
 Composition d'un titre en blocs (`titleLines`, `mire.ts`) : pleine largeur sur
-une ligne tant que chaque caractère garde au moins 3 colonnes
-(`TITLE_MIN_COLS`, espaces comptés). En dessous, il passe sur plusieurs lignes
-d'au plus `floor(cols / 3)` caractères, coupées entre les mots ; un mot plus
-long que la ligne se coupe en morceaux égaux, sans tiret (CHAMPI / THEQUE) :
-entier, il passerait sous 3 colonnes par lettre. Toutes les lignes ont le même
-corps, celui qui fait tenir la plus large ; chaque ligne occupe un nombre
-entier de rangées, avec une rangée vide d'interligne. Calées à gauche dans la
+une ligne tant que chaque caractère garde au moins 4 colonnes
+(`TITLE_EASY_COLS`, espaces comptés). En dessous, s'il tient sur deux lignes à
+4 colonnes par caractère sans couper un mot, il y passe (LA POESIE / DES
+FORMES en 1440 px, plutôt qu'une ligne illisible à 3,2 colonnes). Sinon, une
+ligne tant qu'il garde 3 colonnes (`TITLE_MIN_COLS`), puis des lignes d'au
+plus `floor(cols / 3)` caractères, coupées entre les mots ; un mot plus long
+que la ligne se coupe en morceaux égaux, sans tiret (CHAMPI / THEQUE) :
+entier, il passerait sous 3 colonnes par lettre. Les lignes sont équilibrées
+(autant que le remplissage glouton en demande, la plus longue la plus courte
+possible) : toutes ont le même corps, celui qui fait tenir la plus large ;
+chaque ligne occupe un nombre entier de rangées, avec une rangée vide
+d'interligne. Calées à gauche dans la
 page, centrées dans la transition. Exemples : CARTE POSTALE ONIRIQUE donne
 CARTE / POSTALE / ONIR / IQUE en 393 px, CARTE / POSTALE / ONIRIQUE en 820 px ;
 CHAMPITHEQUE donne CHAMPI / THEQUE en 393 et 820 px, une ligne en 1440 px. Sur

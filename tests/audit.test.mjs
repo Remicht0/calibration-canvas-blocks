@@ -144,27 +144,58 @@ const lireTitre = (page) =>
  * La decoupe de titleLines (src/lib/mire.ts) : sous 3 colonnes par caractere,
  * coupee entre les mots ; un mot plus long que la ligne en morceaux egaux.
  */
-function lignesAttendues(texte, cols) {
-  const t = texte.trim();
-  if (!t || cols / t.length >= 3) return [texte];
-  const max = Math.max(1, Math.floor(cols / 3));
-  const mots = t.split(/\s+/).flatMap((m) => {
+/** Miroir de `titleLines` (src/lib/mire.ts) : 4 colonnes par caractere sur deux lignes au plus, sinon 3. */
+function couper(t, max) {
+  return t.split(/\s+/).flatMap((m) => {
     if (m.length <= max) return [m];
     const taille = Math.ceil(m.length / Math.ceil(m.length / max));
     const morceaux = [];
     for (let i = 0; i < m.length; i += taille) morceaux.push(m.slice(i, i + taille));
     return morceaux;
   });
-  const lignes = [];
-  let ligne = "";
+}
+
+/** Autant de lignes que le remplissage glouton, la plus longue la plus courte possible. */
+function equilibrer(mots, max) {
+  let n = 1;
+  let long = 0;
   for (const m of mots) {
-    if (ligne && ligne.length + 1 + m.length > max) {
-      lignes.push(ligne);
-      ligne = m;
-    } else ligne = ligne ? `${ligne} ${m}` : m;
+    if (long && long + 1 + m.length > max) {
+      n++;
+      long = m.length;
+    } else long = long ? long + 1 + m.length : m.length;
   }
-  lignes.push(ligne);
-  return lignes;
+  // essai de toutes les coupes : les titres ont peu de mots
+  let meilleur = null;
+  const essai = (i, reste, lignes) => {
+    if (i === mots.length) {
+      if (reste !== 0) return;
+      const pire = Math.max(...lignes.map((l) => l.length));
+      if (!meilleur || pire < meilleur.pire) meilleur = { pire, lignes: [...lignes] };
+      return;
+    }
+    if (reste === 0) return;
+    for (let j = i + 1; j <= mots.length; j++) {
+      const l = mots.slice(i, j).join(" ");
+      if (l.length > max) break;
+      essai(j, reste - 1, [...lignes, l]);
+    }
+  };
+  essai(0, n, []);
+  return meilleur.lignes;
+}
+
+function lignesAttendues(texte, cols) {
+  const t = texte.trim();
+  if (!t || cols / t.length >= 4) return [texte];
+  const facile = Math.max(1, Math.floor(cols / 4));
+  if (t.split(/\s+/).every((m) => m.length <= facile)) {
+    const lignes = equilibrer(couper(t, facile), facile);
+    if (lignes.length <= 2) return lignes;
+  }
+  if (cols / t.length >= 3) return [texte];
+  const max = Math.max(1, Math.floor(cols / 3));
+  return equilibrer(couper(t, max), max);
 }
 
 test("titres en blocs : sur plusieurs lignes quand ils ne tiennent pas, lus par la ligne rouge", async () => {
