@@ -253,7 +253,7 @@ function Index() {
                     params={{ slug: p.slug }}
                     onMouseEnter={() => setHover(fondOf(p))}
                     onFocus={() => setHover(fondOf(p))}
-                    className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_6ch_20ch_12ch]"
+                    className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_6ch_22ch_12ch]"
                   >
                     <span>
                       {active === p.slug && (
@@ -413,7 +413,7 @@ function Index() {
 export function Colophon() {
   return (
     <footer className="border-t-[10px] border-black bg-white px-cell py-cell2 text-black">
-      <div className="u-mono grid gap-y-cell md:grid-cols-4">
+      <div className="u-mono grid gap-y-cell md:grid-cols-4 md:gap-x-cell [&>div]:min-w-0 [&>div]:break-words">
         <div>
           <h2>FICHE DE CALIBRATION</h2>
           <div>MIRE — {mireText(STUDIO.role)}</div>
