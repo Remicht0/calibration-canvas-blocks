@@ -4,7 +4,8 @@ import { BlockBackdrop, BlockType } from "@/components/mire";
 import { TopBar } from "@/components/chrome";
 import { HybridMedia } from "@/components/media";
 import { CalibrationBand } from "@/components/bars";
-import { bySlug, projects } from "@/lib/projects";
+import type { BitMode } from "@/lib/bitmap";
+import { bySlug, projects, type Lecture } from "@/lib/projects";
 import { metier, ogPath, siteOrigin, STUDIO } from "@/lib/site";
 import { Colophon } from "./index";
 
@@ -61,6 +62,19 @@ export const Route = createFileRoute("/projet/$slug")({
   component: ProjectPage,
 });
 
+/** Lecture complete d'une planche : chaque reglage absent prend le defaut de sa place. */
+type Reglage = { mode: BitMode; threshold: number; gamma: number; ratio: number };
+
+const regler = (l: Lecture | undefined, defaut: Reglage): Reglage => ({
+  mode: l?.mode ?? defaut.mode,
+  threshold: l?.threshold ?? defaut.threshold,
+  gamma: l?.gamma ?? defaut.gamma,
+  ratio: l?.ratio ?? defaut.ratio,
+});
+
+// planche 01 : photo douce, cadre paysage
+const PLANCHE_01: Reglage = { mode: "gris", threshold: 0.45, gamma: 0.78, ratio: 0.56 };
+
 function ProjectPage() {
   const p = Route.useLoaderData();
   const navigate = useNavigate();
@@ -77,6 +91,7 @@ function ProjectPage() {
   );
   const tag = (o: (typeof projects)[number]) =>
     o === next ? "SUIVANT" : o === prev ? "PRECEDENT" : "";
+  const une = regler(p.lecture, PLANCHE_01);
 
   // fleches du clavier : precedent / suivant, comme on feuillette des planches ;
   // un chiffre saute directement au projet N
@@ -108,25 +123,44 @@ function ProjectPage() {
         <BlockType text={p.title} loop={false} drive="scan" />
       </section>
 
+      {/* PLANCHE PRINCIPALE au premier ecran — media hybride, lecture au choix */}
+      <section data-mire="PLANCHE 01" className="bg-white px-cell pb-cell4">
+        <div className="u-mono mb-cell flex justify-between gap-cell">
+          <h2>PLANCHE 01 — MATIERE</h2>
+          <span className="hidden md:inline">SURVOL = LOUPE / MATIERE BRUTE</span>
+          <span className="md:hidden">APPUI LONG = LOUPE</span>
+        </div>
+        <HybridMedia
+          key={p.slug}
+          src={p.image}
+          alt={p.alt}
+          label={p.title}
+          ratio={une.ratio}
+          mode={une.mode}
+          threshold={une.threshold}
+          gamma={une.gamma}
+        />
+      </section>
+
       <CalibrationBand height={5} seed={7} className="border-y-[10px] border-black" />
 
-      {/* BLOC NOIR */}
+      {/* BLOC NOIR : mesures puis notes, d'un seul tenant */}
       <section data-mire="MESURES" className="on-black bg-black px-cell py-cell4 text-white">
         <h2 className="sr-only">Mesures</h2>
-        <div className="u-mono grid gap-y-cell2 md:grid-cols-4 md:gap-x-cell">
-          <div>
+        <div className="u-mono grid grid-cols-2 gap-x-cell gap-y-cell2 md:grid-cols-4">
+          <div className="min-w-0 break-words">
             <div>CLIENT</div>
             <div>{p.client}</div>
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <div>NATURE</div>
             <div>{p.nature}</div>
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <div>ANNEE</div>
             <div>{p.year}</div>
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <div>REF</div>
             <div>
               MIRE-{p.num}-{p.year}
@@ -135,25 +169,8 @@ function ProjectPage() {
         </div>
       </section>
 
-      {/* PLANCHE PRINCIPALE — media hybride, lecture au choix */}
-      <section data-mire="PLANCHE 01" className="bg-white px-cell py-cell4">
-        <div className="u-mono mb-cell flex justify-between">
-          <h2>PLANCHE 01 — MATIERE</h2>
-          <span className="hidden md:inline">SURVOL = LOUPE / MATIERE BRUTE</span>
-          <span className="md:hidden">APPUI LONG = LOUPE</span>
-        </div>
-        <HybridMedia
-          src={p.image}
-          alt={p.alt}
-          label={p.title}
-          ratio={0.56}
-          mode="gris"
-          gamma={0.78}
-        />
-      </section>
-
       {/* TEXTE COLONNE ETROITE */}
-      <section data-mire="NOTES" className="on-black bg-black px-cell py-cell4 text-white">
+      <section data-mire="NOTES" className="on-black bg-black px-cell pb-cell4 text-white">
         <h2 className="sr-only">Notes</h2>
         <div className="u-copy max-w-[54ch] space-y-cell2">
           {p.lines.map((l) => (
