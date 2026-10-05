@@ -287,6 +287,11 @@ export function HybridMedia({
     let lens: { x: number; y: number; r: number } | null = null;
     let lastInk = -1;
     let inkAt = 0;
+    // impression : la planche est posee entiere, quel que soit son pilotage ;
+    // progress d'avant, rendu au retour (null hors impression)
+    let printed: number | null = null;
+    // but de la course en cours : 0 pour une dissolution, a reprendre apres impression
+    let aim = 1;
 
     measure.current = () => {
       if (!data) return null;
@@ -355,7 +360,8 @@ export function HybridMedia({
       // les instruments exterieurs n'en recoivent que les echantillons de la boucle
       if (data && !live) sampleRef.current?.(data);
       setDims({ cols, rows });
-      if (scrolled) progress = scrollProgress();
+      if (printed !== null) progress = 1;
+      else if (scrolled) progress = scrollProgress();
       draw();
       measure.current();
     };
@@ -372,6 +378,7 @@ export function HybridMedia({
       if (scrollRaf) return;
       scrollRaf = requestAnimationFrame(() => {
         scrollRaf = 0;
+        if (printed !== null) return;
         const p = scrollProgress();
         if (p === progress) return;
         progress = p;
@@ -383,6 +390,9 @@ export function HybridMedia({
     // Une video continue d'etre echantillonnee tant qu'elle joue et que des blocs sont poses.
     const run = (from: number, to: number, dur: number, done?: () => void) => {
       cancelAnimationFrame(raf);
+      aim = to;
+      // a l'impression la planche reste posee : la reprise attend afterprint
+      if (printed !== null) return;
       if (scrolled) {
         progress = scrollProgress();
         draw();
@@ -521,6 +531,28 @@ export function HybridMedia({
     };
     window.addEventListener(MODAL_EVENT, onModal);
 
+    // Impression : une planche pilotee au defilement, ou pas encore entree en
+    // ecran, sortirait vide sur la feuille. Elle est posee entiere d'un seul
+    // dessin (aucune chute, aucune loupe), puis rendue a son pilotage.
+    const onBeforePrint = () => {
+      if (printed === null) printed = progress;
+      cancelAnimationFrame(raf);
+      progress = 1;
+      lens = null;
+      draw();
+    };
+    const onAfterPrint = () => {
+      if (printed === null) return;
+      progress = printed;
+      printed = null;
+      draw();
+      // une dissolution interrompue (plein cadre qui se ferme) va a son terme
+      if (aim === 0) dissolve.current();
+      else if (visible && !halted) resume();
+    };
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
+
     // loupe : un seul dessin par image, meme si le pointeur bouge plus vite
     let drawRaf = 0;
     const requestDraw = () => {
@@ -624,6 +656,8 @@ export function HybridMedia({
       cancelAnimationFrame(drawRaf);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener(MODAL_EVENT, onModal);
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
       io.disconnect();
       ro.disconnect();
       cv.removeEventListener("pointerenter", onEnter);
