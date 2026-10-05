@@ -27,6 +27,10 @@ La force vient du contraste et du vide, jamais de l'accumulation.
 - Les seuls "gris" tolérés sont **quantifiés en paliers dans le canvas**
   (mode `gris` du noyau bitmap), jamais en CSS.
 - Le rouge n'apparaît qu'une fois à l'écran : la `ScanLine`.
+- Exception voulue par Rémi : sur une planche de projet, le visiteur peut
+  choisir la lecture **NET**, l'image d'origine nette et dans ses couleurs.
+  Ces couleurs sont celles de l'œuvre, jamais celles du site : elles restent
+  dans le canvas de la planche, et une planche ne s'ouvre jamais en NET.
 
 ### Grille
 
@@ -199,7 +203,9 @@ CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`, et un
   PLANCHES 02 — NN (la série dans l'ordre, chacune avec sa lecture ; défaut
   BIN 0,42, cadre 1,05 ; une colonne sous lg, des paires à partir de lg ; une
   planche seule finale en pleine largeur si elle est en paysage, sinon à la
-  largeur d'une colonne, au milieu), puis SUITE.
+  largeur d'une colonne, au milieu), puis SUITE. L'en-tête de la planche 01
+  nomme NET (`NET = IMAGE NETTE`, suivi de `SURVOL = LOUPE` sur un pointeur
+  qui survole) : c'est là que l'on cherche à bien voir.
 - SUITE : les autres projets, survol en négatif de l'index (image `fondOf`),
   `PRECEDENT` / `SUIVANT` étiquetés, flèches du clavier pour feuilleter.
 - Vignettes de l'index (choix de Rémi) : chaque ligne porte l'image de son
@@ -250,7 +256,9 @@ CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`, et un
   plein ecran ou la meme source est re-echantillonnee a la taille de l'ecran :
   la cellule reste 16 / 20 px, l'image gagne des colonnes, pas des pixels
   (`HybridMedia fit="viewport"`). Elle se compose par chute en une seconde ;
-  BIN / GRIS / BRUT, la loupe et les reglages restent actifs. En-tete
+  BIN / GRIS / BRUT, la loupe et les reglages restent actifs, et NET quand
+  la planche le propose : l'image entiere a la taille de l'ecran, marges a
+  l'encre du masque. En-tete
   `MIRE / PLEIN CADRE`, bloc `FERMER [ESC]`. Fermeture par ESC, FERMER, le
   geste retour (entree d'historique propre, retiree a la fermeture) ou un
   changement de route : les blocs tombent (`phase="out"`, progress 1 -> 0 en
@@ -480,14 +488,17 @@ PNG : ils sont servis tels quels depuis `public/`.
 | `bin`  | seuil dur 1-bit                    | identité du site, planches de détail                  |
 | `gris` | N paliers quantifiés (défaut 5)    | **photos perso** : contraste doux, intégration propre |
 | `brut` | mosaïque couleur, 1 bloc = 1 pixel | matière assumée, vidéo                                |
+| `net`  | l'image d'origine, nette, entière  | planches de projet, au choix du visiteur (voir §4)    |
 
 Loupe : au survol (souris, stylet) ou a l'appui long (tactile : 220 ms sans
 bouger de plus de 6 px, puis le carre suit le doigt et se pose au-dessus de
 lui, la page ne defile plus tant qu'il est tenu), un **carre** de cellules
 (distance de Tchebychev, jamais un disque : aucune courbe) passe en `brut`,
-avec un anneau d'une cellule en `gris`. C'est le seul moyen de voir la matiere
-reelle. La loupe est dessinee des que `progress > 0`, en un seul rendu par
-image.
+avec un anneau d'une cellule en `gris`. En blocs, c'est le seul moyen de voir
+la matiere reelle de pres ; l'oeuvre entiere et nette, c'est la lecture NET.
+La loupe est dessinee des que `progress > 0`, en un seul rendu par image.
+NET n'a pas de loupe : la souris n'y change rien et l'appui long y laisse
+defiler la page.
 
 ---
 
@@ -546,6 +557,21 @@ disparaît. Ne jamais remplir une valeur qu'on n'a pas.
 ### Une photo ou une vidéo personnelle
 
 - **Toujours** via `<HybridMedia />`. Jamais de `<img>` ni de `<video>` brut.
+- Lecture NET (`net` sur `HybridMedia`, demande de Rémi : « en pixel on ne
+  comprend pas trop ») : un bouton `NET` apres BIN / GRIS / BRUT, sur les
+  planches de projet seulement (planche 01, serie, video, banc d'essai), et
+  dans leur plein cadre ; jamais sur les instruments de l'atelier ni sur les
+  vignettes de l'index. `paintNet` (`bitmap.ts`) dessine la source elle-meme
+  dans le canvas, a la resolution de l'ecran, entiere (contenue et centree :
+  rien de l'oeuvre n'est coupe ; marges papier dans la page, encre en plein
+  cadre), et la pose cellule par cellule dans l'ordre de chute : la
+  dissolution reste le seul mouvement. Ni seuil ni paliers (les raccourcis
+  `-` `+` `A` n'y font rien), `ENCRE` mesure la matiere comme en BRUT. Une
+  planche ne s'ouvre jamais en NET : `Lecture.mode` est un `BitMode` (les
+  trois lectures en blocs), seul le visiteur passe en NET, et le choix n'est
+  pas retenu. Sous le negatif, la planche NET est inversee une seconde fois
+  (`styles.css`) : ses couleurs restent les siennes ; a l'impression, aucune
+  inversion. Test : suite `net`.
 - `alt` décrit l'image pour les lecteurs d'écran (français accentué) ;
   `label` est l'étiquette visible sous la planche (capitales sans accents).
   Ne jamais mettre l'un à la place de l'autre.
@@ -633,6 +659,8 @@ Fait :
 
 - [x] Noyau 1-bit (`mire.ts`) : seuillage, chute de blocs, texte en blocs.
 - [x] Noyau hybride (`bitmap.ts`) : modes BIN / GRIS / BRUT, loupe, video.
+- [x] Lecture NET sur les planches de projet (choix de Remi) : l'image
+      d'origine nette et en couleurs, a la demande, plein cadre compris.
 - [x] Chrome global : boot, curseur bloc, inversion `N`, ligne rouge.
 - [x] Accueil : entree, index en negatif au survol, banc d'essai, procede,
       manifeste, colophon.

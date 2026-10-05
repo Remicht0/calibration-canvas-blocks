@@ -329,6 +329,7 @@ function Index() {
                   threshold={d.threshold ?? 0.45}
                   gamma={d.gamma ?? 0.85}
                   drive="scroll"
+                  net
                 />
                 <div className="mt-auto pt-cell">
                   {/* Bloc polymorphe : il ne connait pas les routes, le chemin s'ecrit en clair */}
