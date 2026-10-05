@@ -29,6 +29,8 @@ const ID = Object.fromEntries(
     "timeZone",
     "delaiReponse",
     "siret",
+    // nom de l'hebergeur (STUDIO.hebergeur.nom)
+    "nom",
   ].map((k) => [k, champ(k)]),
 );
 
@@ -216,6 +218,13 @@ test("la fiche de contact, les mentions et l'heure de la ville", async () => {
     vue.mentions["DIRECTEUR DE LA PUBLICATION"],
   );
   verifie("mentions : adresse", vue.mentions["ADRESSE"] === mire(adresse), vue.mentions["ADRESSE"]);
+  verifie(
+    "mentions : la ligne HEBERGEUR suit la source",
+    ID.nom
+      ? (vue.mentions["HEBERGEUR"] ?? "").startsWith(mire(ID.nom))
+      : !("HEBERGEUR" in vue.mentions),
+    vue.mentions["HEBERGEUR"] ?? "absente",
+  );
 
   // donnees structurees
   verifie("JSON-LD : courriel", vue.ld.email === ID.email, vue.ld.email);

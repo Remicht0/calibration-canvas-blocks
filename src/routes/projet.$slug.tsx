@@ -20,7 +20,7 @@ export const Route = createFileRoute("/projet/$slug")({
     // carte de partage 1-bit generee par `bun run og` (scripts/og.ts)
     const img = loaderData ? `${loaderData.origin}${ogPath(loaderData.slug)}` : null;
     const imgAlt = loaderData
-      ? `${loaderData.alt} Carte du projet ${loaderData.title}, rendue en blocs 1 bit.`
+      ? `${loaderData.carte?.alt ?? loaderData.alt} Carte du projet ${loaderData.title}, rendue en blocs 1 bit.`
       : null;
     return {
       meta: [
@@ -69,10 +69,14 @@ function ProjectPage() {
   const n = projects.length;
   const prev = projects[(i - 1 + n) % n]!;
   const next = projects[(i + 1) % n]!;
-  // la suite : les autres projets, precedent et suivant en tete
-  const others = [prev, next, ...projects.filter((o) => o !== prev && o !== next && o !== p)];
+  // la suite : les autres projets, precedent et suivant en tete, chacun une fois
+  // (a deux projets, precedent et suivant sont le meme) ; le loader renvoie une
+  // copie du projet courant, on le reconnait donc a son slug
+  const others = [prev, next, ...projects].filter(
+    (o, k, all) => o.slug !== p.slug && all.indexOf(o) === k,
+  );
   const tag = (o: (typeof projects)[number]) =>
-    o === prev ? "PRECEDENT" : o === next ? "SUIVANT" : "";
+    o === next ? "SUIVANT" : o === prev ? "PRECEDENT" : "";
 
   // fleches du clavier : precedent / suivant, comme on feuillette des planches ;
   // un chiffre saute directement au projet N
@@ -165,8 +169,8 @@ function ProjectPage() {
         </div>
         <div className="grid gap-cell md:grid-cols-2">
           <HybridMedia
-            src={p.image}
-            alt={`${p.alt} Détail en seuil binaire.`}
+            src={p.details?.[0].src ?? p.image}
+            alt={`${p.details?.[0].alt ?? p.alt} Détail en seuil binaire.`}
             label={`${p.title} — DETAIL SEUIL`}
             ratio={1.05}
             mode="bin"
@@ -174,8 +178,8 @@ function ProjectPage() {
             drive="scroll"
           />
           <HybridMedia
-            src={p.image}
-            alt={`${p.alt} Détail en mosaïque brute.`}
+            src={p.details?.[1].src ?? p.image}
+            alt={`${p.details?.[1].alt ?? p.alt} Détail en mosaïque brute.`}
             label={`${p.title} — DETAIL MOSAIQUE`}
             ratio={1.05}
             mode="brut"

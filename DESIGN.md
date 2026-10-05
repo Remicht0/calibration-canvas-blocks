@@ -322,7 +322,8 @@ src/
     reduction.ts       pyramide de reduction d'une photo du visiteur, partagee
                        par le worker du miroir et son repli sur le fil principal
     projects.ts        source de vérité des projets (slug, num, titre,
-                       année, nature, client, image, lignes, resume, alt)
+                       année, nature, client, image, lignes, resume, alt,
+                       details, carte) et des planches du banc d'essai
     glyphs.ts          fonte bitmap 3x5 (capitales, chiffres, ponctuation),
                        mireText() : capitales sans accents
     ink.ts             captureInk() : carte d'encre de l'ecran, une valeur par
@@ -397,7 +398,8 @@ public/fonts/          Anton et JetBrains Mono auto-hebergees (woff2)
 `public/og/mire.png` pour MIRE (le nom en blocs sous une bande de calibration,
 le role en fonte 3x5 dessous) : des **PNG a 1 bit par pixel**, 1200 x 630,
 moins de 1 Ko chacun. Aucun navigateur : le JPEG est decode en pur JS, reduit
-par moyenne de bloc avec le meme recadrage `cover` que le site (`coverCrop`),
+par moyenne de bloc avec le meme recadrage `cover` que le site (`coverCrop`)
+— sur `carte` si le projet en declare une, sinon sur l'image principale —,
 seuille par `bitsFromRGBA` avec un seuil d'Otsu borne a 0,30–0,60
 (`otsuThreshold`, pour qu'une photo sombre ne devienne pas un aplat), puis
 ecrit bloc par bloc. Composition : planche 34 x 42 cellules de 15 px a gauche
@@ -439,8 +441,20 @@ image.
    Deux champs **hors mire** sont obligatoires, en français accentué :
    `resume` (description de la page et des cartes de partage) et `alt`
    (une phrase qui décrit réellement l'image, jamais le titre du projet).
-3. Rien d'autre : l'index, le survol en négatif, la page projet et le bloc
-   « SUITE » se génèrent depuis ce fichier.
+   Aucune coordonnée ni le nom légal dans ces textes : ils vivent dans
+   `identite.ts` (le test `identite` le vérifie).
+3. Facultatifs, chacun avec son `alt` :
+   - `details` : deux images pour la planche 02 (seuil, mosaïque) ; absentes,
+     elle relit l'image principale.
+   - `carte` : une image qui tient un cadrage serre, quand l'image principale
+     est trop large (un logotype en bandeau ne laisse qu'une lettre au
+     recadrage portrait). Elle sert la carte de partage, son `og:image:alt`
+     et le banc d'essai.
+4. Rien d'autre : l'index, le survol en négatif, la page projet, le bloc
+   « SUITE » et le banc d'essai (qui alterne les images des projets) se
+   génèrent depuis ce fichier. Puis `bun run og`.
+5. Les photos de test (`tests/photos/`) ne sont pas des projets : elles
+   restent hors de `src/assets/` et ne partent pas dans le build.
 
 ### L'identité (coordonnées, rôle, domaines, mentions)
 
@@ -751,17 +765,20 @@ Regles propres a cet instrument, non negociables :
   n'est pose.
 
 Reste a faire :
-- [ ] Remplacer les 4 projets de demonstration par les vrais : images ET
-      textes (leurs clients, natures et annees sont fictifs). Bloquant pour
-      une mise en ligne publique.
-- [ ] Hebergeur dans les mentions legales (`STUDIO.hebergeur` : nom, adresse,
-      telephone de l'hebergeur de production).
+- [x] Projets de demonstration remplaces par les vrais : MOIRE (identite de
+      la marque de vetements) et CARTE POSTALE (edition, DNMADE 2). Les
+      anciennes photos servent encore de mire aux tests (`tests/photos/`).
+- [ ] GNAF (projet de groupe) : role de Remi, credits des co-auteurs et
+      visuels finaux a fournir avant de l'ajouter.
+- [x] Hebergeur dans les mentions legales : Cloudflare, Inc.
+      (`STUDIO.hebergeur`), le site etant servi par Cloudflare Workers sous
+      le domaine de MIRE. Marche a suivre : README, « Mise en ligne ».
+- [ ] Nom de domaine : a acheter, puis `VITE_SITE_URL` dans les variables de
+      build du Worker.
 - [ ] SIRET des l'immatriculation (`STUDIO.siret`).
-- [ ] Badge « Edit with Lovable » : il n'est ni dans le code ni dans le build
-      (verifie : aucune occurrence dans le HTML servi ni dans les fichiers
-      livres). L'hebergement Lovable l'ajoute a la volee sur `*.lovable.app`.
-      Le masquer dans les reglages du projet Lovable, ou heberger ailleurs :
-      le build cible deja Cloudflare (`wrangler.json` genere).
+- [x] Badge « Edit with Lovable » : il n'est ni dans le code ni dans le build ;
+      seul l'hebergement Lovable l'ajoute, sur `*.lovable.app`. Le site public
+      est servi par Cloudflare, sans badge : on ne publie pas depuis Lovable.
 - [ ] Video reelle sur au moins une page projet, testee en `gris` et `brut`.
 
 

@@ -16,6 +16,7 @@ import {
   nouvellePage,
   trames,
   verifie,
+  SLUGS,
 } from "./outils.mjs";
 
 let navigateur;
@@ -27,7 +28,7 @@ after(async () => {
 });
 
 test("le reste du site ne bouge pas", async () => {
-  for (const route of ["/", "/atelier", "/contact", "/projet/mire-tv"]) {
+  for (const route of ["/", "/atelier", "/contact", `/projet/${SLUGS[SLUGS.length - 1]}`]) {
     const ctx = await navigateur.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await nouvellePage(ctx);
     const rep = await page.goto(BASE + route, { waitUntil: "domcontentloaded" });
