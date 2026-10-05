@@ -73,9 +73,11 @@ const regler = (l: Lecture | undefined, defaut: Reglage): Reglage => ({
   ratio: l?.ratio ?? defaut.ratio,
 });
 
-// planche 01 : photo douce, cadre paysage ; serie : planche de detail en seuil
+// planche 01 : photo douce, cadre paysage ; serie : planche de detail en seuil ;
+// video : gris, cadre paysage, lue dans le temps (la planche porte PAUSE)
 const PLANCHE_01: Reglage = { mode: "gris", threshold: 0.45, gamma: 0.78, ratio: 0.56 };
 const PLANCHE_SERIE: Reglage = { mode: "bin", threshold: 0.42, gamma: 0.85, ratio: 1.05 };
+const PLANCHE_VIDEO: Reglage = { mode: "gris", threshold: 0.45, gamma: 0.85, ratio: 0.56 };
 
 const nn = (k: number) => String(k).padStart(2, "0");
 
@@ -128,6 +130,7 @@ function ProjectPage() {
   const tag = (o: Project) => (o === next ? "SUIVANT" : o === prev ? "PRECEDENT" : "");
 
   const une = regler(p.lecture, PLANCHE_01);
+  const signal = p.video ? { ...p.video, ...regler(p.video, PLANCHE_VIDEO) } : null;
   const serie = serieOf(p);
   const fin = serie.length + 1;
   // une planche seule en fin de serie : pleine largeur si elle est en paysage,
@@ -220,8 +223,31 @@ function ProjectPage() {
         </div>
       </section>
 
+      {/* SIGNAL : la video du projet, lue dans la grille comme une planche */}
+      {signal && (
+        <section data-mire="SIGNAL" className="bg-white px-cell py-cell4">
+          <div className="u-mono mb-cell flex justify-between gap-cell">
+            <h2>SIGNAL — VIDEO</h2>
+            <span className="hidden md:inline">BOUCLE MUETTE / PAUSE SOUS LA PLANCHE</span>
+          </div>
+          <HybridMedia
+            key={p.slug}
+            src={signal.src}
+            alt={signal.alt}
+            label={`${p.title} — ${signal.label ? mireText(signal.label) : "VIDEO"}`}
+            ratio={signal.ratio}
+            mode={signal.mode}
+            threshold={signal.threshold}
+            gamma={signal.gamma}
+          />
+        </section>
+      )}
+
       {/* SERIE : planches 02 a NN, une colonne, puis par paires a partir de lg */}
-      <section data-mire="PLANCHES" className="bg-white px-cell py-cell4">
+      <section
+        data-mire="PLANCHES"
+        className={`bg-white px-cell py-cell4 ${signal ? "border-t-[10px] border-black" : ""}`}
+      >
         <div className="u-mono mb-cell flex justify-between gap-cell">
           <h2>{fin > 2 ? `PLANCHES 02 — ${nn(fin)}` : "PLANCHE 02"}</h2>
           <span className="hidden md:inline">LE DEFILEMENT COMPOSE LES PLANCHES</span>
