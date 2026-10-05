@@ -103,6 +103,115 @@ test("checklist DESIGN.md section 8 sur 3 largeurs x 5 routes", async () => {
   conclure();
 });
 
+/** Le titre en blocs de la page, relu cellule par cellule : ses lignes sont les bandes d'encre. */
+const lireTitre = (page) =>
+  page.evaluate(() => {
+    const cv = document.querySelector('[data-mire="EN-TETE"] canvas');
+    const cell = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cell"));
+    const r = cv.getBoundingClientRect();
+    const cols = Math.round(r.width / cell);
+    const rows = Math.round(r.height / cell);
+    const d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+    const encre = [];
+    for (let y = 0; y < rows; y++) {
+      const rangee = [];
+      for (let x = 0; x < cols; x++) {
+        const px = Math.floor(((x + 0.5) * cv.width) / cols);
+        const py = Math.floor(((y + 0.5) * cv.height) / rows);
+        if (d[(py * cv.width + px) * 4] < 128) rangee.push(x);
+      }
+      encre.push(rangee);
+    }
+    const bandes = [];
+    let cur = null;
+    encre.forEach((rangee, y) => {
+      if (!rangee.length) return void (cur = null);
+      if (!cur) bandes.push((cur = { y, h: 0, x0: cols, x1: -1, n: 0 }));
+      cur.h++;
+      cur.n += rangee.length;
+      cur.x0 = Math.min(cur.x0, rangee[0]);
+      cur.x1 = Math.max(cur.x1, rangee[rangee.length - 1]);
+    });
+    return {
+      texte: cv.parentElement.querySelector("h1").textContent,
+      cols,
+      grille: r.width % cell === 0 && r.height % cell === 0,
+      bandes,
+    };
+  });
+
+/** La decoupe de titleLines (src/lib/mire.ts) : sous 3 colonnes par caractere, coupee entre les mots. */
+function lignesAttendues(texte, cols) {
+  const mots = texte.trim().split(/\s+/);
+  if (mots.length < 2 || cols / texte.length >= 3) return [texte];
+  const max = Math.max(1, Math.floor(cols / 3));
+  const lignes = [];
+  let ligne = "";
+  for (const m of mots) {
+    if (ligne && ligne.length + 1 + m.length > max) {
+      lignes.push(ligne);
+      ligne = m;
+    } else ligne = ligne ? `${ligne} ${m}` : m;
+  }
+  lignes.push(ligne);
+  return lignes;
+}
+
+test("titres en blocs : sur plusieurs lignes quand ils ne tiennent pas, lus par la ligne rouge", async () => {
+  for (const [l, h] of LARGEURS) {
+    const ctx = await navigateur.newContext({ viewport: { width: l, height: h } });
+    // la sequence d'entree ne rejoue pas : le titre se lit des qu'il est compose
+    await ctx.addInitScript(() => sessionStorage.setItem("mire-boot", "1"));
+    for (const slug of SLUGS) {
+      const page = await ctx.newPage();
+      await page.goto(`${BASE}/projet/${slug}`, { waitUntil: "networkidle" });
+      await page.waitForTimeout(2200);
+      const t = await lireTitre(page);
+      const attendu = lignesAttendues(t.texte, t.cols);
+      const tag = `${l} px ${t.texte} (${t.cols} col.)`;
+      verifie(`${tag} : sur la grille`, t.grille);
+      verifie(
+        `${tag} : ${attendu.length} ligne(s), coupees entre les mots`,
+        t.bandes.length === attendu.length,
+        `${t.bandes.length} bande(s) pour ${JSON.stringify(attendu)}`,
+      );
+      const large = Math.max(...t.bandes.map((b) => b.x1 - b.x0 + 1));
+      verifie(
+        `${tag} : la ligne la plus large tient toute la largeur`,
+        large >= t.cols - 2,
+        `${large}`,
+      );
+
+      // la ligne rouge lit le titre : ce qu'elle a depasse tombe, en remontant tout revient
+      const haut = await page.evaluate(() => {
+        const r = document.querySelector('[data-mire="EN-TETE"] canvas').getBoundingClientRect();
+        return Math.round(r.top + scrollY + r.height / 2);
+      });
+      await page.evaluate((y) => window.scrollTo(0, y), haut);
+      await page.waitForTimeout(400);
+      const lu = await lireTitre(page);
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.waitForTimeout(400);
+      const relu = await lireTitre(page);
+      const encre = (b) => b.reduce((s, x) => s + x.n, 0);
+      verifie(
+        `${tag} : la ligne rouge efface ce qu'elle a lu`,
+        encre(lu.bandes) < encre(t.bandes),
+        `${encre(t.bandes)} -> ${encre(lu.bandes)}`,
+      );
+      verifie(
+        `${tag} : en remontant, le titre se recompose`,
+        encre(relu.bandes) === encre(t.bandes),
+        `${encre(t.bandes)} -> ${encre(relu.bandes)}`,
+      );
+      await page.screenshot({ path: capture(`audit-titre-${slug}-${l}.png`) });
+      await page.close();
+    }
+    await ctx.close();
+  }
+  conclure();
+});
+
 test("navigation au clavier depuis le haut de page", async () => {
   const ctx = await navigateur.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
