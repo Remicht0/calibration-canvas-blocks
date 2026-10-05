@@ -77,8 +77,11 @@ const BANC = (() => {
   });
 })();
 
-// un Bloc dont la hauteur suit le libelle : passe a la ligne, il grandit au lieu de deborder
-const BLOC_SOUPLE = "h-auto min-h-cell2 max-w-full py-[4px]";
+// un Bloc dont la hauteur suit le libelle : passe a la ligne, il grandit au lieu de deborder,
+// d'une cellule par ligne (interligne = une cellule, demi-cellule de marge moins le cadre) :
+// une ligne = 2 cellules, deux lignes = 3 cellules, jamais de demi-cellule
+const BLOC_SOUPLE =
+  "h-auto min-h-cell2 max-w-full py-[calc(var(--cell)/2-3px)] leading-[var(--cell)]";
 
 function Index() {
   const [hover, setHover] = useState<string | null>(null);

@@ -94,6 +94,13 @@ test("les projets au premier ecran, hors du chrome fixe", async () => {
       const blocs = [...document.querySelectorAll("main .u-bloc")].filter(
         (b) => b.scrollHeight > b.clientHeight + 1 || b.scrollWidth > b.clientWidth + 1,
       );
+      // un Bloc a toujours un nombre entier de cellules de haut, meme passe a la ligne
+      const cell = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue("--cell"),
+      );
+      const horsPas = [...document.querySelectorAll("main .u-bloc")]
+        .map((b) => [b.textContent.trim(), b.getBoundingClientRect().height])
+        .filter(([, h]) => Math.abs(h / cell - Math.round(h / cell)) > 0.02);
       return {
         entete: boite(document.querySelector("#index h2")),
         titre: boite(titre),
@@ -103,6 +110,7 @@ test("les projets au premier ecran, hors du chrome fixe", async () => {
         aide: boite(document.getElementById("aide")),
         console: boite(document.querySelector('nav[aria-label="Console de navigation"]')),
         debordes: blocs.map((b) => b.textContent.trim()),
+        horsPas,
         scrollWidth: document.documentElement.scrollWidth,
         innerWidth,
         innerHeight,
@@ -137,6 +145,11 @@ test("les projets au premier ecran, hors du chrome fixe", async () => {
       `${tag} : aucun bloc ne deborde de son cadre`,
       r.debordes.length === 0,
       r.debordes.join(" | "),
+    );
+    verifie(
+      `${tag} : chaque bloc tient un nombre entier de cellules`,
+      r.horsPas.length === 0,
+      JSON.stringify(r.horsPas),
     );
     verifie(
       `${tag} : aucun debordement`,
