@@ -96,7 +96,7 @@ export function BootSequence() {
   if (done) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] overflow-hidden bg-black" aria-hidden="true">
+    <div className="mire-noprint fixed inset-0 z-[200] overflow-hidden bg-black" aria-hidden="true">
       <canvas ref={canvas} className="block" />
       <div className="u-mono absolute inset-0 flex flex-col justify-between p-cell text-white mix-blend-difference">
         <div className="flex justify-between">
@@ -190,7 +190,7 @@ export function GridCursor() {
     <div
       ref={box}
       aria-hidden="true"
-      className="pointer-events-none fixed left-0 top-0 z-[250] hidden bg-white mix-blend-difference md:block"
+      className="mire-noprint pointer-events-none fixed left-0 top-0 z-[250] hidden bg-white mix-blend-difference md:block"
     />
   );
 }
@@ -689,7 +689,7 @@ export function RouteWipe() {
       ref={shell}
       // la capture d'encre ne se releve jamais elle-meme
       data-mire-nocapture=""
-      className="pointer-events-none fixed inset-0 z-[195] overflow-hidden"
+      className="mire-noprint pointer-events-none fixed inset-0 z-[195] overflow-hidden"
       style={{ visibility: "hidden" }}
       aria-hidden="true"
     >

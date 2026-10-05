@@ -135,7 +135,7 @@ export function PleinCadre({
       aria-modal="true"
       aria-label="Plein cadre"
       onKeyDown={trap}
-      className="on-black fixed inset-0 z-[240] flex flex-col overflow-hidden bg-black text-white"
+      className="mire-noprint on-black fixed inset-0 z-[240] flex flex-col overflow-hidden bg-black text-white"
     >
       <div className="u-mono flex shrink-0 items-center justify-between gap-cell px-cell py-cell">
         <span className="min-w-0 truncate">MIRE / PLEIN CADRE</span>

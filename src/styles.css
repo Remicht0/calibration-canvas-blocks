@@ -239,9 +239,7 @@ body {
 /* ---- Impression : noir seul, aucun repere rouge ---- */
 @media print {
   .mire-noprint,
-  .mire-keep,
-  /* un element fixe en difference est un instrument (curseur bloc, reglette) */
-  .fixed.mix-blend-difference {
+  .mire-keep {
     display: none !important;
   }
 
