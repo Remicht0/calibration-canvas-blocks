@@ -105,9 +105,83 @@ export function blockifyImage(
   return bitsFromRGBA(c.getImageData(0, 0, cols, rows).data, cols, rows, threshold);
 }
 
-/** Hauteur en px du texte compose pleine largeur (capitales, sans marge). */
-export function textBlockHeight(text: string, font: string, widthPx: number): number {
+/**
+ * Titre en blocs : sous ce nombre de colonnes par caractere, une lettre n'a plus
+ * assez de cellules pour se lire (CARTE POSTALE en 393 px : moins de 2).
+ */
+export const TITLE_MIN_COLS = 3;
+/** Interligne d'un titre sur plusieurs lignes : une rangee vide. */
+const TITLE_GAP = 1;
+
+/**
+ * Decoupe d'un titre pour cols colonnes. Une seule ligne tant que chaque
+ * caractere garde TITLE_MIN_COLS colonnes ; sinon des lignes d'au plus
+ * cols / TITLE_MIN_COLS caracteres, coupees entre les mots, jamais dans un mot :
+ * un mot seul trop long garde sa ligne.
+ */
+export function titleLines(text: string, cols: number): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2 || cols / text.length >= TITLE_MIN_COLS) return [text];
+  const max = Math.max(1, Math.floor(cols / TITLE_MIN_COLS));
+  const lines: string[] = [];
+  let line = "";
+  for (const w of words) {
+    if (line && line.length + 1 + w.length > max) {
+      lines.push(line);
+      line = w;
+    } else line = line ? `${line} ${w}` : w;
+  }
+  lines.push(line);
+  return lines;
+}
+
+type TitleLayout = {
+  /** corps de la fonte, en px pour une cellule de 1 px */
+  size: number;
+  /** rangee de depart et hauteur (rangees) de chaque ligne */
+  bands: { y: number; h: number }[];
+  rows: number;
+};
+
+/**
+ * Titre sur plusieurs lignes : un seul corps, celui qui fait tenir la ligne la
+ * plus large sur cols colonnes ; chaque ligne occupe un nombre entier de
+ * rangees, separees par TITLE_GAP. Hauteur = somme des lignes, sur la grille.
+ */
+function layoutTitle(
+  c: CanvasRenderingContext2D,
+  lines: string[],
+  font: string,
+  cols: number,
+): TitleLayout {
+  c.font = `100px ${font}`;
+  const ms = lines.map((l) => c.measureText(l));
+  const k = cols / Math.max(1, ...ms.map((m) => m.width));
+  let y = 0;
+  const bands = ms.map((m) => {
+    const h = Math.max(1, Math.round((m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) * k));
+    const band = { y, h };
+    y += h + TITLE_GAP;
+    return band;
+  });
+  return { size: 100 * k, bands, rows: y - TITLE_GAP };
+}
+
+/**
+ * Hauteur en px du texte compose pleine largeur (capitales, sans marge). Sous
+ * TITLE_MIN_COLS colonnes par caractere, la hauteur des lignes empilees, calee
+ * sur la grille ; `cell` est la cellule du site (celle de l'ecran par defaut).
+ */
+export function textBlockHeight(
+  text: string,
+  font: string,
+  widthPx: number,
+  cell = cellSizeFor(window.innerWidth),
+): number {
   const c = document.createElement("canvas").getContext("2d")!;
+  const cols = Math.max(1, Math.round(widthPx / cell));
+  const lines = titleLines(text, cols);
+  if (lines.length > 1) return layoutTitle(c, lines, font, cols).rows * cell;
   c.font = `100px ${font}`;
   const m = c.measureText(text);
   const size = (widthPx / Math.max(m.width, 1)) * 100;
@@ -116,8 +190,19 @@ export function textBlockHeight(text: string, font: string, widthPx: number): nu
   return Math.max(1, mm.actualBoundingBoxAscent + mm.actualBoundingBoxDescent);
 }
 
-/** Rend un texte en grille 1-bit (seuillage sur l'alpha), compose pleine largeur. */
-export function blockifyText(text: string, font: string, cols: number, rows: number): Bits {
+/**
+ * Rend un texte en grille 1-bit (seuillage sur l'alpha), compose pleine largeur.
+ * Sous TITLE_MIN_COLS colonnes par caractere, il passe sur plusieurs lignes
+ * (titleLines), alignees selon `align` ; si rows ne suffit pas, le bloc est
+ * reduit et centre plutot que coupe.
+ */
+export function blockifyText(
+  text: string,
+  font: string,
+  cols: number,
+  rows: number,
+  align: "center" | "left" = "center",
+): Bits {
   const scale = 6;
   const off = document.createElement("canvas");
   off.width = cols * scale;
@@ -125,14 +210,32 @@ export function blockifyText(text: string, font: string, cols: number, rows: num
   const c = off.getContext("2d", { willReadFrequently: true })!;
   c.fillStyle = "#000";
   c.textBaseline = "alphabetic";
-  c.textAlign = "center";
-  c.font = `100px ${font}`;
-  const size = (off.width / Math.max(c.measureText(text).width, 1)) * 100;
-  c.font = `${size}px ${font}`;
-  const m = c.measureText(text);
-  const h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
-  const baseline = (off.height - h) / 2 + m.actualBoundingBoxAscent;
-  c.fillText(text, off.width / 2, baseline);
+  const lines = titleLines(text, cols);
+  if (lines.length > 1) {
+    const lay = layoutTitle(c, lines, font, cols);
+    const f = Math.min(1, rows / lay.rows);
+    const x0 = ((cols - cols * f) / 2) * scale;
+    const y0 = ((rows - lay.rows * f) / 2) * scale;
+    c.textAlign = align;
+    c.font = `${lay.size * f * scale}px ${font}`;
+    lines.forEach((l, i) => {
+      const m = c.measureText(l);
+      const b = lay.bands[i]!;
+      const h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+      const top = y0 + b.y * f * scale;
+      const baseline = top + (b.h * f * scale - h) / 2 + m.actualBoundingBoxAscent;
+      c.fillText(l, align === "left" ? x0 : off.width / 2, baseline);
+    });
+  } else {
+    c.textAlign = "center";
+    c.font = `100px ${font}`;
+    const size = (off.width / Math.max(c.measureText(text).width, 1)) * 100;
+    c.font = `${size}px ${font}`;
+    const m = c.measureText(text);
+    const h = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+    const baseline = (off.height - h) / 2 + m.actualBoundingBoxAscent;
+    c.fillText(text, off.width / 2, baseline);
+  }
 
   const small = document.createElement("canvas");
   small.width = cols;

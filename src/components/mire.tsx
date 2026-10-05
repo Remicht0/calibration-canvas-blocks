@@ -7,11 +7,13 @@ import {
   erode,
   fallOrder,
   heal,
+  otsuThreshold,
   prefersReducedMotion,
   scanLineTop,
   textBlockHeight,
   type Bits,
 } from "@/lib/mire";
+import { sample } from "@/lib/bitmap";
 
 /* ------------------------------------------------------------------ */
 /* Image 1-bit qui se compose par chute de blocs a l'entree en ecran   */
@@ -225,13 +227,14 @@ export function BlockType({
       cell = cellSizeFor(window.innerWidth);
       const w = el.clientWidth;
       cols = Math.max(8, Math.floor(w / cell));
-      rows = Math.max(3, Math.round(textBlockHeight(text, DISPLAY_FONT, cols * cell) / cell));
+      // sous 3 colonnes par caractere, le titre passe sur plusieurs lignes, calees a gauche
+      rows = Math.max(3, Math.round(textBlockHeight(text, DISPLAY_FONT, cols * cell, cell) / cell));
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       cv.style.width = `${cols * cell}px`;
       cv.style.height = `${rows * cell}px`;
       cv.width = cols * cell * dpr;
       cv.height = rows * cell * dpr;
-      bits = blockifyText(text, DISPLAY_FONT, cols, rows);
+      bits = blockifyText(text, DISPLAY_FONT, cols, rows, "left");
       order = fallOrder(cols, rows, 13);
       pr = new Float32Array(rows).fill(1);
       mix = new Float32Array(rows);
@@ -456,7 +459,14 @@ export function BlockBackdrop({ src }: { src: string | null }) {
       img.onload = () => {
         if (dead) return;
         size();
-        bits = blockifyImage(img, cols, rows, 0.45);
+        const trame = sample(img, cols, rows);
+        if (!trame) return;
+        // seuil d'Otsu borne a 0,30-0,60 sur la trame echantillonnee, comme les
+        // cartes de partage (scripts/og.ts) : une photo sombre ou claire ne fait
+        // plus un aplat. Un recadrage qui n'est qu'une masse unie (le logotype de
+        // MOIRE dans la bande de la SUITE) le reste : aucun seuil n'y peut rien.
+        const t = otsuThreshold(trame.lum, 0.3, 0.6);
+        bits = { cols, rows, data: Uint8Array.from(trame.lum, (l) => (l < t ? 1 : 0)) };
         order = fallOrder(cols, rows, cols + 3);
         progress = 0;
         animate(1);
