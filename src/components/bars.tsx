@@ -152,6 +152,12 @@ export function CalibrationBand({
       sync();
     };
     window.addEventListener("mire:modal", onModal);
+    // impression : une bande jamais passee a l'ecran sortirait vide ; une seule
+    // pose, sans relancer de boucle (hors ecran, paint ne se replanifie pas)
+    const onBeforePrint = () => {
+      if (!raf) paint(performance.now());
+    };
+    window.addEventListener("beforeprint", onBeforePrint);
 
     // le pointeur ne declenche rien de lui-meme : il ne fait que deplacer la
     // cellule visee, la boucle deja en cours s'en sert a l'image suivante
@@ -181,6 +187,7 @@ export function CalibrationBand({
       dead = true;
       io.disconnect();
       window.removeEventListener("mire:modal", onModal);
+      window.removeEventListener("beforeprint", onBeforePrint);
       el.removeEventListener("pointermove", onPointerMove);
       el.removeEventListener("pointerleave", onPointerLeave);
       cancelAnimationFrame(raf);
