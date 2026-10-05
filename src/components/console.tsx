@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { bitUnit, cellSizeFor } from "@/lib/mire";
 import { BitReadout } from "@/components/readout";
+import { VERS_INDEX } from "@/components/chrome";
 
 /* ------------------------------------------------------------------ */
 /* Avancement de lecture : 0 -> 1, cale sur la frame                    */
@@ -189,8 +190,9 @@ export function ScrollRail() {
 /* MOBILE / TABLETTE — console de pilotage en bas d'ecran               */
 /* ------------------------------------------------------------------ */
 
+// INDEX mene a la section INDEX de l'accueil, comme dans la barre haute
 const TABS = [
-  { to: "/", label: "INDEX" },
+  { ...VERS_INDEX, label: "INDEX" },
   { to: "/atelier", label: "ATELIER" },
   { to: "/contact", label: "CONTACT" },
 ] as const;
@@ -236,12 +238,12 @@ export function MireConsole() {
       </div>
 
       <div className="grid grid-cols-4">
-        {TABS.map((t) => {
-          const active = t.to === "/" ? path === "/" : path.startsWith(t.to);
+        {TABS.map(({ label, ...lien }) => {
+          const active = lien.to === "/" ? path === "/" : path.startsWith(lien.to);
           return (
             <Link
-              key={t.to}
-              to={t.to}
+              key={label}
+              {...lien}
               aria-current={active ? "page" : undefined}
               className="u-mono border-r-[3px] border-black py-[10px] text-center"
               style={{
@@ -249,7 +251,7 @@ export function MireConsole() {
                 color: active ? "#FFFFFF" : "#000000",
               }}
             >
-              {t.label}
+              {label}
             </Link>
           );
         })}

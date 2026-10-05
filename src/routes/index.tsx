@@ -5,7 +5,7 @@ import { CalibrationBand, Ticker } from "@/components/bars";
 import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
 import { BitmapClock } from "@/components/bitmap-extras";
-import { TopBar } from "@/components/chrome";
+import { TopBar, VERS_INDEX } from "@/components/chrome";
 import { mireText } from "@/lib/glyphs";
 import { periode, planches, projects } from "@/lib/projects";
 import { domainesPhrase, presentation, signature, STUDIO } from "@/lib/site";
@@ -158,9 +158,12 @@ function Index() {
           </p>
         </div>
 
-        <div className="u-mono flex justify-between">
+        <div className="u-mono flex flex-wrap justify-between gap-x-cell">
           <span>{mireText(STUDIO.city)}</span>
-          <span>{projects.length} PROJETS / INDEX CI-DESSOUS</span>
+          {/* lien interne, pas une entree de navigation : courant seulement une fois sur #index */}
+          <Link {...VERS_INDEX} activeOptions={{ includeHash: true }}>
+            {projects.length} PROJETS / INDEX CI-DESSOUS
+          </Link>
         </div>
       </section>
 
@@ -182,6 +185,7 @@ function Index() {
       {/* INDEX */}
       <section
         ref={index}
+        id="index"
         data-mire="INDEX"
         className="on-black relative border-t-[10px] border-black"
       >
