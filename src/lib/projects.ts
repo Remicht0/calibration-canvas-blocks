@@ -1,7 +1,12 @@
-import p1 from "@/assets/p1.jpg";
-import p2 from "@/assets/p2.jpg";
-import p3 from "@/assets/p3.jpg";
-import p4 from "@/assets/p4.jpg";
+import moireLogotype from "@/assets/moire-logotype-trame.jpg";
+import moireTampon from "@/assets/moire-tampon.jpg";
+import moireDragon from "@/assets/moire-dragon-points.jpg";
+import carteScan from "@/assets/carte-postale-scan.jpg";
+import carteFragments from "@/assets/carte-postale-fragments.jpg";
+import carteTram from "@/assets/carte-postale-tram.jpg";
+
+/** Une image de projet et son texte alternatif (hors mire : francais accentue, une phrase). */
+export type Planche = { src: string; alt: string };
 
 export type Project = {
   slug: string;
@@ -10,6 +15,7 @@ export type Project = {
   year: string;
   nature: string;
   client: string;
+  /** Planche principale : index, survol, carte de partage. */
   image: string;
   /** Notes visibles dans la mire : capitales, sans accents. */
   lines: string[];
@@ -17,72 +23,72 @@ export type Project = {
   resume: string;
   /** Texte alternatif de l'image (lecteurs d'ecran, og:image:alt) : francais accentue, une phrase. */
   alt: string;
+  /** Deux details pour la planche 02 ; absents, elle relit l'image principale. */
+  details?: [Planche, Planche];
+  /**
+   * Image qui tient un cadrage serre (carte de partage en portrait, banc d'essai) quand
+   * l'image principale est trop large ; absente, on recadre l'image principale.
+   */
+  carte?: Planche;
 };
 
 export const projects: Project[] = [
   {
-    slug: "tmc",
+    slug: "moire",
     num: "01",
-    title: "TRAME MUNICIPALE",
-    year: "2024",
-    nature: "IDENTITE / SIGNALETIQUE",
-    client: "TMC",
-    image: p1,
+    title: "MOIRE",
+    year: "2026",
+    nature: "IDENTITE VISUELLE",
+    client: "MARQUE PERSONNELLE",
+    image: moireLogotype,
     lines: [
-      "Identite d'un equipement public en beton brut. Le systeme reprend le pas de la structure : chaque element de signaletique est un rectangle plein, cale sur un module de 60 cm.",
-      "Aucun contour, aucune fleche. L'orientation se lit dans le vide entre les blocs.",
+      "Identite de MOIRE, ma marque de vetements. Un logotype en volume, decline en rouge et en bleu, lisse ou trame.",
+      "Un dragon en pixels, tire au tampon : une couleur, un coup, une epreuve numerotee.",
     ],
     resume:
-      "Identité et signalétique d'un équipement public en béton brut : des rectangles pleins calés sur un module de 60 cm, sans contour ni flèche. Projet du studio MIRE pour TMC, 2024.",
-    alt: "Façade en béton blanc d'un bâtiment public sous un soleil dur, ombres portées noires, le sigle TMC peint en petites capitales sur le mur.",
+      "MOIRÉ, ma marque de vêtements : un logotype en volume décliné en rouge et en bleu, lisse ou tramé, et un dragon en pixels imprimé au tampon. Identité visuelle, 2026.",
+    alt: "Le logotype « moiré » en lettres rouges épaisses et arrondies, imprimé en trame de points sur un fond crème.",
+    details: [
+      {
+        src: moireTampon,
+        alt: "Épreuve de tampon : un dragon en gros pixels bleus sur papier blanc, avec les mentions du tirage dans les coins.",
+      },
+      {
+        src: moireDragon,
+        alt: "Un dragon dressé, dessiné entièrement en points noirs carrés sur fond blanc.",
+      },
+    ],
+    // le logotype, tres large, ne laisse qu'une lettre au recadrage portrait
+    carte: {
+      src: moireTampon,
+      alt: "Épreuve de tampon : un dragon en gros pixels bleus sur papier blanc, avec les mentions du tirage dans les coins.",
+    },
   },
   {
-    slug: "cylindre",
+    slug: "carte-postale",
     num: "02",
-    title: "CYLINDRE",
-    year: "2023",
-    nature: "EDITION / IMPRESSION",
-    client: "ATELIER NORD",
-    image: p2,
+    title: "CARTE POSTALE",
+    year: "2026",
+    nature: "EDITION",
+    client: "PROJET D'ECOLE / DNMADE 2",
+    image: carteScan,
     lines: [
-      "Un ouvrage de 240 pages imprime en une seule encre. La grille de composition est celle de la presse : douze colonnes, aucune exception.",
-      "Les images sont tramees en blocs a la sortie du RIP, sans demi-teinte.",
+      "Des cartes postales composees a partir de photographies d'archives de Bordeaux : la piscine Judaique, le dernier convoi du tram, la rue Sainte-Catherine pavoisee.",
+      "Les images sont scannees, seuillees, dechirees puis recomposees en planches.",
     ],
     resume:
-      "Édition et impression d'un ouvrage de 240 pages en une seule encre, sur la grille de la presse. Projet du studio MIRE pour Atelier Nord, 2023.",
-    alt: "Gros plan d'un cylindre de presse en métal brossé monté sur son axe, dans la pénombre d'un atelier d'impression.",
-  },
-  {
-    slug: "mire-tv",
-    num: "03",
-    title: "MIRE 819",
-    year: "2023",
-    nature: "MOTION / DIFFUSION",
-    client: "CANAL PUBLIC",
-    image: p3,
-    lines: [
-      "Habillage d'antenne fonde sur la mire de reglage. Tous les inter-programmes sont des etats de calibration : barres, seuils, repere de lecture.",
-      "Le rouge n'apparait qu'une fois par heure, a la seconde zero.",
+      "Cartes postales composées à partir de photographies d'archives de Bordeaux, scannées, seuillées, déchirées puis recomposées en planches. Projet d'école, DNMADE 2, 2026.",
+    alt: "Collage en noir et blanc de photographies anciennes de Bordeaux découpées et superposées : façades, tramway, foule, un visage.",
+    details: [
+      {
+        src: carteFragments,
+        alt: "Planche encadrée : fragments de photographies anciennes en noir pur et blanc, déchirés et assemblés en éventail.",
+      },
+      {
+        src: carteTram,
+        alt: "Planche encadrée : une rue ancienne de Bordeaux et ses passants, déformée en vagues verticales.",
+      },
     ],
-    resume:
-      "Habillage d'antenne fondé sur la mire de réglage : barres, seuils et repère de lecture comme inter-programmes. Projet du studio MIRE pour Canal Public, 2023.",
-    alt: "Écran noir affichant une mire de réglage : barres verticales du blanc au gris foncé et cinq pastilles rondes alignées dessous.",
-  },
-  {
-    slug: "rames",
-    num: "04",
-    title: "RAMES",
-    year: "2022",
-    nature: "IDENTITE / PAPIER",
-    client: "PAPETERIE B.",
-    image: p4,
-    lines: [
-      "Un catalogue de papiers ou la matiere est absente de la photographie : seule la lumiere sur la tranche est conservee.",
-      "Le noir couvre 62% de la surface imprimee. Ce chiffre est le cahier des charges.",
-    ],
-    resume:
-      "Identité et catalogue de papiers où seule la lumière sur la tranche est conservée. Projet du studio MIRE pour Papeterie B., 2022.",
-    alt: "Piles de rames de papier dans une réserve sombre, éclairées par une fenêtre à petits carreaux, seule la tranche des feuilles prise par la lumière.",
   },
 ];
 
@@ -95,4 +101,19 @@ export const periode = (() => {
   const a = Math.min(...ans);
   const b = Math.max(...ans);
   return a === b ? String(a) : `${a} — ${b}`;
+})();
+
+/**
+ * Les images des projets qui tiennent un cadrage serre (carte, sinon principale,
+ * puis details), alternees d'un projet a l'autre : le banc d'essai y puise.
+ */
+export const planches: Planche[] = (() => {
+  const parProjet = projects.map((p) => {
+    const tete = p.carte ?? { src: p.image, alt: p.alt };
+    return [tete, ...(p.details ?? []).filter((d) => d.src !== tete.src)];
+  });
+  const out: Planche[] = [];
+  for (let k = 0; k < Math.max(0, ...parProjet.map((l) => l.length)); k++)
+    for (const l of parProjet) if (l[k]) out.push(l[k]!);
+  return out;
 })();

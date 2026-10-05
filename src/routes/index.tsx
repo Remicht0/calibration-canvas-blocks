@@ -7,7 +7,7 @@ import { HybridMedia } from "@/components/media";
 import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar } from "@/components/chrome";
 import { mireText } from "@/lib/glyphs";
-import { periode, projects } from "@/lib/projects";
+import { periode, planches, projects } from "@/lib/projects";
 import { domainesPhrase, presentation, signature, STUDIO } from "@/lib/site";
 
 export const Route = createFileRoute("/")({
@@ -258,24 +258,24 @@ function Index() {
         </div>
         <div className="grid gap-cell md:grid-cols-3">
           <HybridMedia
-            src={projects[0]!.image}
-            alt={projects[0]!.alt}
+            src={planches[0]!.src}
+            alt={planches[0]!.alt}
             label="LECTURE BIN"
             ratio={1}
             mode="bin"
             drive="scroll"
           />
           <HybridMedia
-            src={projects[1]!.image}
-            alt={projects[1]!.alt}
+            src={planches[1 % planches.length]!.src}
+            alt={planches[1 % planches.length]!.alt}
             label="LECTURE GRIS"
             ratio={1}
             mode="gris"
             drive="scroll"
           />
           <HybridMedia
-            src={projects[2]!.image}
-            alt={projects[2]!.alt}
+            src={planches[2 % planches.length]!.src}
+            alt={planches[2 % planches.length]!.alt}
             label="LECTURE BRUT"
             ratio={1}
             mode="brut"

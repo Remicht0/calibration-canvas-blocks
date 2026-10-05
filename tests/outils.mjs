@@ -24,7 +24,15 @@ export const CHROMIUM = process.env["MIRE_CHROMIUM"] ?? "/opt/pw-browsers/chromi
 export const Y4M = path.join(ATELIER, "mire.y4m");
 export const GRANDE_PHOTO = path.join(ATELIER, "grande-photo.png");
 export const DAMIER = path.join(ATELIER, "damier.png");
-export const photo = (nom) => path.join(RACINE, "src", "assets", nom);
+/** Photos d'essai (anciennes images de demonstration du gabarit) : matiere pour le miroir. */
+export const photo = (nom) => path.join(RACINE, "tests", "photos", nom);
+
+/** Les projets reels, lus dans la source : les suites n'ecrivent aucun nom de projet en dur. */
+export const SLUGS = [
+  ...fs
+    .readFileSync(path.join(RACINE, "src", "lib", "projects.ts"), "utf8")
+    .matchAll(/slug: "([^"]+)"/g),
+].map((m) => m[1]);
 
 /** Arguments Chromium : une camera factice alimentee par la bobine y4m. */
 export const CAMERA_FACTICE = [

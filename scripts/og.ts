@@ -125,7 +125,7 @@ function projectCard(p: Project): { raster: Raster; threshold: number } {
   const r = new Raster();
   const IMG_COLS = 510 / IMG_CELL; // 34
   const IMG_ROWS = H / IMG_CELL; // 42
-  const px = sampleJpeg(p.image, IMG_COLS, IMG_ROWS);
+  const px = sampleJpeg(p.carte?.src ?? p.image, IMG_COLS, IMG_ROWS);
   // seuil d'Otsu borne : une photo sombre ne devient pas un aplat noir
   const lum = new Float32Array(IMG_COLS * IMG_ROWS);
   for (let i = 0; i < lum.length; i++)

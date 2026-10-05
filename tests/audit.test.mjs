@@ -5,9 +5,9 @@
  */
 import { after, before, test } from "node:test";
 import { chromium } from "playwright-core";
-import { BASE, CAMERA_MIRE, CHROMIUM, capture, conclure, verifie } from "./outils.mjs";
+import { BASE, CAMERA_MIRE, CHROMIUM, SLUGS, capture, conclure, verifie } from "./outils.mjs";
 
-const ROUTES = ["/", "/projet/tmc", "/atelier", "/contact", "/inconnue"];
+const ROUTES = ["/", `/projet/${SLUGS[0]}`, "/atelier", "/contact", "/inconnue"];
 const LARGEURS = [
   [393, 852],
   [820, 1180],
@@ -159,7 +159,7 @@ test("og:image suit la route en navigation client", async () => {
   });
   await page.goto(BASE + "/", { waitUntil: "networkidle" });
   await page.waitForTimeout(2200);
-  await page.click('a[href="/projet/cylindre"]');
+  await page.click(`a[href="/projet/${SLUGS[1] ?? SLUGS[0]}"]`);
   await page.waitForTimeout(2500);
   const apres = await page.evaluate(() => ({
     url: location.pathname,
@@ -168,7 +168,9 @@ test("og:image suit la route en navigation client", async () => {
   }));
   verifie(
     "la carte de partage est celle du projet, et en un seul exemplaire",
-    apres.url === "/projet/cylindre" && apres.og === BASE + "/og/cylindre.png" && apres.n === 1,
+    apres.url === `/projet/${SLUGS[1] ?? SLUGS[0]}` &&
+      apres.og === `${BASE}/og/${SLUGS[1] ?? SLUGS[0]}.png` &&
+      apres.n === 1,
     JSON.stringify(apres),
   );
   verifie(
@@ -186,7 +188,7 @@ test("mouvement reduit : les planches sont posees d'un coup", async () => {
     reducedMotion: "reduce",
   });
   const page = await ctx.newPage();
-  await page.goto(BASE + "/projet/cylindre", { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/projet/${SLUGS[1] ?? SLUGS[0]}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(400);
   const encre = await page.evaluate(() => {
     const sortie = [];

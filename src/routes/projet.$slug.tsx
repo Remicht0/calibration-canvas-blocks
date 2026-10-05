@@ -20,7 +20,7 @@ export const Route = createFileRoute("/projet/$slug")({
     // carte de partage 1-bit generee par `bun run og` (scripts/og.ts)
     const img = loaderData ? `${loaderData.origin}${ogPath(loaderData.slug)}` : null;
     const imgAlt = loaderData
-      ? `${loaderData.alt} Carte du projet ${loaderData.title}, rendue en blocs 1 bit.`
+      ? `${loaderData.carte?.alt ?? loaderData.alt} Carte du projet ${loaderData.title}, rendue en blocs 1 bit.`
       : null;
     return {
       meta: [
@@ -165,8 +165,8 @@ function ProjectPage() {
         </div>
         <div className="grid gap-cell md:grid-cols-2">
           <HybridMedia
-            src={p.image}
-            alt={`${p.alt} Détail en seuil binaire.`}
+            src={p.details?.[0].src ?? p.image}
+            alt={`${p.details?.[0].alt ?? p.alt} Détail en seuil binaire.`}
             label={`${p.title} — DETAIL SEUIL`}
             ratio={1.05}
             mode="bin"
@@ -174,8 +174,8 @@ function ProjectPage() {
             drive="scroll"
           />
           <HybridMedia
-            src={p.image}
-            alt={`${p.alt} Détail en mosaïque brute.`}
+            src={p.details?.[1].src ?? p.image}
+            alt={`${p.details?.[1].alt ?? p.alt} Détail en mosaïque brute.`}
             label={`${p.title} — DETAIL MOSAIQUE`}
             ratio={1.05}
             mode="brut"
