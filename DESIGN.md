@@ -773,8 +773,9 @@ Reste a faire :
 - [x] Hebergeur dans les mentions legales : Cloudflare, Inc.
       (`STUDIO.hebergeur`), le site etant servi par Cloudflare Workers sous
       le domaine de MIRE. Marche a suivre : README, « Mise en ligne ».
-- [ ] Nom de domaine : a acheter, puis `VITE_SITE_URL` dans les variables de
-      build du Worker.
+- [x] Nom de domaine : `mirestudio.fr` (registrar OVHcloud, DNS chez
+      Cloudflare), rattache au Worker comme domaine personnalise ;
+      `VITE_SITE_URL=https://mirestudio.fr` dans les variables de build.
 - [ ] SIRET des l'immatriculation (`STUDIO.siret`).
 - [x] Badge « Edit with Lovable » : il n'est ni dans le code ni dans le build ;
       seul l'hebergement Lovable l'ajoute, sur `*.lovable.app`. Le site public

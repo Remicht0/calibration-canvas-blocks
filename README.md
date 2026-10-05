@@ -2,6 +2,8 @@
 
 Portfolio de Rémi Marty, graphiste indépendant à Bordeaux, qui signe MIRE.
 
+En ligne : https://mirestudio.fr
+
 Une seule idée directrice, exécutée sans compromis : le site 
 
 entier est une mire de calibration — une image de test.
