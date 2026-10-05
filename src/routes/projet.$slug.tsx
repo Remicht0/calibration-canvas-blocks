@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-ro
 import { useEffect, useRef, useState } from "react";
 import { BlockBackdrop, BlockType } from "@/components/mire";
 import { TopBar } from "@/components/chrome";
+import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
 import { CalibrationBand } from "@/components/bars";
 import type { BitMode } from "@/lib/bitmap";
@@ -9,6 +10,7 @@ import { mireText } from "@/lib/glyphs";
 import { bySlug, fondOf, projects, type Lecture, type Project } from "@/lib/projects";
 import { metier, ogPath, siteOrigin, STUDIO } from "@/lib/site";
 import { useTeteTactile } from "@/lib/tete";
+import { useToutNet } from "@/lib/tout-net";
 import { Colophon } from "./index";
 
 /** URL absolue d'un fichier servi par le site (import Vite : chemin a la racine). */
@@ -152,6 +154,18 @@ function ProjectPage() {
   );
   const tag = (o: Project) => (o === next ? "SUIVANT" : o === prev ? "PRECEDENT" : "");
 
+  // TOUT EN NET : toutes les planches du projet en image d'origine, d'un geste
+  const [toutNet, setToutNet] = useToutNet();
+  const [annonceNet, setAnnonceNet] = useState("");
+  const lecture = toutNet ? ("net" as const) : null;
+  const basculer = () => {
+    const v = !toutNet;
+    setToutNet(v);
+    setAnnonceNet(
+      v ? "Toutes les planches en lecture nette." : "Toutes les planches reprennent leurs blocs.",
+    );
+  };
+
   const une = regler(p.lecture, PLANCHE_01);
   const signal = p.video ? { ...p.video, ...regler(p.video, PLANCHE_VIDEO) } : null;
   const serie = serieOf(p);
@@ -195,15 +209,29 @@ function ProjectPage() {
 
       {/* PLANCHE PRINCIPALE au premier ecran — media hybride, lecture au choix */}
       <section data-mire="PLANCHE 01" className="bg-white px-cell pb-cell4">
-        <div className="u-mono mb-cell flex justify-between gap-cell">
+        {/* NET est nomme des la premiere planche, avec TOUT EN NET : c'est la que
+            l'on cherche a bien voir. En tactile, l'indication passe sous le bouton. */}
+        <div className="u-mono mb-cell flex flex-wrap items-center justify-between gap-x-cell gap-y-[6px]">
           <h2>PLANCHE 01 — MATIERE</h2>
-          {/* NET est nomme des la premiere planche : c'est la que l'on cherche a bien voir */}
-          <span className="hidden md:[@media(hover:hover)]:inline">
-            NET = IMAGE NETTE / SURVOL = LOUPE
-          </span>
-          <span className="flex flex-col items-end text-right md:[@media(hover:hover)]:hidden">
+          <div className="flex items-center gap-cell">
+            <span className="hidden md:[@media(hover:hover)]:inline">
+              NET = IMAGE NETTE / SURVOL = LOUPE
+            </span>
+            <Bloc
+              pressed={toutNet}
+              onClick={basculer}
+              aria-label="Tout en net : toutes les planches du projet en image d'origine, nette"
+            >
+              TOUT EN NET
+            </Bloc>
+          </div>
+          <span className="flex basis-full flex-wrap justify-end gap-x-[1ch] md:[@media(hover:hover)]:hidden">
             <span>NET = IMAGE NETTE</span>
+            <span aria-hidden="true">/</span>
             <span>APPUI LONG = LOUPE</span>
+          </span>
+          <span className="sr-only" aria-live="polite">
+            {annonceNet}
           </span>
         </div>
         <HybridMedia
@@ -216,6 +244,7 @@ function ProjectPage() {
           threshold={une.threshold}
           gamma={une.gamma}
           net
+          force={lecture}
         />
       </section>
 
@@ -283,6 +312,7 @@ function ProjectPage() {
             threshold={signal.threshold}
             gamma={signal.gamma}
             net
+            force={lecture}
           />
         </section>
       )}
@@ -310,6 +340,7 @@ function ProjectPage() {
               lensRadius={d.loupe}
               drive="scroll"
               net
+              force={lecture}
               className={
                 k !== seule
                   ? ""

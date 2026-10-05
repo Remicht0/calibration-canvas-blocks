@@ -205,8 +205,17 @@ CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`, et un
   planche seule finale en pleine largeur si elle est en paysage, sinon à la
   largeur d'une colonne, au milieu), puis SUITE. L'en-tête de la planche 01
   nomme NET (`NET = IMAGE NETTE`, suivi de `SURVOL = LOUPE` sur un pointeur
-  qui survole, ou de `APPUI LONG = LOUPE` dessous en tactile) : c'est là que
-  l'on cherche à bien voir.
+  qui survole, ou de `APPUI LONG = LOUPE` dessous en tactile) et porte le
+  bloc `TOUT EN NET` : c'est là que l'on cherche à bien voir.
+- `TOUT EN NET` (choix de Rémi) : un bloc à bascule (`aria-pressed`) qui
+  passe toutes les planches du projet en NET (planche 01, série, vidéo) par
+  la prop `force` de `HybridMedia`, sans annonce par planche (la page annonce
+  le bouton). Une planche reste réglable à la main ensuite ; relâché, chaque
+  planche retrouve sa lecture d'origine. Le choix tient la session
+  (`sessionStorage`, `lib/tout-net.ts`) : d'un projet à l'autre et au
+  rechargement, jamais d'une visite à l'autre ; le rendu serveur est en
+  blocs. À 360 px, un titre long sur deux lignes le pousse juste sous le
+  premier écran, en tête de la planche 01.
 - SUITE : les autres projets, survol en négatif de l'index (image `fondOf`),
   `PRECEDENT` / `SUIVANT` étiquetés, flèches du clavier pour feuilleter.
 - Vignettes de l'index (choix de Rémi) : chaque ligne porte l'image de son
@@ -381,6 +390,7 @@ src/
     tete.ts            useTeteTactile : la ligne rouge choisit la ligne de
                        liste en tactile (index, SUITE)
     arrivee-index.ts   focus de la section INDEX a l'arrivee par /#index
+    tout-net.ts        TOUT EN NET : le choix du visiteur, tenu la session
     bitmap.ts          noyau hybride : sample(), paintBlocks(), paintNet(),
                        BitMode / ReadMode, quantification en paliers, loupe,
                        support vidéo
@@ -677,7 +687,8 @@ Fait :
 - [x] Noyau 1-bit (`mire.ts`) : seuillage, chute de blocs, texte en blocs.
 - [x] Noyau hybride (`bitmap.ts`) : modes BIN / GRIS / BRUT, loupe, video.
 - [x] Lecture NET sur les planches de projet (choix de Remi) : l'image
-      d'origine nette et en couleurs, a la demande, plein cadre compris.
+      d'origine nette et en couleurs, a la demande, plein cadre compris ;
+      bloc TOUT EN NET pour tout le projet d'un geste.
 - [x] Chrome global : boot, curseur bloc, inversion `N`, ligne rouge.
 - [x] Accueil : entree, index en negatif au survol, banc d'essai, procede,
       manifeste, colophon.

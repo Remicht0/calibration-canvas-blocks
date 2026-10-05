@@ -75,6 +75,7 @@ export function HybridMedia({
   phase = "in",
   controls = true,
   net = false,
+  force,
   onSample,
   onDissolved,
   onFull,
@@ -104,6 +105,12 @@ export function HybridMedia({
   controls?: boolean;
   /** Propose la lecture NET (l'image d'origine, nette) : planches de projet seulement */
   net?: boolean;
+  /**
+   * Lecture imposee par la page (TOUT EN NET) : la planche y passe sans annonce
+   * (la page annonce son propre bouton) ; null lui rend sa lecture d'origine.
+   * Le visiteur peut ensuite changer la lecture d'une seule planche.
+   */
+  force?: ReadMode | null | undefined;
   /** Trame echantillonnee, pour un instrument externe (video : au plus toutes les 600 ms) */
   onSample?: (s: Sampled) => void;
   onDissolved?: () => void;
@@ -178,14 +185,26 @@ export function HybridMedia({
   );
 
   const apply = useCallback(
-    (m: ReadMode) => {
+    (m: ReadMode, silent = false) => {
       modeRef.current = m;
       setMode(m);
       redraw.current();
-      say(m, tune.current, measure.current());
+      const inkNow = measure.current();
+      if (!silent) say(m, tune.current, inkNow);
     },
     [say],
   );
+
+  // lecture imposee par la page : seulement quand elle change, jamais au montage
+  // sans consigne (la planche garde alors sa lecture d'origine)
+  const forced = useRef<ReadMode | null | undefined>(null);
+  useEffect(() => {
+    if (force === undefined || force === forced.current) return;
+    forced.current = force;
+    const m = force ?? initial;
+    if (m === "net" && !net) return;
+    if (modeRef.current !== m) apply(m, true);
+  }, [force, initial, net, apply]);
 
   const setTune = useCallback(
     (patch: Partial<Tune>, silent = false) => {
