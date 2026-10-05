@@ -18,6 +18,27 @@ import champiVolets57 from "@/assets/champitheque-volets-05-07.jpg";
 import champiTour from "@/assets/champitheque-tour.jpg";
 import gnafLogo from "@/assets/gnaf-logo.jpg";
 import gnafLettrage from "@/assets/gnaf-lettrage.jpg";
+import daltonChaines from "@/assets/dalton-chaines.jpg";
+import daltonTitre from "@/assets/dalton-titre.jpg";
+import daltonSilhouette from "@/assets/dalton-silhouette.jpg";
+import daltonCourse from "@/assets/dalton-course.jpg";
+import daltonGenerique from "@/assets/dalton-generique.mp4";
+import daltonGeneriqueWebm from "@/assets/dalton-generique.webm";
+import microRuine from "@/assets/microunivers-ruine.jpg";
+import microGalerie from "@/assets/microunivers-galerie.jpg";
+import microColonne from "@/assets/microunivers-colonne.jpg";
+import microCouloir from "@/assets/microunivers-couloir.jpg";
+import microVideo from "@/assets/microunivers-3d.mp4";
+import microVideoWebm from "@/assets/microunivers-3d.webm";
+import poesieYeux from "@/assets/poesie-yeux.jpg";
+import poesieYeuxBoucle from "@/assets/poesie-yeux.mp4";
+import poesieYeuxBoucleWebm from "@/assets/poesie-yeux.webm";
+import poesieEtoiles from "@/assets/poesie-etoiles.mp4";
+import poesieEtoilesWebm from "@/assets/poesie-etoiles.webm";
+import poesieCourbes from "@/assets/poesie-courbes.mp4";
+import poesieCourbesWebm from "@/assets/poesie-courbes.webm";
+import poesieTriangles from "@/assets/poesie-triangles.mp4";
+import poesieTrianglesWebm from "@/assets/poesie-triangles.webm";
 
 /**
  * Reglage de lecture d'une planche (HybridMedia). Absent, la page applique son
@@ -301,6 +322,162 @@ export const projects: Project[] = [
       alt: "Planche de dix recherches de lettrage : GNAF en capitales à gauche, gnaf en minuscules à droite, dans des styles taillés, étroits ou irréguliers.",
     },
     credits: ["PROJET DE GROUPE", "LOGOTYPE ET LETTRAGE : MIRE"],
+  },
+  {
+    slug: "dalton",
+    num: "05",
+    title: "DALTON",
+    year: "2026",
+    nature: "GENERIQUE ANIME",
+    client: "PROJET D'ECOLE / DNMADE 1",
+    image: daltonChaines,
+    alt: "Image du générique : deux silhouettes noires de Dalton devant un disque jaune motif chaînes, rayé de traits rouges, sur fond noir.",
+    lecture: { mode: "gris", gamma: 0.85, ratio: 0.56 },
+    lines: [
+      "Un generique pour les Dalton, en aplats noir, rouge et jaune, sans contour.",
+      "Le titre en lettres taillees, barre d'un trait rouge ; les freres en ombres chinoises devant un rideau de chaines ; une silhouette rouge entre les barbeles, un revolver ; puis la fuite a travers le desert.",
+      "37 secondes d'animation.",
+    ],
+    resume:
+      "Générique animé pour les Dalton : aplats noir, rouge et jaune, titre en lettres taillées, silhouettes devant un rideau de chaînes, fuite à travers le désert. Projet d'école, DNMADE 1, 2026.",
+    video: {
+      src: daltonGenerique,
+      webm: daltonGeneriqueWebm,
+      alt: "Le générique animé des Dalton, 37 secondes : le titre, les silhouettes devant les chaînes, une silhouette rouge entre les barbelés, un revolver, puis la course des frères dans un désert rouge.",
+      label: "GENERIQUE / 37 S",
+      mode: "gris",
+      ratio: 0.56,
+    },
+    serie: [
+      {
+        src: daltonTitre,
+        alt: "Le titre « Dalton » en lettres jaunes taillées en pointes, barré d'un trait rouge, sur fond noir.",
+        label: "TITRE",
+        mode: "gris",
+        ratio: 0.56,
+      },
+      {
+        src: daltonSilhouette,
+        alt: "Une silhouette rouge au chapeau de cow-boy, de profil, entre deux lignes de barbelés rouges, sur fond noir.",
+        label: "BARBELES",
+        mode: "gris",
+        gamma: 0.6,
+        ratio: 0.56,
+      },
+      {
+        src: daltonCourse,
+        alt: "Les frères Dalton en silhouettes jaunes courent devant des mesas rouges, sur fond noir.",
+        label: "LA FUITE",
+        mode: "gris",
+        ratio: 0.56,
+      },
+    ],
+    credits: ["PERSONNAGES : LES DALTON, D'APRES LUCKY LUKE DE MORRIS"],
+  },
+  {
+    slug: "microunivers-3d",
+    num: "06",
+    title: "MICROUNIVERS 3D",
+    year: "2025",
+    nature: "MOTION DESIGN 3D",
+    client: "PROJET D'ECOLE / DNMADE 1",
+    image: microRuine,
+    alt: "Un bâtiment en ruine surmonté d'une tour à coupole, posé sur un rocher, éclairé dans le noir, en 3D.",
+    lecture: { mode: "gris", gamma: 0.7, ratio: 0.56 },
+    lines: [
+      "Un micro-univers en 3D : un batiment en ruine pose sur un rocher, dans le noir.",
+      "La camera s'en approche puis entre dans une galerie aux murs de brique, entre piliers, chaines et gravats, ou sont accrochees des affiches.",
+      "20 secondes d'animation.",
+    ],
+    resume:
+      "Micro-univers en 3D : un bâtiment en ruine sur un rocher, puis une galerie intérieure aux murs de brique où sont accrochées des affiches. Motion design 3D, projet d'école, DNMADE 1, 2025.",
+    video: {
+      src: microVideo,
+      webm: microVideoWebm,
+      alt: "Animation 3D de 20 secondes : la caméra s'approche d'un bâtiment en ruine sur un rocher, puis parcourt une galerie intérieure aux affiches accrochées, entre piliers et gravats.",
+      label: "ANIMATION / 20 S",
+      mode: "gris",
+      gamma: 0.7,
+      ratio: 0.56,
+    },
+    serie: [
+      {
+        src: microGalerie,
+        alt: "Intérieur de la galerie en 3D : un mur de brique où sont accrochées trois affiches encadrées, des gravats au sol, des piliers au fond.",
+        label: "GALERIE",
+        mode: "gris",
+        gamma: 0.7,
+        ratio: 0.56,
+      },
+      {
+        src: microColonne,
+        alt: "Un emblème noir hérissé de pointes posé sur une colonne ionique, à côté d'un tas de briques, en 3D.",
+        label: "COLONNE",
+        mode: "gris",
+        gamma: 0.7,
+        ratio: 0.56,
+      },
+      {
+        src: microCouloir,
+        alt: "Un couloir entre des piliers d'où pendent des chaînes, avec au fond une affiche rouge marquée d'un signe bleu hérissé d'épines, en 3D.",
+        label: "COULOIR",
+        mode: "gris",
+        gamma: 0.7,
+        ratio: 0.56,
+      },
+    ],
+  },
+  {
+    slug: "poesie-des-formes",
+    num: "07",
+    title: "LA POESIE DES FORMES",
+    year: "2025",
+    nature: "MOTION DESIGN",
+    client: "PROJET D'ECOLE / DNMADE 1",
+    image: poesieYeux,
+    alt: "Deux formes blanches arrondies sur fond bleu, chacune avec un disque rouge en bas, comme deux yeux qui regardent vers le bas.",
+    lecture: { mode: "bin", threshold: 0.5, ratio: 1 },
+    lines: [
+      "Des boucles courtes en formes simples et en aplats, sans contour : deux yeux qui regardent, des etoiles qui s'emboitent, des courbes qui se deroulent, des triangles qui glissent.",
+      "Bleu, rouge, vert acide et blanc.",
+    ],
+    resume:
+      "Boucles animées en formes simples et aplats de couleur : deux yeux qui regardent, des étoiles qui s'emboîtent, des courbes, des triangles. Motion design, projet d'école, DNMADE 1, 2025.",
+    video: {
+      src: poesieEtoiles,
+      webm: poesieEtoilesWebm,
+      alt: "Boucle animée de 25 secondes : des étoiles rouges, vertes et bleues qui s'emboîtent et grandissent l'une dans l'autre.",
+      label: "ETOILES / 25 S",
+      mode: "gris",
+      ratio: 1,
+    },
+    serie: [
+      {
+        src: poesieYeuxBoucle,
+        webm: poesieYeuxBoucleWebm,
+        alt: "Boucle animée : deux formes blanches sur fond bleu dont les disques rouges bougent comme des yeux qui regardent.",
+        label: "YEUX",
+        mode: "bin",
+        threshold: 0.5,
+        ratio: 1,
+      },
+      {
+        src: poesieCourbes,
+        webm: poesieCourbesWebm,
+        alt: "Boucle animée : de larges courbes rouges, vertes puis bleues qui se déroulent sur fond gris clair.",
+        label: "COURBES",
+        mode: "gris",
+        ratio: 1,
+      },
+      {
+        src: poesieTriangles,
+        webm: poesieTrianglesWebm,
+        alt: "Boucle animée : des triangles bleus qui glissent et grandissent sur fond vert acide.",
+        label: "TRIANGLES",
+        mode: "gris",
+        ratio: 1,
+      },
+    ],
   },
 ];
 

@@ -923,10 +923,12 @@ Reste a faire :
       titres plus presents, nombre de planches, banc d'essai nomme, page
       projet avec planche 01 au premier ecran et serie de planches, titres en
       blocs sur plusieurs lignes, tete de lecture tactile, impression.
-- [ ] Videos des animations (Dalton, Pictogramme, Microunivers 3D, logo anime
-      Time To Travel) : exports legers (< 6 Mo) a deposer par Remi. Sans
-      video, ces projets ne sont pas publies (les illustrations de Time To
-      Travel sont un support commun de la classe, pas de Remi).
+- [x] Videos des animations (choix de Remi) : DALTON (generique, 2026),
+      MICROUNIVERS 3D (2025) et LA POESIE DES FORMES (cinq boucles, 2025)
+      sont publies, compresses en H.264 720p / 1080 carre, sans son (le site
+      les lit muets). Une image fixe tiree de chaque video sert de planche 01,
+      de vignette et de carte. Pictogramme n'a pas ete retenu ; Time To Travel
+      n'est pas publie (illustrations communes de la classe).
 - [ ] Credits nominatifs des co-auteurs de GNAF, avec leur accord.
 - [x] Hebergeur dans les mentions legales : Cloudflare, Inc.
       (`STUDIO.hebergeur`), le site etant servi par Cloudflare Workers sous
