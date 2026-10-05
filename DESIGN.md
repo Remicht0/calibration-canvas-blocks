@@ -205,7 +205,8 @@ CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`, et un
   planche seule finale en pleine largeur si elle est en paysage, sinon à la
   largeur d'une colonne, au milieu), puis SUITE. L'en-tête de la planche 01
   nomme NET (`NET = IMAGE NETTE`, suivi de `SURVOL = LOUPE` sur un pointeur
-  qui survole) : c'est là que l'on cherche à bien voir.
+  qui survole, ou de `APPUI LONG = LOUPE` dessous en tactile) : c'est là que
+  l'on cherche à bien voir.
 - SUITE : les autres projets, survol en négatif de l'index (image `fondOf`),
   `PRECEDENT` / `SUIVANT` étiquetés, flèches du clavier pour feuilleter.
 - Vignettes de l'index (choix de Rémi) : chaque ligne porte l'image de son
@@ -331,7 +332,8 @@ etat inverse. Un filet franc plus fin qu'une cellule se cale sur la grille
 plutot que de disparaitre au seuil : les deux filets du site y passent,
 `border-[10px]` en macro comme `border-[3px]` en cadre (section 1). Sous
 `mire-negative`, la carte est inversee : l'ecran montre le negatif de ce que
-les styles declarent. Ce qui est plus fin que la cellule — le mono des
+les styles declarent, sauf une planche en NET, relevee telle qu'elle
+s'affiche (elle est inversee une seconde fois). Ce qui est plus fin que la cellule — le mono des
 etiquettes, le texte courant — n'entre pas dans la carte : la silhouette est
 faite de blocs, comme le reste du site.
 
@@ -379,8 +381,9 @@ src/
     tete.ts            useTeteTactile : la ligne rouge choisit la ligne de
                        liste en tactile (index, SUITE)
     arrivee-index.ts   focus de la section INDEX a l'arrivee par /#index
-    bitmap.ts          noyau hybride : sample(), paintBlocks(), BitMode,
-                       quantification en paliers, loupe, support vidéo
+    bitmap.ts          noyau hybride : sample(), paintBlocks(), paintNet(),
+                       BitMode / ReadMode, quantification en paliers, loupe,
+                       support vidéo
     reduction.ts       pyramide de reduction d'une photo du visiteur, partagee
                        par le worker du miroir et son repli sur le fil principal
     projects.ts        source de vérité des projets (slug, num, titre,
@@ -401,7 +404,8 @@ src/
                        masques (inert, mire-modal, overflow), imbricable
   components/
     mire.tsx           BlockImage, BlockType, BlockBackdrop, ScanLine
-    media.tsx          HybridMedia — photo/vidéo échantillonnée dans la grille
+    media.tsx          HybridMedia — photo/vidéo échantillonnée dans la grille,
+                       ou nette (NET) sur une planche de projet
     plein.tsx          PleinCadre — une planche a la taille de l'ecran (portail)
     instruments.tsx    Histogramme (20 tranches x 8 rangs, plein / cadre),
                        InstrumentSeuil (planche BIN pilotee par l'histogramme)
@@ -481,7 +485,10 @@ sinon l'origine de la requete (`siteOrigin`, `src/lib/site.ts`). Relancer
 `bun run og` a chaque ajout ou changement d'image de projet ou d'identite, et commiter les
 PNG : ils sont servis tels quels depuis `public/`.
 
-### Modes de lecture d'un média (`BitMode`)
+### Modes de lecture d'un média (`ReadMode` = `BitMode` + `net`)
+
+`BitMode` : les trois lectures en blocs, les seules qu'une planche peut avoir
+par défaut. `net` s'y ajoute à la demande du visiteur.
 
 | Mode   | Rendu                              | Usage                                                 |
 | ------ | ---------------------------------- | ----------------------------------------------------- |
@@ -562,10 +569,14 @@ disparaît. Ne jamais remplir une valeur qu'on n'a pas.
   planches de projet seulement (planche 01, serie, video, banc d'essai), et
   dans leur plein cadre ; jamais sur les instruments de l'atelier ni sur les
   vignettes de l'index. `paintNet` (`bitmap.ts`) dessine la source elle-meme
-  dans le canvas, a la resolution de l'ecran, entiere (contenue et centree :
-  rien de l'oeuvre n'est coupe ; marges papier dans la page, encre en plein
-  cadre), et la pose cellule par cellule dans l'ordre de chute : la
-  dissolution reste le seul mouvement. Ni seuil ni paliers (les raccourcis
+  dans le canvas, a la resolution de l'ecran (jusqu'a 3x, contre 2x pour les
+  blocs : sinon un telephone l'agrandirait), entiere (contenue et centree :
+  rien de l'oeuvre n'est coupe ; marges transparentes, qui prennent le papier
+  de la section, le noir du masque en plein cadre ou le papier inverse sous
+  le negatif), et la pose cellule par cellule dans l'ordre de chute : la
+  dissolution reste le seul mouvement. En NET, le pincement agrandit l'image
+  (`touch-action: manipulation`) ; en blocs, `pan-y` garde l'appui long a la
+  loupe. Ni seuil ni paliers (les raccourcis
   `-` `+` `A` n'y font rien), `ENCRE` mesure la matiere comme en BRUT. Une
   planche ne s'ouvre jamais en NET : `Lecture.mode` est un `BitMode` (les
   trois lectures en blocs), seul le visiteur passe en NET, et le choix n'est

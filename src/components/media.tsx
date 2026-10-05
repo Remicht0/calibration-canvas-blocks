@@ -327,24 +327,20 @@ export function HybridMedia({
       setPlaying(false);
     }
 
+    // resolution du canvas : 2x suffit aux blocs ; une planche qui propose NET
+    // va jusqu'a 3x, sinon l'image nette serait agrandie (donc douce) sur un
+    // telephone. Une seule regle pour build() et draw(), qui doivent s'accorder.
+    const dprOf = () => Math.min(window.devicePixelRatio || 1, net ? 3 : 2);
+
     const draw = () => {
       const ctx = cv.getContext("2d");
       if (!ctx || !data) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = dprOf();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const m = modeRef.current;
       // NET : la source elle-meme, a la resolution de l'ecran ; la loupe n'a plus rien a reveler
       if (m === "net") {
-        // marges : papier dans la page, encre sous le masque noir du plein cadre
-        if (media)
-          paintNet(ctx, media, {
-            cols,
-            rows,
-            cell,
-            progress,
-            order,
-            ground: viewport ? "#000000" : "#FFFFFF",
-          });
+        if (media) paintNet(ctx, media, { cols, rows, cell, progress, order });
         return;
       }
       paintBlocks(ctx, data, {
@@ -370,7 +366,7 @@ export function HybridMedia({
       rows = viewport
         ? Math.max(4, Math.floor(el.clientHeight / cell))
         : Math.max(4, Math.round(cols * ratio));
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = dprOf();
       // le ResizeObserver se redeclenche sur la hauteur que build() vient d'ecrire : pas de second echantillonnage
       if (cols === lastCols && rows === lastRows && cell === lastCell && dpr === lastDpr) return;
       lastCols = cols;
@@ -706,7 +702,7 @@ export function HybridMedia({
       canvasCb.current?.(null);
       hovered.current = false;
     };
-  }, [src, stream, live, ratio, lensRadius, video, drive, viewport, setTune]);
+  }, [src, stream, live, ratio, lensRadius, video, drive, viewport, setTune, net]);
 
   const labelId = useId();
   const named = controls && !!label;
@@ -729,7 +725,8 @@ export function HybridMedia({
         <canvas
           ref={canvas}
           data-lecture={mode}
-          className="block max-w-full touch-pan-y select-none"
+          // en NET, le pincement agrandit l'image ; en blocs, pan-y garde l'appui long pour la loupe
+          className={`block max-w-full select-none ${mode === "net" ? "touch-manipulation" : "touch-pan-y"}`}
           style={{ WebkitTouchCallout: "none" }}
         />
       </div>
@@ -796,7 +793,7 @@ export function HybridMedia({
           <span
             role="group"
             aria-label="Mode de lecture"
-            className="ml-auto flex min-h-cell2 flex-1 flex-wrap items-center justify-end gap-[6px] min-w-0 sm:flex-initial"
+            className="ml-auto flex min-h-cell2 flex-auto flex-wrap items-center justify-end gap-[6px] min-w-0 sm:flex-initial"
           >
             <span className="hidden sm:inline">
               {coarse && mode !== "net"

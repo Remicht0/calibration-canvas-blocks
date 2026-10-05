@@ -188,11 +188,13 @@ export function histogram(s: Sampled, bins = 20): Float32Array {
 
 /**
  * NET : l'image d'origine, nette et dans ses couleurs, entiere dans le cadre
- * (contenue, centree : rien de l'oeuvre n'est coupe ; marges papier dans la
- * page, encre sous le masque noir du plein cadre). Elle se
- * pose cellule par cellule dans l'ordre de chute des blocs, la dissolution
- * reste le seul mouvement. Le canvas est a la resolution de l'ecran (dpr) :
- * aucune cellule n'y est visible une fois la planche posee.
+ * (contenue, centree : rien de l'oeuvre n'est coupe). Les marges et les
+ * cellules pas encore tombees restent transparentes : elles prennent le fond
+ * de ce qui porte la planche (papier de la section, noir du masque en plein
+ * cadre, papier inverse sous le negatif). Elle se pose cellule par cellule
+ * dans l'ordre de chute des blocs, la dissolution reste le seul mouvement.
+ * Le canvas est a la resolution de l'ecran (jusqu'a 3x) : aucune cellule n'y
+ * est visible une fois la planche posee.
  */
 export function paintNet(
   ctx: CanvasRenderingContext2D,
@@ -203,21 +205,11 @@ export function paintNet(
     cell,
     progress,
     order,
-    ground = "#FFFFFF",
-  }: {
-    cols: number;
-    rows: number;
-    cell: number;
-    progress: number;
-    order: Float32Array;
-    /** couleur des marges et des cellules pas encore tombees */
-    ground?: string;
-  },
+  }: { cols: number; rows: number; cell: number; progress: number; order: Float32Array },
 ) {
   const W = cols * cell;
   const H = rows * cell;
-  ctx.fillStyle = ground;
-  ctx.fillRect(0, 0, W, H);
+  ctx.clearRect(0, 0, W, H);
   if (progress <= 0) return;
   const { w, h } = srcSize(src);
   if (!w || !h) return;

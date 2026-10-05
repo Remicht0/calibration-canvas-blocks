@@ -292,3 +292,108 @@ test("NET n'existe que sur les images de projet", async () => {
   await ctx.close();
   conclure();
 });
+
+test("sous le negatif, les marges d'une planche NET prennent le papier inverse", async () => {
+  const ctx = await navigateur.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await nouvellePage(ctx);
+  let vides = 0;
+  for (const slug of SLUGS) {
+    await page.goto(`${BASE}/projet/${slug}`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(1200);
+    const fig = page.locator('section[data-mire="PLANCHE 01"] figure');
+    await fig.locator("button", { hasText: /^NET$/ }).click();
+    await page.mouse.move(5, 5);
+    if (!(await page.evaluate(() => document.documentElement.classList.contains("mire-negative"))))
+      await page.keyboard.press("n");
+    await page.waitForTimeout(250);
+    const cv = fig.locator("canvas[data-lecture]");
+    const png = (await cv.screenshot()).toString("base64");
+    // ce que montre l'ecran, la ou la planche ne peint rien (alpha 0)
+    const r = await page.evaluate(async (b64) => {
+      const cv = document.querySelector(
+        'section[data-mire="PLANCHE 01"] figure canvas[data-lecture]',
+      );
+      const src = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const c = document.createElement("canvas");
+      c.width = cv.width;
+      c.height = cv.height;
+      const x = c.getContext("2d");
+      x.drawImage(img, 0, 0, cv.width, cv.height);
+      const ecran = x.getImageData(0, 0, cv.width, cv.height).data;
+      let vides = 0;
+      let blancs = 0;
+      for (let i = 0; i < src.length; i += 4 * 7) {
+        if (src[i + 3] !== 0) continue;
+        vides++;
+        if (ecran[i] > 128 && ecran[i + 1] > 128 && ecran[i + 2] > 128) blancs++;
+      }
+      return { vides, blancs };
+    }, png);
+    vides += r.vides;
+    verifie(`${slug} : aucune marge blanche sur la page noire`, r.blancs === 0, JSON.stringify(r));
+  }
+  // au moins une planche 01 n'a pas le format de son cadre : ses marges existent
+  verifie("des marges transparentes ont bien ete mesurees", vides > 0, String(vides));
+  await ctx.close();
+  conclure();
+});
+
+test("NET sur telephone : resolution de l'ecran (3x) et pincement pour agrandir", async () => {
+  const ctx = await navigateur.newContext({
+    viewport: { width: 393, height: 852 },
+    hasTouch: true,
+    isMobile: true,
+    deviceScaleFactor: 3,
+  });
+  const page = await nouvellePage(ctx);
+  await page.goto(`${BASE}/projet/${SLUGS[SLUGS.length - 1]}`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(1200);
+  const fig = page.locator('section[data-mire="PLANCHE 01"] figure');
+  await fig.locator("button", { hasText: /^NET$/ }).tap();
+  await page.waitForTimeout(200);
+  const r = await page.evaluate(() => {
+    const cv = document.querySelector(
+      'section[data-mire="PLANCHE 01"] figure canvas[data-lecture]',
+    );
+    const h = document.querySelector('section[data-mire="PLANCHE 01"] h2')?.parentElement;
+    return {
+      echelle: cv.width / parseFloat(cv.style.width),
+      toucher: getComputedStyle(cv).touchAction,
+      loupe: [...(h?.querySelectorAll("span") ?? [])].some(
+        (s) =>
+          s.textContent?.trim() === "APPUI LONG = LOUPE" && s.getBoundingClientRect().width > 0,
+      ),
+    };
+  });
+  verifie("dsf 3 : la planche NET est dessinee a 3x", r.echelle === 3, String(r.echelle));
+  verifie(
+    "393 : l'en-tete de la planche 01 dit encore APPUI LONG = LOUPE",
+    r.loupe,
+    String(r.loupe),
+  );
+  verifie("en NET, le canvas laisse pincer", r.toucher === "manipulation", r.toucher);
+
+  const box = await fig.locator("canvas[data-lecture]").boundingBox();
+  const cdp = await ctx.newCDPSession(page);
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const doigts = (e) => [
+    { x: cx - 20 - e, y: cy, id: 0 },
+    { x: cx + 20 + e, y: cy, id: 1 },
+  ];
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: doigts(0) });
+  for (let s = 1; s <= 12; s++) {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: doigts(s * 10) });
+    await page.waitForTimeout(16);
+  }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await page.waitForTimeout(400);
+  const zoom = await page.evaluate(() => window.visualViewport?.scale ?? 1);
+  verifie("en NET, le pincement agrandit l'image", zoom > 1, String(zoom));
+  verifie("console vide", page.erreurs.length === 0, page.erreurs.join(" | ").slice(0, 200));
+  await ctx.close();
+  conclure();
+});

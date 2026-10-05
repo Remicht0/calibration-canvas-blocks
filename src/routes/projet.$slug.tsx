@@ -201,7 +201,10 @@ function ProjectPage() {
           <span className="hidden md:[@media(hover:hover)]:inline">
             NET = IMAGE NETTE / SURVOL = LOUPE
           </span>
-          <span className="md:[@media(hover:hover)]:hidden">NET = IMAGE NETTE</span>
+          <span className="flex flex-col items-end text-right md:[@media(hover:hover)]:hidden">
+            <span>NET = IMAGE NETTE</span>
+            <span>APPUI LONG = LOUPE</span>
+          </span>
         </div>
         <HybridMedia
           key={p.slug}
