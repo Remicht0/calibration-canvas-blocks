@@ -1,17 +1,22 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { BlockBackdrop, BlockType } from "@/components/mire";
 import { CalibrationBand, Ticker } from "@/components/bars";
 import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
 import { BitmapClock } from "@/components/bitmap-extras";
-import { TopBar } from "@/components/chrome";
+import { TopBar, VERS_INDEX } from "@/components/chrome";
+import type { BitMode } from "@/lib/bitmap";
 import { mireText } from "@/lib/glyphs";
-import { periode, planches, projects } from "@/lib/projects";
-import { domainesPhrase, presentation, signature, STUDIO } from "@/lib/site";
+import { fondOf, periode, planches, projects, type Project } from "@/lib/projects";
+import { domainesPhrase, presentation, signature, siteOrigin, STUDIO } from "@/lib/site";
+import { useTeteTactile } from "@/lib/tete";
+import { accueillirIndex, arriveeIndex } from "@/lib/arrivee-index";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
+  // origine absolue : la liste des projets en donnees structurees l'exige
+  loader: () => ({ origin: siteOrigin() }),
+  head: ({ loaderData }) => ({
     meta: [
       { title: signature },
       {
@@ -25,10 +30,58 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      // les projets de l'index, dans son ordre, chacun a son adresse absolue
+      ...(loaderData
+        ? [
+            {
+              "script:ld+json": {
+                "@context": "https://schema.org",
+                "@type": "ItemList",
+                name: "Projets",
+                numberOfItems: projects.length,
+                itemListElement: projects.map((p, i) => ({
+                  "@type": "ListItem",
+                  position: i + 1,
+                  item: {
+                    "@type": "CreativeWork",
+                    name: p.title,
+                    url: `${loaderData.origin}/projet/${p.slug}`,
+                  },
+                })),
+              },
+            },
+          ]
+        : []),
     ],
   }),
   component: Index,
 });
+
+/** Planches d'un projet : la planche 01, sa serie, sa video. */
+const nPlanches = (p: Project) => 1 + (p.serie?.length ?? 0) + (p.video ? 1 : 0);
+
+const LECTURES: BitMode[] = ["bin", "gris", "brut"];
+
+/**
+ * Banc d'essai : trois planches, de trois projets differents quand il y en a
+ * assez (la tete de chaque projet d'abord, puis le reste), chacune lue dans un
+ * des trois modes. Moins de trois planches : la meme source est relue.
+ */
+const BANC = (() => {
+  const vus = new Set<string>();
+  const tetes = planches.filter((d) => !vus.has(d.projet.slug) && !!vus.add(d.projet.slug));
+  const suite = [...tetes, ...planches.filter((d) => !tetes.includes(d))];
+  return LECTURES.flatMap((mode, k) => {
+    const d = suite[k % suite.length];
+    return d ? [{ ...d, mode }] : [];
+  });
+})();
+
+// un Bloc dont la hauteur suit le libelle : passe a la ligne, il grandit au lieu de deborder,
+// d'une cellule par ligne (interligne = une cellule, demi-cellule de marge moins le cadre) :
+// une ligne = 2 cellules, deux lignes = 3 cellules, jamais de demi-cellule
+const BLOC_SOUPLE =
+  "h-auto min-h-cell2 max-w-full py-[calc(var(--cell)/2-3px)] leading-[var(--cell)]";
 
 function Index() {
   const [hover, setHover] = useState<string | null>(null);
@@ -39,43 +92,22 @@ function Index() {
   const items = useRef<Array<HTMLLIElement | null>>([]);
   const index = useRef<HTMLElement>(null);
   const navigate = useNavigate();
+  const hash = useRouterState({ select: (s) => s.location.hash });
 
-  // Tactile : pas de survol. Le projet le plus proche du centre de l'ecran
-  // se compose de lui-meme en fond. Le scroll devient la tete de lecture.
+  // Arrivee par un lien INDEX (barre haute, console, ligne de l'entree) : la
+  // section prend le focus, le Tab continue dans l'index au lieu de remonter
   useEffect(() => {
-    if (window.matchMedia("(hover: hover)").matches) return;
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const mid = window.innerHeight / 2;
-      let best: number | null = null;
-      let bestD = Infinity;
-      items.current.forEach((el, i) => {
-        if (!el) return;
-        const r = el.getBoundingClientRect();
-        if (r.bottom < 0 || r.top > window.innerHeight) return;
-        const d = Math.abs(r.top + r.height / 2 - mid);
-        if (d < bestD) {
-          bestD = d;
-          best = i;
-        }
-      });
-      const p = best === null ? null : projects[best];
-      setActive(p ? p.slug : null);
-      setHover(p ? p.image : null);
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, []);
+    if (hash === "index" && arriveeIndex.demandee) accueillirIndex();
+    arriveeIndex.demandee = false;
+  }, [hash]);
+
+  // Tactile : pas de survol. La ligne rouge est la tete de lecture : le projet
+  // qu'elle croise se compose en fond ; hors de la liste, le fond retombe au noir.
+  useTeteTactile(items, (i) => {
+    const p = i === null ? undefined : projects[i];
+    setActive(p ? p.slug : null);
+    setHover(p ? fondOf(p) : null);
+  });
 
   // Clavier : HAUT / BAS deplacent une tete de lecture sur l'index (bloc plein,
   // fond en negatif, saut sec dans l'ecran), ESC la relache, un chiffre saute
@@ -143,45 +175,46 @@ function Index() {
 
   return (
     <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
-      {/* ENTREE */}
+      {/* ENTREE — le premier ecran laisse voir sous elle l'en-tete IDX et la
+          premiere ligne de l'index, au-dessus du chrome fixe du bas. La hauteur
+          retiree a l'ecran est la somme : filet 10 px, en-tete (4 cellules + une
+          ligne mono), premiere ligne (2 cellules + 0,9 x le corps du titre, plus
+          la ligne annee / nature en mobile), gouttiere basse (console : 6
+          cellules en mobile ; AIDE : 3 cellules + 1 d'air au bureau). Sur un
+          bureau bas (1440 x 800, 1280 x 720), le contenu depasse ce minimum :
+          une cellule d'air au moins y separe la barre, MIRE et la ligne du bas,
+          qui sinon se touchaient, et la marge basse rend une cellule pour que
+          la premiere ligne de l'index reste au-dessus d'AIDE. */}
       <section
         data-mire="ENTREE"
-        className="flex min-h-screen flex-col justify-between px-cell py-cell2"
+        className="flex min-h-[calc(100svh-var(--cell)*12-11.7vw-48px)] flex-col justify-between px-cell py-cell2 md:min-h-[calc(100svh-var(--cell)*10-4.95vw-29px)] md:gap-y-cell md:pb-cell"
       >
         <TopBar right={mireText(STUDIO.role)} />
 
-        <div>
-          <BlockType text="MIRE" drive="scan" />
-          <p className="u-copy mt-cell2 max-w-[46ch]">
+        {/* a partir de lg, la copie passe a droite du titre : sur pleine largeur,
+            MIRE fait plus de 500 px de haut en 1440 et repousserait l'index
+            sous le premier ecran */}
+        <div className="lg:flex lg:items-end lg:gap-cell2">
+          <BlockType text="MIRE" drive="scan" className="min-w-0 lg:flex-1" />
+          <p className="u-copy mt-cell2 max-w-[46ch] lg:mt-0 lg:shrink-0">
             IMAGE DE CALIBRATION — CHAQUE SURFACE EST REDUITE A DEUX VALEURS, NOIR PLEIN OU BLANC
             PLEIN, SUR UNE GRILLE DE BLOCS. LE SITE NE DECORE PAS. IL CALIBRE.
           </p>
         </div>
 
-        <div className="u-mono flex justify-between">
+        <div className="u-mono flex flex-wrap justify-between gap-x-cell">
           <span>{mireText(STUDIO.city)}</span>
-          <span>{projects.length} PROJETS / INDEX CI-DESSOUS</span>
+          {/* lien interne, pas une entree de navigation : courant seulement une fois sur #index */}
+          <Link {...VERS_INDEX} activeOptions={{ includeHash: true }}>
+            {projects.length} PROJETS / INDEX CI-DESSOUS
+          </Link>
         </div>
       </section>
-
-      <CalibrationBand height={6} seed={2} className="border-y-[10px] border-black" />
-
-      <Ticker
-        items={[
-          "SEUIL 0.45",
-          "NOIR 000000",
-          "BLANC FFFFFF",
-          "REPERE FF0000",
-          "PAS 16 / 20 PX",
-          "AUCUN DEGRADE",
-          "AUCUNE OMBRE",
-          "TOUCHE [N] — INVERSER LE SIGNAL",
-        ]}
-      />
 
       {/* INDEX */}
       <section
         ref={index}
+        id="index"
         data-mire="INDEX"
         className="on-black relative border-t-[10px] border-black"
       >
@@ -206,89 +239,113 @@ function Index() {
             <h2>PROJETS {periode}</h2>
           </div>
           <ul>
-            {projects.map((p, i) => (
-              <li
-                key={p.slug}
-                ref={(el) => {
-                  items.current[i] = el;
-                }}
-              >
-                <Link
-                  to="/projet/$slug"
-                  params={{ slug: p.slug }}
-                  onMouseEnter={() => setHover(p.image)}
-                  onFocus={() => setHover(p.image)}
-                  className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_8ch_24ch]"
+            {projects.map((p, i) => {
+              const n = nPlanches(p);
+              return (
+                <li
+                  key={p.slug}
+                  ref={(el) => {
+                    items.current[i] = el;
+                  }}
                 >
-                  <span>
-                    {active === p.slug && (
-                      <i
-                        aria-hidden="true"
-                        className="mr-[6px] inline-block size-[10px] bg-current align-middle"
-                      />
-                    )}
-                    {p.num}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="u-display block text-[13vw] leading-[0.9] tracking-[-0.02em] md:text-[3.2vw]">
-                      {p.title}
+                  <Link
+                    to="/projet/$slug"
+                    params={{ slug: p.slug }}
+                    onMouseEnter={() => setHover(fondOf(p))}
+                    onFocus={() => setHover(fondOf(p))}
+                    className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_6ch_20ch_12ch]"
+                  >
+                    <span>
+                      {active === p.slug && (
+                        <i
+                          aria-hidden="true"
+                          className="mr-[6px] inline-block size-[10px] bg-current align-middle"
+                        />
+                      )}
+                      {p.num}
                     </span>
-                    <span className="mt-[3px] block md:hidden">
-                      {p.year} / {p.nature}
+                    <span className="min-w-0">
+                      <span className="u-display block text-[13vw] leading-[0.9] tracking-[-0.02em] md:text-[5.5vw]">
+                        {p.title}
+                      </span>
+                      <span className="mt-[3px] block md:hidden">
+                        {p.year} / {p.nature}
+                      </span>
                     </span>
-                  </span>
-                  <span className="hidden md:block">{p.year}</span>
-                  <span className="hidden md:block">{p.nature}</span>
-                </Link>
-              </li>
-            ))}
+                    <span className="hidden md:block">{p.year}</span>
+                    <span className="hidden md:block">{p.nature}</span>
+                    <span className="hidden text-right md:block">
+                      {String(n).padStart(2, "0")} {n > 1 ? "PLANCHES" : "PLANCHE"}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
           <div className="h-cell4" />
         </div>
       </section>
 
-      {/* BANC D'ESSAI — la meme source lue en trois profondeurs */}
+      <CalibrationBand height={6} seed={2} className="border-y-[10px] border-black" />
+
+      <Ticker
+        items={[
+          "SEUIL 0.45",
+          "NOIR 000000",
+          "BLANC FFFFFF",
+          "REPERE FF0000",
+          "PAS 16 / 20 PX",
+          "AUCUN DEGRADE",
+          "AUCUNE OMBRE",
+          "TOUCHE [N] — INVERSER LE SIGNAL",
+        ]}
+      />
+
+      {/* BANC D'ESSAI — trois planches des projets, trois lectures, chacune mene a son projet */}
       <section
         data-mire="BANC D'ESSAI"
         className="border-t-[10px] border-black bg-white px-cell py-cell4"
       >
-        <div className="u-mono mb-cell2 flex justify-between">
+        <div className="u-mono mb-cell2 flex flex-wrap justify-between gap-x-cell">
           <h2>BANC D&apos;ESSAI</h2>
-          <span>UNE SOURCE / TROIS LECTURES / LE DEFILEMENT COMPOSE</span>
+          <span>
+            TROIS PLANCHES / TROIS LECTURES
+            <span className="hidden md:inline"> / LE DEFILEMENT COMPOSE</span>
+          </span>
         </div>
-        <div className="grid gap-cell md:grid-cols-3">
-          <HybridMedia
-            src={planches[0]!.src}
-            alt={planches[0]!.alt}
-            label="LECTURE BIN"
-            ratio={1}
-            mode="bin"
-            drive="scroll"
-          />
-          <HybridMedia
-            src={planches[1 % planches.length]!.src}
-            alt={planches[1 % planches.length]!.alt}
-            label="LECTURE GRIS"
-            ratio={1}
-            mode="gris"
-            drive="scroll"
-          />
-          <HybridMedia
-            src={planches[2 % planches.length]!.src}
-            alt={planches[2 % planches.length]!.alt}
-            label="LECTURE BRUT"
-            ratio={1}
-            mode="brut"
-            drive="scroll"
-          />
+        <div className="grid gap-x-cell gap-y-cell3 lg:grid-cols-3">
+          {BANC.map((d) => {
+            const titre = mireText(d.projet.title);
+            return (
+              // colonne : les liens VOIR s'alignent au pied des cartouches, de hauteurs inegales
+              <div key={d.mode} className="flex min-w-0 flex-col">
+                <HybridMedia
+                  src={d.src}
+                  alt={d.alt}
+                  label={`LECTURE ${d.mode.toUpperCase()} — ${titre}`}
+                  ratio={1}
+                  mode={d.mode}
+                  threshold={d.threshold ?? 0.45}
+                  gamma={d.gamma ?? 0.85}
+                  drive="scroll"
+                />
+                <div className="mt-auto pt-cell">
+                  {/* Bloc polymorphe : il ne connait pas les routes, le chemin s'ecrit en clair */}
+                  <Bloc as={Link} to={`/projet/${d.projet.slug}`} className={BLOC_SOUPLE}>
+                    VOIR {titre}
+                  </Bloc>
+                </div>
+              </div>
+            );
+          })}
         </div>
         <p className="u-copy mt-cell2 max-w-[54ch]">
           LES PHOTOS ET VIDEOS NE SONT PAS COLLEES SUR LA MIRE : ELLES SONT ECHANTILLONNEES DANS SA
           GRILLE. UN BLOC = UN PIXEL. LE SURVOL, OU L&apos;APPUI LONG, OUVRE UNE LOUPE DE MATIERE
           BRUTE.
         </p>
-        <Bloc as={Link} to="/atelier" className="mt-cell2">
-          CALIBREZ VOTRE PROPRE IMAGE DANS L&apos;ATELIER
+        <Bloc as={Link} to="/atelier" className={`mt-cell2 ${BLOC_SOUPLE}`}>
+          CALIBREZ VOTRE IMAGE DANS L&apos;ATELIER
         </Bloc>
       </section>
 

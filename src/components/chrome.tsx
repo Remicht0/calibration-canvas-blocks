@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
+import { accueillirIndex, arriveeIndex } from "@/lib/arrivee-index";
 
 /* ------------------------------------------------------------------ */
 /* Barre haute commune : MIRE + index de navigation, page courante     */
@@ -7,8 +8,39 @@ import type { ReactNode } from "react";
 /* le relais : seul MIRE et l'emplacement de droite restent.           */
 /* ------------------------------------------------------------------ */
 
+// saut sec : jamais smooth (DESIGN.md, tete de lecture clavier)
+const SAUT = { block: "start", behavior: "instant" } as const;
+
+/**
+ * Le lien note que l'arrivee est demandee (focus sur la section, voir
+ * arrivee-index.ts). Deja sur /#index, l'adresse ne change pas et le routeur
+ * ne relance aucun defilement : apres un retour en haut de page, INDEX ne
+ * ferait plus rien. Le saut est alors fait ici, sans nouvelle entree
+ * d'historique.
+ */
+const versIndex = (e: MouseEvent) => {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  arriveeIndex.demandee = true;
+  if (window.location.pathname !== "/" || window.location.hash !== "#index") return;
+  e.preventDefault();
+  document.getElementById("index")?.scrollIntoView(SAUT);
+  accueillirIndex();
+};
+
+/**
+ * Lien vers la section INDEX de l'accueil (#index), d'ou qu'on parte : le
+ * routeur y amene la page une fois rendue, d'un saut sec. MIRE, lui, reste
+ * « / » et ramene en haut de l'entree.
+ */
+export const VERS_INDEX = {
+  to: "/",
+  hash: "index",
+  hashScrollIntoView: SAUT,
+  onClick: versIndex,
+} as const;
+
 const ITEMS = [
-  { to: "/", label: "INDEX" },
+  { ...VERS_INDEX, label: "INDEX" },
   { to: "/atelier", label: "ATELIER" },
   { to: "/contact", label: "CONTACT" },
 ] as const;
@@ -23,12 +55,13 @@ export function TopBar({ right, className = "" }: { right?: ReactNode; className
         <Link to="/" className="shrink-0">
           MIRE
         </Link>
-        {ITEMS.map((t) => {
-          const active = t.to === "/" ? path === "/" : path.startsWith(t.to);
+        {ITEMS.map(({ label, ...lien }) => {
+          // INDEX est courant sur tout l'accueil, quelle que soit l'ancre
+          const active = lien.to === "/" ? path === "/" : path.startsWith(lien.to);
           return (
             <Link
-              key={t.to}
-              to={t.to}
+              key={label}
+              {...lien}
               aria-current={active ? "page" : undefined}
               className="hidden shrink-0 md:inline"
             >
@@ -38,7 +71,7 @@ export function TopBar({ right, className = "" }: { right?: ReactNode; className
                   className="mr-[6px] inline-block size-[10px] bg-current align-middle"
                 />
               )}
-              {t.label}
+              {label}
             </Link>
           );
         })}
