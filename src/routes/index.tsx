@@ -304,8 +304,8 @@ function Index() {
           GRILLE. UN BLOC = UN PIXEL. LE SURVOL, OU L&apos;APPUI LONG, OUVRE UNE LOUPE DE MATIERE
           BRUTE.
         </p>
-        <Bloc as={Link} to="/atelier" className="mt-cell2">
-          CALIBREZ VOTRE PROPRE IMAGE DANS L&apos;ATELIER
+        <Bloc as={Link} to="/atelier" className={`mt-cell2 ${BLOC_SOUPLE}`}>
+          CALIBREZ VOTRE IMAGE DANS L&apos;ATELIER
         </Bloc>
       </section>
 
