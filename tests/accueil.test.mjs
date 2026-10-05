@@ -1,6 +1,7 @@
 /**
- * L'accueil montre ses projets : l'index affleure au premier ecran sans passer
- * sous le chrome fixe, INDEX (barre haute, console, ligne de l'entree) y mene
+ * L'accueil montre ses projets : MIRE tient tout le premier ecran (choix de
+ * Remi), un lien INDEX y reste visible sans passer sous le chrome fixe, l'index
+ * suit l'entree, INDEX (barre haute, console, ligne de l'entree) y mene
  * d'un saut sec et lui donne le focus, le banc d'essai nomme chaque planche et
  * renvoie a son projet sur le pas de grille, et les donnees structurees
  * listent les projets.
@@ -16,7 +17,8 @@ const LARGEURS = [
   [393, 852],
   [820, 1180],
   [1440, 900],
-  // bureaux bas : l'entree depasse sa hauteur minimale, l'index doit tout de meme affleurer
+  // bureaux bas : MIRE en pleine largeur pousse la ligne du bas sous le pli,
+  // la barre haute garde son INDEX a l'ecran
   [1440, 800],
   [1280, 720],
 ];
@@ -77,7 +79,7 @@ const releve = (page) =>
     return { vus, chutes: window.__chutes };
   });
 
-test("les projets au premier ecran, hors du chrome fixe", async () => {
+test("l'entree en plein ecran, MIRE pleine largeur, le lien vers l'index visible", async () => {
   for (const [l, h] of LARGEURS) {
     const { ctx, page } = await ouvrir(l, h);
     await page.goto(BASE + "/", { waitUntil: "networkidle" });
@@ -91,10 +93,22 @@ test("les projets au premier ecran, hors du chrome fixe", async () => {
           : null;
       };
       const titre = document.querySelector("#index li .u-display");
+      const entreeEl = document.querySelector('[data-mire="ENTREE"]');
+      const cs = entreeEl ? getComputedStyle(entreeEl) : null;
+      const mire = boite(document.querySelector('[data-mire="ENTREE"] canvas'));
+      const large =
+        entreeEl && cs
+          ? entreeEl.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+          : 0;
       // la barre haute de l'entree porte aussi un INDEX vers #index : on veut la ligne du bas
       const lien = [...document.querySelectorAll('[data-mire="ENTREE"] a[href="/#index"]')].find(
         (a) => /PROJETS/.test(a.textContent ?? ""),
       );
+      // tous les liens INDEX rendus (barre haute, console, ligne du bas)
+      const versIndex = [...document.querySelectorAll('a[href="/#index"]')]
+        .filter((a) => getComputedStyle(a).visibility !== "hidden")
+        .map(boite)
+        .filter(Boolean);
       const blocs = [...document.querySelectorAll("main .u-bloc")].filter(
         (b) => b.scrollHeight > b.clientHeight + 1 || b.scrollWidth > b.clientWidth + 1,
       );
@@ -116,6 +130,9 @@ test("les projets au premier ecran, hors du chrome fixe", async () => {
         debordes: blocs.map((b) => b.textContent.trim()),
         // l'entree : barre haute, bloc MIRE + copie, ligne du bas
         entree: [...(document.querySelector('[data-mire="ENTREE"]')?.children ?? [])].map(boite),
+        mire,
+        large,
+        versIndex,
         cell,
         horsPas,
         scrollWidth: document.documentElement.scrollWidth,
@@ -136,14 +153,14 @@ test("les projets au premier ecran, hors du chrome fixe", async () => {
     const croise = (a, b) =>
       !!a && !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
     verifie(
-      `${tag} : l'en-tete IDX est au premier ecran`,
-      !!r.entete && r.entete.bottom <= bas,
-      `${Math.round(r.entete?.bottom)} / ${Math.round(bas)}`,
+      `${tag} : MIRE occupe toute la largeur de l'entree`,
+      !!r.mire && r.mire.right - r.mire.left >= r.large - r.cell,
+      `${Math.round((r.mire?.right ?? 0) - (r.mire?.left ?? 0))} / ${Math.round(r.large)}`,
     );
     verifie(
-      `${tag} : la premiere ligne de l'index aussi`,
-      !!r.titre && r.titre.top + r.corps * 0.9 <= bas,
-      `${Math.round((r.titre?.top ?? 0) + r.corps * 0.9)} / ${Math.round(bas)}`,
+      `${tag} : l'index commence sous l'entree`,
+      !!r.entete && !!r.lien && r.entete.top >= r.lien.bottom,
+      `${Math.round(r.entete?.top)}`,
     );
     verifie(
       `${tag} : « N PROJETS » est un lien vers #index`,
@@ -151,8 +168,23 @@ test("les projets au premier ecran, hors du chrome fixe", async () => {
       r.lienTexte,
     );
     verifie(
-      `${tag} : ... a l'ecran, ni sous AIDE ni sous la console`,
-      !!r.lien && r.lien.bottom <= bas && !croise(r.lien, r.aide) && !croise(r.lien, r.console),
+      `${tag} : MIRE tient entier au premier ecran`,
+      !!r.mire && r.mire.top >= 0 && r.mire.bottom <= bas,
+      JSON.stringify(r.mire),
+    );
+    const visible = (b) =>
+      b.top >= 0 && b.bottom <= bas && !croise(b, r.aide) && !croise(b, r.console);
+    verifie(
+      `${tag} : un lien INDEX est a l'ecran des l'arrivee`,
+      r.versIndex.some(visible),
+      JSON.stringify(r.versIndex),
+    );
+    verifie(
+      `${tag} : ... entier a l'ecran ou entier sous le pli, jamais sous AIDE ni la console`,
+      !!r.lien &&
+        (r.lien.bottom <= bas || r.lien.top >= r.innerHeight) &&
+        !croise(r.lien, r.aide) &&
+        !croise(r.lien, r.console),
       JSON.stringify(r.lien),
     );
     const [barre, milieu, ligne] = r.entree;

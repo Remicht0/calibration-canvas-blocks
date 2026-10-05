@@ -415,11 +415,11 @@ src/
   routes/
     __root.tsx         chrome global : ScanLine, GridCursor, NegativeSwitch,
                        BootSequence, RouteWipe, fontes, métadonnées de base
-    index.tsx          entrée (le premier écran laisse voir l'en-tête IDX et
-                       la première ligne de l'index ; à partir de lg, la copie
-                       à droite de MIRE) + index + bande et bandeau + banc
-                       d'essai + procédé + atelier (manifeste) + Colophon
-                       (exporté et réutilisé)
+    index.tsx          entrée (tout le premier écran : MIRE en pleine
+                       largeur, la copie dessous, la ligne « N PROJETS /
+                       INDEX CI-DESSOUS » en bas ; choix de Remi) + index
+                       + bande et bandeau + banc d'essai + procédé + atelier
+                       (manifeste) + Colophon (exporté et réutilisé)
     projet.$slug.tsx   page projet
     atelier.tsx        instruments manipulables
     contact.tsx        fiche de calibration (coordonnees, horaires, delai),
@@ -857,7 +857,8 @@ Reste a faire :
       sujet et conclusion repris des planches de Remi, credit archives Sud
       Ouest), CHAMPITHEQUE (livret en 7 volets) et GNAF (projet de groupe :
       seuls le logo et les recherches de lettrage, la part de Remi).
-- [x] Visibilite des projets : index au premier ecran, INDEX vers `/#index`,
+- [x] Visibilite des projets : MIRE garde tout le premier ecran (choix de
+      Remi), la ligne « N PROJETS » y mene a l'index, INDEX vers `/#index`,
       titres plus presents, nombre de planches, banc d'essai nomme, page
       projet avec planche 01 au premier ecran et serie de planches, titres en
       blocs sur plusieurs lignes, tete de lecture tactile, impression.

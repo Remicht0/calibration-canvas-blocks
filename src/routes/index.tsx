@@ -175,28 +175,18 @@ function Index() {
 
   return (
     <main id="contenu" tabIndex={-1} className="min-h-screen bg-white text-black">
-      {/* ENTREE — le premier ecran laisse voir sous elle l'en-tete IDX et la
-          premiere ligne de l'index, au-dessus du chrome fixe du bas. La hauteur
-          retiree a l'ecran est la somme : filet 10 px, en-tete (4 cellules + une
-          ligne mono), premiere ligne (2 cellules + 0,9 x le corps du titre, plus
-          la ligne annee / nature en mobile), gouttiere basse (console : 6
-          cellules en mobile ; AIDE : 3 cellules + 1 d'air au bureau). Sur un
-          bureau bas (1440 x 800, 1280 x 720), le contenu depasse ce minimum :
-          une cellule d'air au moins y separe la barre, MIRE et la ligne du bas,
-          qui sinon se touchaient, et la marge basse rend une cellule pour que
-          la premiere ligne de l'index reste au-dessus d'AIDE. */}
+      {/* l'entree tient tout le premier ecran (choix de Remi) : MIRE en pleine
+          largeur, la copie dessous ; en mobile, la ligne du bas reste au-dessus
+          de la console. Le lien « N PROJETS » mene a l'index juste dessous. */}
       <section
         data-mire="ENTREE"
-        className="flex min-h-[calc(100svh-var(--cell)*12-11.7vw-48px)] flex-col justify-between px-cell py-cell2 md:min-h-[calc(100svh-var(--cell)*10-4.95vw-29px)] md:gap-y-cell md:pb-cell"
+        className="flex min-h-[calc(100svh-var(--cell)*6)] flex-col justify-between gap-y-cell px-cell py-cell2 md:min-h-screen"
       >
         <TopBar right={mireText(STUDIO.role)} />
 
-        {/* a partir de lg, la copie passe a droite du titre : sur pleine largeur,
-            MIRE fait plus de 500 px de haut en 1440 et repousserait l'index
-            sous le premier ecran */}
-        <div className="lg:flex lg:items-end lg:gap-cell2">
-          <BlockType text="MIRE" drive="scan" className="min-w-0 lg:flex-1" />
-          <p className="u-copy mt-cell2 max-w-[46ch] lg:mt-0 lg:shrink-0">
+        <div>
+          <BlockType text="MIRE" drive="scan" />
+          <p className="u-copy mt-cell2 max-w-[46ch]">
             IMAGE DE CALIBRATION — CHAQUE SURFACE EST REDUITE A DEUX VALEURS, NOIR PLEIN OU BLANC
             PLEIN, SUR UNE GRILLE DE BLOCS. LE SITE NE DECORE PAS. IL CALIBRE.
           </p>
