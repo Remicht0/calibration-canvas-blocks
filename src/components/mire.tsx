@@ -7,11 +7,13 @@ import {
   erode,
   fallOrder,
   heal,
+  otsuThreshold,
   prefersReducedMotion,
   scanLineTop,
   textBlockHeight,
   type Bits,
 } from "@/lib/mire";
+import { sample } from "@/lib/bitmap";
 
 /* ------------------------------------------------------------------ */
 /* Image 1-bit qui se compose par chute de blocs a l'entree en ecran   */
@@ -457,7 +459,12 @@ export function BlockBackdrop({ src }: { src: string | null }) {
       img.onload = () => {
         if (dead) return;
         size();
-        bits = blockifyImage(img, cols, rows, 0.45);
+        const trame = sample(img, cols, rows);
+        if (!trame) return;
+        // seuil d'Otsu borne sur la trame echantillonnee (comme AUTO et les cartes
+        // de partage) : un logotype rouge ou une photo sombre ne font pas un aplat
+        const t = otsuThreshold(trame.lum, 0.3, 0.6);
+        bits = { cols, rows, data: Uint8Array.from(trame.lum, (l) => (l < t ? 1 : 0)) };
         order = fallOrder(cols, rows, cols + 3);
         progress = 0;
         animate(1);
