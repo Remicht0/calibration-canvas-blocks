@@ -672,20 +672,22 @@ export function HybridMedia({
       </div>
       {controls && (
         <figcaption className="u-mono mt-[3px] flex shrink-0 flex-wrap items-center justify-between gap-x-cell gap-y-0 border-[3px] border-(--ink) px-[6px]">
-          <span className="flex min-h-cell2 min-w-0 flex-wrap items-center gap-[6px]">
+          {/* une etiquette longue renvoie ENCRE ou le format a la ligne : chaque
+              ligne garde deux cellules de haut, aucune ne colle au cadre */}
+          <span className="flex min-h-cell2 min-w-0 flex-wrap items-center gap-x-[6px]">
             {label && (
-              <span id={labelId} className="min-w-0 truncate">
+              <span id={labelId} className="min-w-0 truncate leading-[calc(var(--cell)*2)]">
                 {label}
               </span>
             )}
             {ink !== null && (
-              <span className="flex shrink-0 items-center gap-[4px]">
+              <span className="flex min-h-cell2 shrink-0 items-center gap-[4px]">
                 <span>ENCRE</span>
                 <BitReadout text={`${ink}%`} />
               </span>
             )}
             {dims && (
-              <span className="flex shrink-0 items-center pl-[10px]">
+              <span className="flex min-h-cell2 shrink-0 items-center pl-[10px]">
                 <BitReadout text={`${dims.cols} X ${dims.rows}`} />
               </span>
             )}

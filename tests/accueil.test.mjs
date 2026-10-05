@@ -2,7 +2,8 @@
  * L'accueil montre ses projets : l'index affleure au premier ecran sans passer
  * sous le chrome fixe, INDEX (barre haute, console, ligne de l'entree) y mene
  * d'un saut sec et lui donne le focus, le banc d'essai nomme chaque planche et
- * renvoie a son projet, et les donnees structurees listent les projets.
+ * renvoie a son projet sur le pas de grille, et les donnees structurees
+ * listent les projets.
  *
  * Aucun nom de projet n'est ecrit ici : les slugs sont lus dans la source,
  * la suite tient de 2 a 6 projets.
@@ -384,6 +385,50 @@ test("banc d'essai : chaque planche nomme son projet et y mene", async () => {
   );
   verifie("console vide", page.erreurs.length === 0, page.erreurs.join(" | ").slice(0, 200));
   await ctx.close();
+  conclure();
+});
+
+test("banc d'essai : cartouches et blocs sur le pas, du 320 au 1440", async () => {
+  for (const [l, h] of [
+    [320, 640],
+    [393, 852],
+    [1024, 768],
+    [1440, 900],
+  ]) {
+    const { ctx, page } = await ouvrir(l, h);
+    await page.goto(BASE + "/", { waitUntil: "networkidle" });
+    await page.waitForTimeout(1500);
+    const r = await page.evaluate(() => {
+      const s = document.querySelector('[data-mire="BANC D\'ESSAI"]');
+      const cell = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue("--cell"),
+      );
+      // premiere ligne du cartouche : etiquette, ENCRE, format ; passee a la ligne,
+      // chaque ligne garde deux cellules
+      const lignes = [...(s?.querySelectorAll("figcaption > span:first-child") ?? [])].map(
+        (x) => x.getBoundingClientRect().height / (cell * 2),
+      );
+      const blocs = [...(s?.querySelectorAll(".u-bloc") ?? [])].map((b) => ({
+        t: b.textContent.trim(),
+        h: b.getBoundingClientRect().height / cell,
+        deborde: b.scrollHeight > b.clientHeight + 1 || b.scrollWidth > b.clientWidth + 1,
+      }));
+      return { lignes, blocs };
+    });
+    const entier = (v) => Math.abs(v - Math.round(v)) < 0.02;
+    verifie(
+      `${l} px : la ligne d'etiquette des cartouches tient un multiple de deux cellules`,
+      r.lignes.length === 3 && r.lignes.every(entier),
+      JSON.stringify(r.lignes),
+    );
+    const faux = r.blocs.filter((b) => b.deborde || !entier(b.h));
+    verifie(
+      `${l} px : les blocs du banc, sur le pas et sans debord`,
+      faux.length === 0,
+      JSON.stringify(faux),
+    );
+    await ctx.close();
+  }
   conclure();
 });
 
