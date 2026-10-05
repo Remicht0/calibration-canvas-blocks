@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { BlockBackdrop, BlockType } from "@/components/mire";
+import { BlockBackdrop, BlockType, BlockVignette } from "@/components/mire";
 import { CalibrationBand, Ticker } from "@/components/bars";
 import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
@@ -8,7 +8,7 @@ import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar, VERS_INDEX } from "@/components/chrome";
 import type { BitMode } from "@/lib/bitmap";
 import { mireText } from "@/lib/glyphs";
-import { fondOf, periode, planches, projects, type Project } from "@/lib/projects";
+import { fondOf, periode, planches, projects, teteOf, type Project } from "@/lib/projects";
 import { domainesPhrase, presentation, signature, siteOrigin, STUDIO } from "@/lib/site";
 import { useTeteTactile } from "@/lib/tete";
 import { accueillirIndex, arriveeIndex } from "@/lib/arrivee-index";
@@ -102,11 +102,11 @@ function Index() {
   }, [hash]);
 
   // Tactile : pas de survol. La ligne rouge est la tete de lecture : le projet
-  // qu'elle croise se compose en fond ; hors de la liste, le fond retombe au noir.
+  // qu'elle croise est marque. Pas de fond en negatif : chaque ligne porte deja
+  // sa vignette, et le fond pleine section la recouvrait.
   useTeteTactile(items, (i) => {
     const p = i === null ? undefined : projects[i];
     setActive(p ? p.slug : null);
-    setHover(p ? fondOf(p) : null);
   });
 
   // Clavier : HAUT / BAS deplacent une tete de lecture sur l'index (bloc plein,
@@ -253,7 +253,7 @@ function Index() {
                     params={{ slug: p.slug }}
                     onMouseEnter={() => setHover(fondOf(p))}
                     onFocus={() => setHover(fondOf(p))}
-                    className="u-mono grid grid-cols-[calc(4ch+16px)_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[calc(4ch+16px)_minmax(0,1fr)_6ch_22ch] lg:grid-cols-[calc(4ch+16px)_minmax(0,1fr)_6ch_22ch_12ch]"
+                    className="u-mono grid grid-cols-[calc(4ch+16px)_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[calc(4ch+16px)_minmax(0,1fr)_6ch_22ch] lg:grid-cols-[calc(4ch+16px)_minmax(0,1fr)_6ch_22ch_12ch] xl:grid-cols-[calc(4ch+16px)_minmax(0,1fr)_6ch_22ch_12ch_auto]"
                   >
                     <span className="whitespace-nowrap">
                       {active === p.slug && (
@@ -277,6 +277,17 @@ function Index() {
                     <span className="hidden text-right lg:block">
                       {String(n).padStart(2, "0")} {n > 1 ? "PLANCHES" : "PLANCHE"}
                     </span>
+                    {/* vignette toujours visible (choix de Remi) : bande sous le titre en
+                        mobile, colonne a droite au bureau, calee en haut pour ne pas
+                        deplacer les titres */}
+                    <BlockVignette
+                      src={teteOf(p).src}
+                      threshold={teteOf(p).threshold}
+                      cols={12}
+                      rows={8}
+                      rowsMobile={6}
+                      className="col-start-2 mt-cell self-start md:col-span-3 lg:col-span-4 xl:col-span-1 xl:col-start-auto xl:mt-0"
+                    />
                   </Link>
                 </li>
               );

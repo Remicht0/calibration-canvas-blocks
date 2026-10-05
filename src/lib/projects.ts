@@ -303,6 +303,15 @@ export const bySlug = (slug: string) => projects.find((p) => p.slug === slug);
 /** Image du fond de l'index et de la SUITE : celle qui tient un cadrage serre. */
 export const fondOf = (p: Project) => p.carte?.src ?? p.image;
 
+/**
+ * Planche de tete d'un projet (carte, sinon image principale) avec la lecture
+ * reglee de sa planche : le tampon de MOIRE garde son seuil 0,60.
+ */
+export const teteOf = (p: Project): Planche =>
+  p.carte
+    ? { ...p.serie?.find((d) => d.src === p.carte!.src), ...p.carte }
+    : { src: p.image, alt: p.alt, ...p.lecture };
+
 /** Annees couvertes par l'index, deduites des projets : « 2022 — 2024 », ou une seule annee. */
 export const periode = (() => {
   const ans = projects.flatMap((p) => (p.year.match(/\d{4}/g) ?? []).map(Number));
@@ -321,10 +330,7 @@ export type PlancheBanc = Planche & { projet: Project };
  */
 export const planches: PlancheBanc[] = (() => {
   const parProjet = projects.map((p) => {
-    // la tete garde la lecture reglee de sa planche (le tampon de MOIRE au seuil 0,60)
-    const tete: Planche = p.carte
-      ? { ...p.serie?.find((d) => d.src === p.carte!.src), ...p.carte }
-      : { src: p.image, alt: p.alt, ...p.lecture };
+    const tete = teteOf(p);
     return [tete, ...(p.serie ?? []).filter((d) => d.src !== tete.src)].map((d) => ({
       ...d,
       projet: p,
