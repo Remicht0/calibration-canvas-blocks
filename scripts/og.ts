@@ -152,10 +152,25 @@ function projectCard(p: Project): { raster: Raster; threshold: number } {
   }
   let y = CELL * 4; // 120
   const yMax = H - CELL * 3;
+  let bas = y; // bas de la derniere ligne posee
   for (const l of lines) {
     if (y + 5 * unit > yMax) break;
     drawText(asCtx(r), l, unit, x, y);
+    bas = y + 5 * unit;
     y += 6 * unit;
+  }
+
+  // client sous le titre, au corps des etiquettes : une cellule de blanc, puis
+  // la rangee suivante de la grille ; meme cesure, meme coupe que le titre
+  const client = mireText(p.client).trim();
+  if (client) {
+    const cols = Math.floor(maxW / U_LABEL);
+    let cy = Math.ceil((bas + CELL) / CELL) * CELL;
+    for (const l of wrap(client, cols) ?? [clip(client, cols)]) {
+      if (cy + 5 * U_LABEL > yMax) break;
+      drawText(asCtx(r), l, U_LABEL, x, cy);
+      cy += 6 * U_LABEL;
+    }
   }
 
   // pied : nature du projet
