@@ -84,7 +84,7 @@ export const projects: Project[] = [
     nature: "IDENTITE VISUELLE",
     client: "MARQUE PERSONNELLE",
     image: moireLogotype,
-    alt: "Le logotype « moiré » en lettres rouges épaisses et arrondies, imprimé en trame de points sur un fond crème.",
+    alt: "Le logotype « moiré » en lettres rouges épaisses et arrondies, tramé en points sur un fond crème.",
     // en gris, les lettres rouges et leur ombre noire se separent ; en bin elles font un aplat
     lecture: { mode: "gris", ratio: 0.42 },
     lines: [
@@ -127,7 +127,7 @@ export const projects: Project[] = [
       },
       {
         src: moireTampon,
-        alt: "Épreuve de tampon : l'emblème en gros pixels bleus, un chevalier qui plante son épée dans un dragon, avec les mentions du tirage dans les coins.",
+        alt: "Visuel de tampon : l'emblème en gros pixels bleus, un chevalier qui plante son épée dans un dragon, avec des mentions de tirage dans les coins.",
         label: "EMBLEME / TAMPON",
         mode: "bin",
         // encre de tampon claire et marbree : a 0,42 le chevalier se defaisait
@@ -152,7 +152,7 @@ export const projects: Project[] = [
     // le logotype, tres large, ne laisse qu'une lettre au recadrage portrait
     carte: {
       src: moireTampon,
-      alt: "Épreuve de tampon : l'emblème en gros pixels bleus, un chevalier qui plante son épée dans un dragon, avec les mentions du tirage dans les coins.",
+      alt: "Visuel de tampon : l'emblème en gros pixels bleus, un chevalier qui plante son épée dans un dragon, avec des mentions de tirage dans les coins.",
     },
   },
   {
@@ -211,18 +211,18 @@ export const projects: Project[] = [
     title: "CHAMPITHEQUE",
     year: "2026",
     nature: "EDITION",
-    client: "PROJET BIOSPHERE URBAINE",
+    client: "PROJET D'ECOLE",
     image: champiDepliant,
     alt: "Les sept volets du livret « Champithèque urbaine » côte à côte : titres noirs condensés, pictogrammes noirs et pastilles vert sapin sur papier crème.",
-    // sept volets en 65 colonnes : les paliers gardent la texture que le seuil efface
-    lecture: { mode: "gris", ratio: 0.4 },
+    // sept volets en 65 colonnes : au seuil 0,70 la tour et les pictogrammes tiennent, en gris tout palit
+    lecture: { mode: "bin", threshold: 0.7, ratio: 0.4 },
     lines: [
       "Champitheque urbaine : un mode d'emploi en sept volets pour construire une tour de culture de pleurotes et faire pousser le vivant en ville.",
-      "Un volet par etape : pourquoi une filiere, le materiel, construire la tour, percer et suspendre, preparer le substrat, inoculer, incuber, fructifier.",
-      "Titres en Anton, textes en Barlow. Noir, creme et un vert sapin.",
+      "Apres la couverture, six volets d'etapes : pourquoi une filiere, le materiel, construire la tour, percer et suspendre, preparer le substrat, puis inoculer, incuber et fructifier.",
+      "Titres en Anton. Noir, creme et un vert sapin.",
     ],
     resume:
-      "Champithèque urbaine : un livret en sept volets, mode d'emploi d'une tour de culture de pleurotes pour faire pousser le vivant en ville. Édition, projet Biosphère urbaine, 2026.",
+      "Champithèque urbaine : un livret en sept volets, mode d'emploi d'une tour de culture de pleurotes pour faire pousser le vivant en ville. Édition, projet d'école d'après la documentation du Low-tech Lab (Biosphère urbaine), 2026.",
     serie: [
       {
         src: champiVolets12,
@@ -253,7 +253,7 @@ export const projects: Project[] = [
       src: champiTour,
       alt: "Couverture du livret : une tour noire couverte de pleurotes, entourée de flèches vertes, au-dessus de « Fabriquer, observer, récolter ».",
     },
-    credits: ["PROJET BIOSPHERE URBAINE"],
+    credits: ["CONTENUS D'APRES LE LOW-TECH LAB, PROJET BIOSPHERE URBAINE"],
   },
   {
     slug: "gnaf",
@@ -312,7 +312,10 @@ export type PlancheBanc = Planche & { projet: Project };
  */
 export const planches: PlancheBanc[] = (() => {
   const parProjet = projects.map((p) => {
-    const tete: Planche = p.carte ?? { src: p.image, alt: p.alt };
+    // la tete garde la lecture reglee de sa planche (le tampon de MOIRE au seuil 0,60)
+    const tete: Planche = p.carte
+      ? { ...p.serie?.find((d) => d.src === p.carte!.src), ...p.carte }
+      : { src: p.image, alt: p.alt, ...p.lecture };
     return [tete, ...(p.serie ?? []).filter((d) => d.src !== tete.src)].map((d) => ({
       ...d,
       projet: p,
