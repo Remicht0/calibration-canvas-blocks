@@ -169,8 +169,8 @@ function ProjectPage() {
         </div>
         <div className="grid gap-cell md:grid-cols-2">
           <HybridMedia
-            src={p.details?.[0].src ?? p.image}
-            alt={`${p.details?.[0].alt ?? p.alt} Détail en seuil binaire.`}
+            src={p.serie?.[0]?.src ?? p.image}
+            alt={`${p.serie?.[0]?.alt ?? p.alt} Détail en seuil binaire.`}
             label={`${p.title} — DETAIL SEUIL`}
             ratio={1.05}
             mode="bin"
@@ -178,8 +178,8 @@ function ProjectPage() {
             drive="scroll"
           />
           <HybridMedia
-            src={p.details?.[1].src ?? p.image}
-            alt={`${p.details?.[1].alt ?? p.alt} Détail en mosaïque brute.`}
+            src={p.serie?.[1]?.src ?? p.image}
+            alt={`${p.serie?.[1]?.alt ?? p.alt} Détail en mosaïque brute.`}
             label={`${p.title} — DETAIL MOSAIQUE`}
             ratio={1.05}
             mode="brut"
