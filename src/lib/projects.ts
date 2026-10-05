@@ -130,7 +130,8 @@ export const projects: Project[] = [
         alt: "Épreuve de tampon : l'emblème en gros pixels bleus, un chevalier qui plante son épée dans un dragon, avec les mentions du tirage dans les coins.",
         label: "EMBLEME / TAMPON",
         mode: "bin",
-        threshold: 0.42,
+        // encre de tampon claire et marbree : a 0,42 le chevalier se defaisait
+        threshold: 0.6,
         ratio: 1,
       },
       {
