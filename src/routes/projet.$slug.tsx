@@ -11,6 +11,10 @@ import { metier, ogPath, siteOrigin, STUDIO } from "@/lib/site";
 import { useTeteTactile } from "@/lib/tete";
 import { Colophon } from "./index";
 
+/** URL absolue d'un fichier servi par le site (import Vite : chemin a la racine). */
+const absolu = (origin: string, src: string) =>
+  /^https?:\/\//.test(src) ? src : `${origin}${src}`;
+
 export const Route = createFileRoute("/projet/$slug")({
   loader: ({ params }) => {
     const project = bySlug(params.slug);
@@ -25,6 +29,7 @@ export const Route = createFileRoute("/projet/$slug")({
     const imgAlt = loaderData
       ? `${loaderData.carte?.alt ?? loaderData.alt} Carte du projet ${loaderData.title}, rendue en blocs 1 bit.`
       : null;
+    const video = loaderData?.video;
     return {
       meta: [
         { title: t },
@@ -54,6 +59,24 @@ export const Route = createFileRoute("/projet/$slug")({
                   url: `${loaderData!.origin}/projet/${loaderData!.slug}`,
                   creator: { "@type": "Organization", name: "MIRE" },
                   sourceOrganization: { "@type": "Organization", name: loaderData!.client },
+                  isPartOf: {
+                    "@type": "WebSite",
+                    name: STUDIO.name,
+                    url: `${loaderData!.origin}/`,
+                  },
+                  // seulement ce que la source dit vraiment : ni date ni vignette inventees
+                  ...(video
+                    ? {
+                        video: {
+                          "@type": "VideoObject",
+                          name: video.label
+                            ? `${loaderData!.title} — ${video.label}`
+                            : loaderData!.title,
+                          description: video.alt,
+                          contentUrl: absolu(loaderData!.origin, video.src),
+                        },
+                      }
+                    : {}),
                 },
               },
             ]
