@@ -21,8 +21,9 @@ import gnafLettrage from "@/assets/gnaf-lettrage.jpg";
 
 /**
  * Reglage de lecture d'une planche (HybridMedia). Absent, la page applique son
- * defaut. Une image tres graphique se lit en `bin` (seuil 0,40-0,48), une photo
- * en `gris`, une matiere assumee en `brut` (DESIGN.md, §2 BitMode).
+ * defaut. Une image tres graphique se lit en `bin`, seuil regle sur le rendu
+ * reel dans 0,20-0,70 (defaut 0,42 pour la serie) ; une photo en `gris`, une
+ * matiere assumee en `brut` (DESIGN.md, §2 BitMode).
  */
 export type Lecture = {
   mode?: BitMode;

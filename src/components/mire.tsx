@@ -11,6 +11,7 @@ import {
   prefersReducedMotion,
   scanLineTop,
   textBlockHeight,
+  titleLines,
   type Bits,
 } from "@/lib/mire";
 import { sample } from "@/lib/bitmap";
@@ -248,8 +249,18 @@ export function BlockType({
         ? Math.max(3, Math.floor((maxHeight * window.innerHeight) / cell))
         : 0;
       if (plafond && rows > plafond) {
-        cols = Math.max(8, Math.floor((cols * plafond) / rows));
-        rows = hauteur(cols);
+        // on retire des colonnes tant que la coupe ne change pas : une ligne de
+        // plus rendrait le titre plus haut, pas plus bas
+        const n = titleLines(text, cols).length;
+        for (let c = cols - 1; c >= 8; c--) {
+          if (titleLines(text, c).length > n) break;
+          const r = hauteur(c);
+          if (r <= plafond) {
+            cols = c;
+            rows = r;
+            break;
+          }
+        }
       }
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       cv.style.width = `${cols * cell}px`;

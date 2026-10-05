@@ -121,8 +121,11 @@ long que la ligne se coupe en morceaux égaux, sans tiret (CHAMPI / THEQUE) :
 entier, il passerait sous 3 colonnes par lettre. Toutes les lignes ont le même
 corps, celui qui fait tenir la plus large ; chaque ligne occupe un nombre
 entier de rangées, avec une rangée vide d'interligne. Calées à gauche dans la
-page, centrées dans la transition. Exemple, CARTE POSTALE : 22 x 13 en 393 px,
-34 x 21 en 820 px, une ligne de 65 x 10 en 1440 px.
+page, centrées dans la transition. Exemples : CARTE POSTALE ONIRIQUE donne
+CARTE / POSTALE / ONIR / IQUE en 393 px, CARTE / POSTALE / ONIRIQUE en 820 px ;
+CHAMPITHEQUE donne CHAMPI / THEQUE en 393 et 820 px, une ligne en 1440 px. Sur
+une page projet, le titre ne dépasse pas 40 % de l'écran (`maxHeight`) : au-delà
+il se compose sur moins de colonnes, sans jamais ajouter de ligne.
 - `erodible` (défaut) : **le curseur use les blocs**. Sur un pointeur fin, les
   cellules d'un carré de 5 x 5 autour du curseur tombent une à une (usure par
   temps de présence, les plus basses d'abord) ; quand il quitte le titre, les
@@ -608,8 +611,8 @@ disparaît. Ne jamais remplir une valeur qu'on n'a pas.
   `flex` a partir de `sm:`, `min-w-0` sur les conteneurs de texte,
   `shrink-0` sur les blocs de taille fixe.
 - Index des projets : annee et nature sont empilees sous le titre en mobile ;
-  a partir de `md:`, grille `[4ch titre 6ch 22ch 12ch]`, titre 5,5vw,
-  colonne `NN PLANCHES` (planche 01 + serie + video).
+  a partir de `md:`, grille `[4ch titre 6ch 22ch]`, titre 5,5vw ; a partir de
+  `lg:`, colonne `NN PLANCHES` en plus (planche 01 + serie + video).
 - Banc d'essai : une colonne jusqu'a lg, trois a partir de lg.
 - `GridCursor` et `cursor: none` sont desactives sur `pointer: coarse`.
 - `HybridMedia` : barre de controle repliable, boutons alignes a droite en

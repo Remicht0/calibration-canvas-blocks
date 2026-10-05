@@ -253,7 +253,7 @@ function Index() {
                     params={{ slug: p.slug }}
                     onMouseEnter={() => setHover(fondOf(p))}
                     onFocus={() => setHover(fondOf(p))}
-                    className="u-mono grid grid-cols-[calc(4ch+16px)_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[calc(4ch+16px)_minmax(0,1fr)_6ch_22ch_12ch]"
+                    className="u-mono grid grid-cols-[calc(4ch+16px)_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[calc(4ch+16px)_minmax(0,1fr)_6ch_22ch] lg:grid-cols-[calc(4ch+16px)_minmax(0,1fr)_6ch_22ch_12ch]"
                   >
                     <span className="whitespace-nowrap">
                       {active === p.slug && (
@@ -274,7 +274,7 @@ function Index() {
                     </span>
                     <span className="hidden md:block">{p.year}</span>
                     <span className="hidden md:block">{p.nature}</span>
-                    <span className="hidden text-right md:block">
+                    <span className="hidden text-right lg:block">
                       {String(n).padStart(2, "0")} {n > 1 ? "PLANCHES" : "PLANCHE"}
                     </span>
                   </Link>
