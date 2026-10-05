@@ -213,7 +213,7 @@ function ProjectPage() {
         </div>
       </section>
 
-      {/* TEXTE COLONNE ETROITE */}
+      {/* TEXTE COLONNE ETROITE, credits dessous */}
       <section data-mire="NOTES" className="on-black bg-black px-cell pb-cell4 text-white">
         <h2 className="sr-only">Notes</h2>
         <div className="u-copy max-w-[54ch] space-y-cell2">
@@ -221,6 +221,16 @@ function ProjectPage() {
             <p key={l}>{l}</p>
           ))}
         </div>
+        {p.credits?.length ? (
+          <div className="mt-cell4 max-w-[54ch] break-words">
+            <h3 className="u-mono mb-cell">CREDITS</h3>
+            <ul className="u-mono">
+              {p.credits.map((c) => (
+                <li key={c}>{mireText(c)}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       {/* SIGNAL : la video du projet, lue dans la grille comme une planche */}
