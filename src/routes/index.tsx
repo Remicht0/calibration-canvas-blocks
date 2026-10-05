@@ -7,8 +7,9 @@ import { HybridMedia } from "@/components/media";
 import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar, VERS_INDEX } from "@/components/chrome";
 import { mireText } from "@/lib/glyphs";
-import { periode, planches, projects } from "@/lib/projects";
+import { fondOf, periode, planches, projects } from "@/lib/projects";
 import { domainesPhrase, presentation, signature, STUDIO } from "@/lib/site";
+import { useTeteTactile } from "@/lib/tete";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -40,42 +41,13 @@ function Index() {
   const index = useRef<HTMLElement>(null);
   const navigate = useNavigate();
 
-  // Tactile : pas de survol. Le projet le plus proche du centre de l'ecran
-  // se compose de lui-meme en fond. Le scroll devient la tete de lecture.
-  useEffect(() => {
-    if (window.matchMedia("(hover: hover)").matches) return;
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const mid = window.innerHeight / 2;
-      let best: number | null = null;
-      let bestD = Infinity;
-      items.current.forEach((el, i) => {
-        if (!el) return;
-        const r = el.getBoundingClientRect();
-        if (r.bottom < 0 || r.top > window.innerHeight) return;
-        const d = Math.abs(r.top + r.height / 2 - mid);
-        if (d < bestD) {
-          bestD = d;
-          best = i;
-        }
-      });
-      const p = best === null ? null : projects[best];
-      setActive(p ? p.slug : null);
-      setHover(p ? p.image : null);
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, []);
+  // Tactile : pas de survol. La ligne rouge est la tete de lecture : le projet
+  // qu'elle croise se compose en fond ; hors de la liste, le fond retombe au noir.
+  useTeteTactile(items, (i) => {
+    const p = i === null ? undefined : projects[i];
+    setActive(p ? p.slug : null);
+    setHover(p ? fondOf(p) : null);
+  });
 
   // Clavier : HAUT / BAS deplacent une tete de lecture sur l'index (bloc plein,
   // fond en negatif, saut sec dans l'ecran), ESC la relache, un chiffre saute
@@ -213,8 +185,8 @@ function Index() {
                 <Link
                   to="/projet/$slug"
                   params={{ slug: p.slug }}
-                  onMouseEnter={() => setHover(p.image)}
-                  onFocus={() => setHover(p.image)}
+                  onMouseEnter={() => setHover(fondOf(p))}
+                  onFocus={() => setHover(fondOf(p))}
                   className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_8ch_24ch]"
                 >
                   <span>
