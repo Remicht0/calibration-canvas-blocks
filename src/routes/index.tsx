@@ -6,6 +6,7 @@ import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
 import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar, VERS_INDEX } from "@/components/chrome";
+import type { BitMode } from "@/lib/bitmap";
 import { mireText } from "@/lib/glyphs";
 import { fondOf, periode, planches, projects, type Project } from "@/lib/projects";
 import { domainesPhrase, presentation, signature, STUDIO } from "@/lib/site";
@@ -33,6 +34,26 @@ export const Route = createFileRoute("/")({
 
 /** Planches d'un projet : la planche 01, sa serie, sa video. */
 const nPlanches = (p: Project) => 1 + (p.serie?.length ?? 0) + (p.video ? 1 : 0);
+
+const LECTURES: BitMode[] = ["bin", "gris", "brut"];
+
+/**
+ * Banc d'essai : trois planches, de trois projets differents quand il y en a
+ * assez (la tete de chaque projet d'abord, puis le reste), chacune lue dans un
+ * des trois modes. Moins de trois planches : la meme source est relue.
+ */
+const BANC = (() => {
+  const vus = new Set<string>();
+  const tetes = planches.filter((d) => !vus.has(d.projet.slug) && !!vus.add(d.projet.slug));
+  const suite = [...tetes, ...planches.filter((d) => !tetes.includes(d))];
+  return LECTURES.flatMap((mode, k) => {
+    const d = suite[k % suite.length];
+    return d ? [{ ...d, mode }] : [];
+  });
+})();
+
+// un Bloc dont la hauteur suit le libelle : passe a la ligne, il grandit au lieu de deborder
+const BLOC_SOUPLE = "h-auto min-h-cell2 max-w-full py-[4px]";
 
 function Index() {
   const [hover, setHover] = useState<string | null>(null);
@@ -240,40 +261,43 @@ function Index() {
         ]}
       />
 
-      {/* BANC D'ESSAI — la meme source lue en trois profondeurs */}
+      {/* BANC D'ESSAI — trois planches des projets, trois lectures, chacune mene a son projet */}
       <section
         data-mire="BANC D'ESSAI"
         className="border-t-[10px] border-black bg-white px-cell py-cell4"
       >
-        <div className="u-mono mb-cell2 flex justify-between">
+        <div className="u-mono mb-cell2 flex flex-wrap justify-between gap-x-cell">
           <h2>BANC D&apos;ESSAI</h2>
-          <span>UNE SOURCE / TROIS LECTURES / LE DEFILEMENT COMPOSE</span>
+          <span>
+            TROIS PLANCHES / TROIS LECTURES
+            <span className="hidden md:inline"> / LE DEFILEMENT COMPOSE</span>
+          </span>
         </div>
-        <div className="grid gap-cell md:grid-cols-3">
-          <HybridMedia
-            src={planches[0]!.src}
-            alt={planches[0]!.alt}
-            label="LECTURE BIN"
-            ratio={1}
-            mode="bin"
-            drive="scroll"
-          />
-          <HybridMedia
-            src={planches[1 % planches.length]!.src}
-            alt={planches[1 % planches.length]!.alt}
-            label="LECTURE GRIS"
-            ratio={1}
-            mode="gris"
-            drive="scroll"
-          />
-          <HybridMedia
-            src={planches[2 % planches.length]!.src}
-            alt={planches[2 % planches.length]!.alt}
-            label="LECTURE BRUT"
-            ratio={1}
-            mode="brut"
-            drive="scroll"
-          />
+        <div className="grid gap-x-cell gap-y-cell3 lg:grid-cols-3">
+          {BANC.map((d) => {
+            const titre = mireText(d.projet.title);
+            return (
+              // colonne : les liens VOIR s'alignent au pied des cartouches, de hauteurs inegales
+              <div key={d.mode} className="flex min-w-0 flex-col">
+                <HybridMedia
+                  src={d.src}
+                  alt={d.alt}
+                  label={`LECTURE ${d.mode.toUpperCase()} — ${titre}`}
+                  ratio={1}
+                  mode={d.mode}
+                  threshold={d.threshold ?? 0.45}
+                  gamma={d.gamma ?? 0.85}
+                  drive="scroll"
+                />
+                <div className="mt-auto pt-cell">
+                  {/* Bloc polymorphe : il ne connait pas les routes, le chemin s'ecrit en clair */}
+                  <Bloc as={Link} to={`/projet/${d.projet.slug}`} className={BLOC_SOUPLE}>
+                    VOIR {titre}
+                  </Bloc>
+                </div>
+              </div>
+            );
+          })}
         </div>
         <p className="u-copy mt-cell2 max-w-[54ch]">
           LES PHOTOS ET VIDEOS NE SONT PAS COLLEES SUR LA MIRE : ELLES SONT ECHANTILLONNEES DANS SA
