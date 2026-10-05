@@ -82,7 +82,9 @@ export function KeyHelp() {
         aria-haspopup="dialog"
         aria-keyshortcuts="?"
         id="aide"
-        className="mire-chrome mire-noprint fixed bottom-cell right-cell z-[180] hidden md:inline-flex"
+        // vertical dans la gouttiere droite, comme l'inverseur : il ne passe jamais sur le contenu
+        className="mire-chrome mire-noprint fixed bottom-cell right-0 z-[180] hidden h-auto w-cell2 px-cell py-0 md:inline-flex"
+        style={{ writingMode: "vertical-rl" }}
       >
         AIDE [?]
       </Bloc>

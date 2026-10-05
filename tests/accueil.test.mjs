@@ -124,8 +124,15 @@ test("les projets au premier ecran, hors du chrome fixe", async () => {
       };
     });
     const tag = `${l}x${h}`;
-    // le bas utile : au-dessus de la console (mobile) ou du bouton AIDE (bureau)
-    const bas = Math.min(r.innerHeight, r.console?.top ?? Infinity, r.aide?.top ?? Infinity);
+    // le bas utile : au-dessus de la console (mobile) ; AIDE ne compte que s'il
+    // deborde de la gouttiere droite (3 cellules) sur la colonne de contenu
+    const aideDedans = !!r.aide && r.aide.left < r.innerWidth - 3 * r.cell;
+    const bas = Math.min(
+      r.innerHeight,
+      r.console?.top ?? Infinity,
+      aideDedans ? r.aide.top : Infinity,
+    );
+    verifie(`${tag} : AIDE reste dans la gouttiere droite`, !aideDedans, JSON.stringify(r.aide));
     const croise = (a, b) =>
       !!a && !!b && a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
     verifie(
