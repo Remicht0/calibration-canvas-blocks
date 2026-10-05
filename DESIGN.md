@@ -98,7 +98,9 @@ Deux pilotages pour une planche (`HybridMedia`, prop `drive`) :
 `time` (défaut) compose la planche en une seconde à son entrée en écran ;
 `scroll` lie `progress` au défilement — 0 quand le haut de la planche entre
 par le bas, 1 quand il atteint 45 % de la hauteur d'écran, et à rebours en
-remontant. Le banc d'essai et les planches 02 sont pilotés au scroll.
+remontant. Le banc d'essai et les planches de série (02, 03…) des pages projet
+sont pilotés au scroll ; la planche 01 et la vidéo (SIGNAL) se composent dans
+le temps.
 
 Les titres en blocs (`BlockType`) ont deux pilotages de plus :
 - `drive="scan"` : **la ligne rouge lit le titre**. Les rangées que la
@@ -110,6 +112,16 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
   accepte pour cela un `progress` par rangée ; `scanLineTop()` (`mire.ts`) est
   la position de la ligne, partagée avec `ScanLine`. Titres des pages projet,
   atelier, contact et index (après sa séquence d'entrée).
+
+Composition d'un titre en blocs (`titleLines`, `mire.ts`) : pleine largeur sur
+une ligne tant que chaque caractère garde au moins 3 colonnes
+(`TITLE_MIN_COLS`, espaces comptés). En dessous, il passe sur plusieurs lignes
+d'au plus `floor(cols / 3)` caractères, coupées entre les mots et jamais dans
+un mot (un mot seul trop long garde sa ligne). Toutes les lignes ont le même
+corps, celui qui fait tenir la plus large ; chaque ligne occupe un nombre
+entier de rangées, avec une rangée vide d'interligne. Calées à gauche dans la
+page, centrées dans la transition. Exemple, CARTE POSTALE : 22 x 13 en 393 px,
+34 x 21 en 820 px, une ligne de 65 x 10 en 1440 px.
 - `erodible` (défaut) : **le curseur use les blocs**. Sur un pointeur fin, les
   cellules d'un carré de 5 x 5 autour du curseur tombent une à une (usure par
   temps de présence, les plus basses d'abord) ; quand il quitte le titre, les
@@ -145,6 +157,14 @@ s'arrête toujours hors écran, sous `mire:modal` et en onglet caché.
   CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`, et un
   emplacement à droite propre à la page (rôle de MIRE, numéro / année,
   horloge, fiche). Sous 768 px, la console en bas d'écran porte la navigation.
+- INDEX (barre haute, console, ligne « N PROJETS / INDEX CI-DESSOUS » de
+  l'entrée) mène à la section INDEX de l'accueil (`/#index`, `VERS_INDEX`
+  dans `chrome.tsx`) d'un saut sec (`hashScrollIntoView` instant) ; depuis
+  une autre page, RouteWipe joue puis la section arrive en haut de l'écran ;
+  déjà sur `/#index`, le clic refait le saut lui-même. La section prend le
+  focus à l'arrivée (`lib/arrivee-index.ts`), focalisable le temps de
+  l'arrivée seulement. `aria-current` reste sur tout l'accueil ; MIRE ramène
+  à `/`.
 - Colophon (`index.tsx`, exporté et repris par chaque page) : signature
   `MIRE — GRAPHISTE INDEPENDANT`, courriel et téléphone, procédé, encres ; en
   bas, l'année, `HEURE LOCALE`, et les liens `ATELIER / BANC`, `CONTACT`,
@@ -160,14 +180,32 @@ s'arrête toujours hors écran, sous `mire:modal` et en onglet caché.
   sur toute la largeur au lieu de laisser un trou. Une ligne facultative
   (SIRET, hébergeur) n'apparaît que renseignée : jamais de valeur inventée.
 - Gouttières bureau : la réglette occupe la marge gauche (2 cellules),
-  l'inverseur `NEGATIF [N]` la marge droite (3 cellules). Aucun contenu ne
-  passe sous l'un ou l'autre.
+  l'inverseur `NEGATIF [N]` et, en bas, le bouton `AIDE [?]` la marge droite
+  (3 cellules), tous deux écrits à la verticale. Aucun contenu ne passe sous
+  l'un ou l'autre.
 - Curseur bloc : une cellule blanche en différence ; sur un lien elle se
   creuse en cadre. Jamais de rouge sur le curseur (le repère est unique, et
   un rouge en différence sur fond blanc donnerait du cyan).
-- Page projet : le bloc `SUITE` liste les autres projets avec le survol en
-  négatif de l'index, `PRECEDENT` / `SUIVANT` étiquetés, et les flèches du
-  clavier feuillettent les projets.
+- Page projet, de haut en bas : titre en blocs, PLANCHE 01 (au premier
+  écran, lue avec `lecture` ; défaut gris, gamma 0,78, cadre 0,56), bande de
+  calibration, un bloc noir MESURES (2 colonnes sous 768 px, 4 au-delà) +
+  NOTES (+ CREDITS en mono si `credits`), SIGNAL — VIDEO si `video`,
+  PLANCHES 02 — NN (la série dans l'ordre, chacune avec sa lecture ; défaut
+  BIN 0,42, cadre 1,05 ; une colonne sous lg, des paires à partir de lg ; une
+  planche seule finale en pleine largeur si elle est en paysage, sinon à la
+  largeur d'une colonne, au milieu), puis SUITE.
+- SUITE : les autres projets, survol en négatif de l'index (image `fondOf`),
+  `PRECEDENT` / `SUIVANT` étiquetés, flèches du clavier pour feuilleter.
+- Tactile (index et SUITE) : pas de survol, la ligne rouge sert de tête de
+  lecture : la ligne de liste qu'elle croise devient active
+  (`useTeteTactile`, `lib/tete.ts`) et son image se compose en fond ; hors de
+  la liste, rien n'est actif.
+- Fond en négatif (`BlockBackdrop`) : seuillé par `otsuThreshold(lum, 0.30,
+  0.60)` sur la trame `sample()`, comme les cartes de partage. Il lit
+  `fondOf(p)` (la `carte` du projet, sinon son image) : un logotype en
+  bandeau recadré dans une bande n'est qu'une masse unie.
+- Un Bloc dont le libellé peut passer à la ligne grandit d'une cellule par
+  ligne : jamais de texte hors du cadre.
 - Réglette et console : blocs pleins sur le pas `u = bitUnit(cell)` (rang
   vide u x u, posé 3u x u, repère de piste 4u x u, tête 5u x 2u ; cran de
   jauge vide = socle plein de u px). Le compteur de la réglette empile ses
@@ -292,7 +330,8 @@ XOR par cellule — blanc sur une cellule noire, noir sur une cellule vide, rien
 sur la rangee rouge — et restent lisibles pendant les trois temps. **Le titre
 de la page de destination traverse la transition** (MIRE, ATELIER, CONTACT ou
 le titre du projet, lu sur le chemin vise) : compose en blocs Anton pleine
-largeur, centre, avec son propre `fallOrder` (graine 13), il se compose avec
+largeur, centre, sur plusieurs lignes selon la meme regle que les titres de
+page, avec son propre `fallOrder` (graine 13), il se compose avec
 l'effondrement, tient au palier, puis resiste a la levee (`+0,30` sur l'ordre
 de chute de ses cellules) avant de tomber a son tour — le temps que le vrai
 titre de la page se compose dessous. En blanc uniquement sur les cellules
@@ -315,15 +354,19 @@ CSS ni de filtre SVG.
 ```
 src/
   lib/
-    mire.ts            noyau 1-bit : blockifyImage, blockifyText,
+    mire.ts            noyau 1-bit : blockifyImage, blockifyText, titleLines,
                        textBlockHeight, fallOrder, drawBits, cellSizeFor
+    tete.ts            useTeteTactile : la ligne rouge choisit la ligne de
+                       liste en tactile (index, SUITE)
+    arrivee-index.ts   focus de la section INDEX a l'arrivee par /#index
     bitmap.ts          noyau hybride : sample(), paintBlocks(), BitMode,
                        quantification en paliers, loupe, support vidéo
     reduction.ts       pyramide de reduction d'une photo du visiteur, partagee
                        par le worker du miroir et son repli sur le fil principal
     projects.ts        source de vérité des projets (slug, num, titre,
-                       année, nature, client, image, lignes, resume, alt,
-                       details, carte) et des planches du banc d'essai
+                       année, nature, client, image, alt, lecture, lignes,
+                       resume, serie, video, carte, credits), fondOf et
+                       planches du banc d'essai
     glyphs.ts          fonte bitmap 3x5 (capitales, chiffres, ponctuation),
                        mireText() : capitales sans accents
     ink.ts             captureInk() : carte d'encre de l'ecran, une valeur par
@@ -360,8 +403,11 @@ src/
   routes/
     __root.tsx         chrome global : ScanLine, GridCursor, NegativeSwitch,
                        BootSequence, RouteWipe, fontes, métadonnées de base
-    index.tsx          entrée + index + banc d'essai + procédé + atelier
-                       (manifeste) + Colophon (exporté et réutilisé)
+    index.tsx          entrée (le premier écran laisse voir l'en-tête IDX et
+                       la première ligne de l'index ; à partir de lg, la copie
+                       à droite de MIRE) + index + bande et bandeau + banc
+                       d'essai + procédé + atelier (manifeste) + Colophon
+                       (exporté et réutilisé)
     projet.$slug.tsx   page projet
     atelier.tsx        instruments manipulables
     contact.tsx        fiche de calibration (coordonnees, horaires, delai),
@@ -385,7 +431,9 @@ public/fonts/          Anton et JetBrains Mono auto-hebergees (woff2)
 - Donnees structurees JSON-LD : `Organization` (racine, depuis `STUDIO` :
   `legalName`, `founder` = `Person` avec son `jobTitle`, `knowsAbout` = les
   domaines, adresse postale) et
-  `CreativeWork` par projet (titre, annee, nature, client, carte 1 bit).
+  `CreativeWork` par projet (titre, annee, nature, client, carte 1 bit,
+  `isPartOf` = le site, et `video` = VideoObject seulement si le projet a une
+  video) ; sur l'accueil, un `ItemList` des projets dans l'ordre de l'index.
 - `/sitemap.xml` et `/robots.txt` sont des routes serveur : l'origine vient de
   la requete (ou de `VITE_SITE_URL`), rien n'est code en dur.
 - Favicon : `favicon.svg` (rectangles pleins, `crispEdges`) et `favicon.ico`
@@ -404,7 +452,7 @@ seuille par `bitsFromRGBA` avec un seuil d'Otsu borne a 0,30–0,60
 (`otsuThreshold`, pour qu'une photo sombre ne devienne pas un aplat), puis
 ecrit bloc par bloc. Composition : planche 34 x 42 cellules de 15 px a gauche
 (la densite du site en bureau), fiche a droite en fonte 3x5 (`MIRE`, numero,
-annee, titre, nature). Pas de rouge : un PNG 1 bit n'a que deux valeurs, et la
+annee, titre, puis le client une cellule sous le titre, nature en pied). Pas de rouge : un PNG 1 bit n'a que deux valeurs, et la
 carte s'affiche a cote d'autres interfaces.
 
 Les routes declarent `og:image`, `og:image:width/height/type/alt` et
@@ -444,16 +492,30 @@ image.
    Aucune coordonnée ni le nom légal dans ces textes : ils vivent dans
    `identite.ts` (le test `identite` le vérifie).
 3. Facultatifs, chacun avec son `alt` :
-   - `details` : deux images pour la planche 02 (seuil, mosaïque) ; absentes,
-     elle relit l'image principale.
+   - `lecture` : réglage de la planche 01 (`mode`, `threshold`, `gamma`,
+     `ratio`). Régler la lecture sur le rendu réel : un logotype rouge et son
+     ombre noire font un aplat en BIN, des pictogrammes fins sur fond crème
+     disparaissent au seuil 0,50 (le seuil est borné à 0,20–0,70).
+   - `serie` : les planches 02, 03… dans l'ordre, chacune avec `label`
+     (capitales sans accents) et sa lecture ; absente, la page relit l'image
+     principale en seuil et en mosaïque.
+   - `video` : même forme, mp4 ou webm muet, lu dans la mire (section SIGNAL).
+   - `credits` : lignes visibles (sources, cadre, projet de groupe), capitales
+     sans accents. Un projet de groupe ne montre que la part de Rémi.
    - `carte` : une image qui tient un cadrage serre, quand l'image principale
      est trop large (un logotype en bandeau ne laisse qu'une lettre au
      recadrage portrait). Elle sert la carte de partage, son `og:image:alt`
      et le banc d'essai.
-4. Rien d'autre : l'index, le survol en négatif, la page projet, le bloc
-   « SUITE » et le banc d'essai (qui alterne les images des projets) se
-   génèrent depuis ce fichier. Puis `bun run og`.
-5. Les photos de test (`tests/photos/`) ne sont pas des projets : elles
+4. Rien d'autre : l'index (avec le nombre de planches), le survol en
+   négatif, la page projet, le bloc « SUITE », les données structurées et le
+   banc d'essai se génèrent depuis ce fichier. Le banc lit trois planches de
+   projets différents quand il y en a assez (la tête de chaque projet
+   d'abord), en BIN, GRIS et BRUT, chacune étiquetée `LECTURE <MODE> —
+   <TITRE>` et suivie de `VOIR <TITRE>`. Puis `bun run og`.
+5. N'écrire que des faits prouvés par les fichiers de Rémi (titre de ses
+   planches, compte rendu, métadonnées) ; jamais une image générée par IA,
+   une référence trouvée ou le travail d'un camarade présenté comme le sien.
+6. Les photos de test (`tests/photos/`) ne sont pas des projets : elles
    restent hors de `src/assets/` et ne partent pas dans le build.
 
 ### L'identité (coordonnées, rôle, domaines, mentions)
@@ -544,8 +606,10 @@ disparaît. Ne jamais remplir une valeur qu'on n'a pas.
 - Lignes mixtes (texte + widget) : `grid-cols-[minmax(0,1fr)_auto]` en mobile,
   `flex` a partir de `sm:`, `min-w-0` sur les conteneurs de texte,
   `shrink-0` sur les blocs de taille fixe.
-- Index des projets : annee et nature sont empilees sous le titre en mobile,
-  en colonnes a partir de `md:`.
+- Index des projets : annee et nature sont empilees sous le titre en mobile ;
+  a partir de `md:`, grille `[4ch titre 6ch 22ch 12ch]`, titre 5,5vw,
+  colonne `NN PLANCHES` (planche 01 + serie + video).
+- Banc d'essai : une colonne jusqu'a lg, trois a partir de lg.
 - `GridCursor` et `cursor: none` sont desactives sur `pointer: coarse`.
 - `HybridMedia` : barre de controle repliable, boutons alignes a droite en
   pleine largeur sous 640 px.
@@ -573,7 +637,13 @@ Fait :
 - [x] Passe responsive 393 / 820 / 1440 px, aucun debordement horizontal.
 - [x] Transition de page en trois temps (`RouteWipe`, 1500 ms, masque plein
       ecran, desactivee sous `prefers-reduced-motion`).
-- [x] Feuille `@media print` : noir seul, repere rouge et chrome retires.
+- [x] Feuille `@media print` : noir seul, aplats compris
+      (`print-color-adjust: exact`) ; le negatif est une lecture d'ecran, la
+      feuille sort en positif ; repere rouge, chrome, curseur bloc et masques
+      plein ecran sont `mire-noprint`. Canvas ramenes a la page. Sur
+      `beforeprint`, planches (`HybridMedia`) et titres en blocs
+      (`BlockType`) se posent entiers d'un seul dessin ; sur `afterprint`,
+      chacun retrouve son pilotage.
 - [x] Focus visible : contour encre 3 px (jamais rouge), blocs `.u-bloc`
       inverses au survol / presse / courant / focus, tokens `--ink` /
       `--paper` + `.on-black`.
@@ -768,8 +838,19 @@ Reste a faire :
 - [x] Projets de demonstration remplaces par les vrais : MOIRE (identite de
       la marque de vetements) et CARTE POSTALE (edition, DNMADE 2). Les
       anciennes photos servent encore de mire aux tests (`tests/photos/`).
-- [ ] GNAF (projet de groupe) : role de Remi, credits des co-auteurs et
-      visuels finaux a fournir avant de l'ajouter.
+- [x] Projets complets : MOIRE (8 planches), CARTE POSTALE ONIRIQUE (titre,
+      sujet et conclusion repris des planches de Remi, credit archives Sud
+      Ouest), CHAMPITHEQUE (livret en 7 volets) et GNAF (projet de groupe :
+      seuls le logo et les recherches de lettrage, la part de Remi).
+- [x] Visibilite des projets : index au premier ecran, INDEX vers `/#index`,
+      titres plus presents, nombre de planches, banc d'essai nomme, page
+      projet avec planche 01 au premier ecran et serie de planches, titres en
+      blocs sur plusieurs lignes, tete de lecture tactile, impression.
+- [ ] Videos des animations (Dalton, Pictogramme, Microunivers 3D, logo anime
+      Time To Travel) : exports legers (< 6 Mo) a deposer par Remi. Sans
+      video, ces projets ne sont pas publies (les illustrations de Time To
+      Travel sont un support commun de la classe, pas de Remi).
+- [ ] Credits nominatifs des co-auteurs de GNAF, avec leur accord.
 - [x] Hebergeur dans les mentions legales : Cloudflare, Inc.
       (`STUDIO.hebergeur`), le site etant servi par Cloudflare Workers sous
       le domaine de MIRE. Marche a suivre : README, « Mise en ligne ».
