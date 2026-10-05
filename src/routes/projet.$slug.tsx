@@ -5,7 +5,8 @@ import { TopBar } from "@/components/chrome";
 import { HybridMedia } from "@/components/media";
 import { CalibrationBand } from "@/components/bars";
 import type { BitMode } from "@/lib/bitmap";
-import { bySlug, projects, type Lecture } from "@/lib/projects";
+import { mireText } from "@/lib/glyphs";
+import { bySlug, projects, type Lecture, type Project } from "@/lib/projects";
 import { metier, ogPath, siteOrigin, STUDIO } from "@/lib/site";
 import { Colophon } from "./index";
 
@@ -72,8 +73,43 @@ const regler = (l: Lecture | undefined, defaut: Reglage): Reglage => ({
   ratio: l?.ratio ?? defaut.ratio,
 });
 
-// planche 01 : photo douce, cadre paysage
+// planche 01 : photo douce, cadre paysage ; serie : planche de detail en seuil
 const PLANCHE_01: Reglage = { mode: "gris", threshold: 0.45, gamma: 0.78, ratio: 0.56 };
+const PLANCHE_SERIE: Reglage = { mode: "bin", threshold: 0.42, gamma: 0.85, ratio: 1.05 };
+
+const nn = (k: number) => String(k).padStart(2, "0");
+
+type PlancheVue = Reglage & { src: string; alt: string; label: string; loupe?: number };
+
+/**
+ * Les planches 02, 03... dans l'ordre de la serie, chacune avec sa lecture.
+ * Sans serie, les deux lectures de l'image principale : seuil, puis mosaique.
+ */
+function serieOf(p: Project): PlancheVue[] {
+  if (p.serie?.length)
+    return p.serie.map((d, k) => ({
+      ...regler(d, PLANCHE_SERIE),
+      src: d.src,
+      alt: d.alt,
+      label: `${p.title} — ${d.label ? mireText(d.label) : `PLANCHE ${nn(k + 2)}`}`,
+    }));
+  return [
+    {
+      ...PLANCHE_SERIE,
+      src: p.image,
+      alt: `${p.alt} Détail en seuil binaire.`,
+      label: `${p.title} — DETAIL SEUIL`,
+    },
+    {
+      ...PLANCHE_SERIE,
+      mode: "brut",
+      src: p.image,
+      alt: `${p.alt} Détail en mosaïque brute.`,
+      label: `${p.title} — DETAIL MOSAIQUE`,
+      loupe: 4.5,
+    },
+  ];
+}
 
 function ProjectPage() {
   const p = Route.useLoaderData();
@@ -89,9 +125,14 @@ function ProjectPage() {
   const others = [prev, next, ...projects].filter(
     (o, k, all) => o.slug !== p.slug && all.indexOf(o) === k,
   );
-  const tag = (o: (typeof projects)[number]) =>
-    o === next ? "SUIVANT" : o === prev ? "PRECEDENT" : "";
+  const tag = (o: Project) => (o === next ? "SUIVANT" : o === prev ? "PRECEDENT" : "");
+
   const une = regler(p.lecture, PLANCHE_01);
+  const serie = serieOf(p);
+  const fin = serie.length + 1;
+  // une planche seule en fin de serie : pleine largeur si elle est en paysage,
+  // sinon centree sur la grille a la largeur d'une colonne
+  const seule = serie.length % 2 === 1 ? serie.length - 1 : -1;
 
   // fleches du clavier : precedent / suivant, comme on feuillette des planches ;
   // un chiffre saute directement au projet N
@@ -179,30 +220,34 @@ function ProjectPage() {
         </div>
       </section>
 
-      <section data-mire="PLANCHE 02" className="bg-white px-cell py-cell4">
-        <div className="u-mono mb-cell flex justify-between">
-          <h2>PLANCHE 02 — DETAILS</h2>
+      {/* SERIE : planches 02 a NN, une colonne, puis par paires a partir de lg */}
+      <section data-mire="PLANCHES" className="bg-white px-cell py-cell4">
+        <div className="u-mono mb-cell flex justify-between gap-cell">
+          <h2>{fin > 2 ? `PLANCHES 02 — ${nn(fin)}` : "PLANCHE 02"}</h2>
           <span className="hidden md:inline">LE DEFILEMENT COMPOSE LES PLANCHES</span>
         </div>
-        <div className="grid gap-cell md:grid-cols-2">
-          <HybridMedia
-            src={p.serie?.[0]?.src ?? p.image}
-            alt={`${p.serie?.[0]?.alt ?? p.alt} Détail en seuil binaire.`}
-            label={`${p.title} — DETAIL SEUIL`}
-            ratio={1.05}
-            mode="bin"
-            threshold={0.42}
-            drive="scroll"
-          />
-          <HybridMedia
-            src={p.serie?.[1]?.src ?? p.image}
-            alt={`${p.serie?.[1]?.alt ?? p.alt} Détail en mosaïque brute.`}
-            label={`${p.title} — DETAIL MOSAIQUE`}
-            ratio={1.05}
-            mode="brut"
-            lensRadius={4.5}
-            drive="scroll"
-          />
+        <div className="grid items-start gap-cell lg:grid-cols-2">
+          {serie.map((d, k) => (
+            <HybridMedia
+              key={`${p.slug}-${k}`}
+              src={d.src}
+              alt={d.alt}
+              label={d.label}
+              ratio={d.ratio}
+              mode={d.mode}
+              threshold={d.threshold}
+              gamma={d.gamma}
+              lensRadius={d.loupe}
+              drive="scroll"
+              className={
+                k !== seule
+                  ? ""
+                  : d.ratio < 0.8
+                    ? "lg:col-span-2"
+                    : "lg:col-span-2 lg:w-[calc(50%_-_var(--cell)_/_2)] lg:justify-self-center"
+              }
+            />
+          ))}
         </div>
       </section>
 
