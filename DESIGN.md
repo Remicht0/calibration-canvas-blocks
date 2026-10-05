@@ -576,7 +576,13 @@ disparaît. Ne jamais remplir une valeur qu'on n'a pas.
   le negatif), et la pose cellule par cellule dans l'ordre de chute : la
   dissolution reste le seul mouvement. En NET, le pincement agrandit l'image
   (`touch-action: manipulation`) ; en blocs, `pan-y` garde l'appui long a la
-  loupe. Ni seuil ni paliers (les raccourcis
+  loupe. Sous 640 px, dans la page, le reglage (SEUIL / PALIERS) passe sous
+  les modes : il disparait en BRUT et en NET sans deplacer un bouton, et le
+  doigt qui vient de toucher NET ne tombe jamais sur PLEIN (le cartouche du
+  plein cadre, cale en bas, garde l'ordre d'origine). `draw()` dessine a la
+  resolution du bitmap fixee par `build()`, et une planche se refait quand la
+  resolution change a taille egale (fenetre glissee vers un autre ecran,
+  `matchMedia` sur `resolution`) : l'image ne se decale jamais. Ni seuil ni paliers (les raccourcis
   `-` `+` `A` n'y font rien), `ENCRE` mesure la matiere comme en BRUT. Une
   planche ne s'ouvre jamais en NET : `Lecture.mode` est un `BitMode` (les
   trois lectures en blocs), seul le visiteur passe en NET, et le choix n'est

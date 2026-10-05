@@ -397,3 +397,114 @@ test("NET sur telephone : resolution de l'ecran (3x) et pincement pour agrandir"
   await ctx.close();
   conclure();
 });
+
+test("telephone : apres NET, le doigt reste sur NET, jamais sur PLEIN", async () => {
+  for (const [l, h] of [
+    [393, 852],
+    [360, 740],
+  ]) {
+    const ctx = await navigateur.newContext({
+      viewport: { width: l, height: h },
+      hasTouch: true,
+      isMobile: true,
+      deviceScaleFactor: 3,
+    });
+    const page = await nouvellePage(ctx);
+    for (const slug of SLUGS) {
+      await page.goto(`${BASE}/projet/${slug}`, { waitUntil: "networkidle" });
+      await page.waitForTimeout(1000);
+      const net = page
+        .locator('section[data-mire="PLANCHE 01"] figure')
+        .locator("button", { hasText: /^NET$/ });
+      // au milieu de l'ecran : jamais sous la console du bas
+      await net.evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await page.waitForTimeout(100);
+      const b = await net.boundingBox();
+      const x = b.x + b.width / 2;
+      const y = b.y + b.height / 2;
+      await page.touchscreen.tap(x, y);
+      await page.waitForTimeout(150);
+      const sous = await page.evaluate(
+        ([px, py]) => {
+          const el = document.elementFromPoint(px, py)?.closest("button");
+          return el?.textContent?.trim() ?? "";
+        },
+        [x, y],
+      );
+      verifie(`${l} ${slug} : sous le doigt, toujours NET`, sous === "NET", sous);
+    }
+    await ctx.close();
+  }
+  conclure();
+});
+
+test("une fenetre qui change d'ecran (resolution) redessine la planche a la bonne echelle", async () => {
+  const ctx = await navigateur.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await nouvellePage(ctx);
+  const cdp = await ctx.newCDPSession(page);
+  // meme taille, autre resolution : rien pour le ResizeObserver
+  const ecran = (dsf) =>
+    cdp.send("Emulation.setDeviceMetricsOverride", {
+      width: 1440,
+      height: 900,
+      deviceScaleFactor: dsf,
+      mobile: false,
+    });
+  for (const slug of SLUGS) {
+    await ecran(2);
+    await page.goto(`${BASE}/projet/${slug}`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(1500);
+    const fig = page.locator('section[data-mire="PLANCHE 01"] figure');
+    await fig.locator("button", { hasText: /^NET$/ }).click();
+    for (const dsf of [3, 1, 2]) {
+      await ecran(dsf);
+      await page.waitForTimeout(400);
+      // un redessin apres le changement (ici GRIS puis NET) : c'est la qu'un
+      // bitmap reste a l'ancienne echelle decalerait l'image
+      await fig.locator("button", { hasText: /^GRIS$/ }).click();
+      await fig.locator("button", { hasText: /^NET$/ }).click();
+      await page.waitForTimeout(100);
+      const r = await page.evaluate(() => {
+        const cv = document.querySelector(
+          'section[data-mire="PLANCHE 01"] figure canvas[data-lecture]',
+        );
+        const k = cv.width / parseFloat(cv.style.width);
+        // l'image contenue est centree : ses marges se repondent, au pixel pres
+        const d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+        let x0 = cv.width;
+        let x1 = -1;
+        let y0 = cv.height;
+        let y1 = -1;
+        for (let y = 0; y < cv.height; y += 2)
+          for (let x = 0; x < cv.width; x += 2)
+            if (d[(y * cv.width + x) * 4 + 3] > 0) {
+              if (x < x0) x0 = x;
+              if (x > x1) x1 = x;
+              if (y < y0) y0 = y;
+              if (y > y1) y1 = y;
+            }
+        return {
+          k,
+          dpr: window.devicePixelRatio,
+          gauche: x0,
+          droite: cv.width - 1 - x1,
+          haut: y0,
+          bas: cv.height - 1 - y1,
+        };
+      });
+      verifie(
+        `${slug} ecran ${dsf}x : le bitmap suit la resolution (plafond 3x)`,
+        r.k === Math.min(r.dpr, 3),
+        JSON.stringify(r),
+      );
+      verifie(
+        `${slug} ecran ${dsf}x : l'image reste entiere et centree`,
+        Math.abs(r.gauche - r.droite) <= 3 * r.k + 2 && Math.abs(r.haut - r.bas) <= 3 * r.k + 2,
+        JSON.stringify(r),
+      );
+    }
+  }
+  verifie("console vide", page.erreurs.length === 0, page.erreurs.join(" | ").slice(0, 200));
+  await ctx.close();
+  conclure();
+});
