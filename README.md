@@ -150,3 +150,23 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Mise en ligne (Cloudflare Workers)
+
+Le build cible Cloudflare Workers par défaut (`bun run build` génère
+`.output/` et `.wrangler/deploy/config.json`, qui pointe vers
+`.output/server/wrangler.json`).
+
+1. Créer un compte Cloudflare, puis **Workers & Pages → Créer → Importer un
+   dépôt Git** et choisir ce dépôt, branche `main`.
+2. Commande de build : `bun run build`. Commande de déploiement :
+   `npx wrangler deploy`. Nom du Worker : `remicht0-calibration-canvas-blocks`
+   (celui de la configuration générée).
+3. Variable de build `VITE_SITE_URL` = `https://<le-domaine>` : les cartes de
+   partage et les données structurées en tirent leurs URL absolues.
+4. Ajouter le domaine au compte Cloudflare (registrar Cloudflare, ou serveurs
+   DNS du registrar actuel pointés vers Cloudflare), puis dans le Worker :
+   **Paramètres → Domaines et routes → Ajouter un domaine personnalisé**.
+
+Chaque push sur `main` redéploie le site. L'hébergeur déclaré dans les
+mentions légales vit dans `src/lib/identite.ts` (`STUDIO.hebergeur`).

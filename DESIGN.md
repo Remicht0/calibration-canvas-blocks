@@ -770,14 +770,15 @@ Reste a faire :
       anciennes photos servent encore de mire aux tests (`tests/photos/`).
 - [ ] GNAF (projet de groupe) : role de Remi, credits des co-auteurs et
       visuels finaux a fournir avant de l'ajouter.
-- [ ] Hebergeur dans les mentions legales (`STUDIO.hebergeur` : nom, adresse,
-      telephone de l'hebergeur de production).
+- [x] Hebergeur dans les mentions legales : Cloudflare, Inc.
+      (`STUDIO.hebergeur`), le site etant servi par Cloudflare Workers sous
+      le domaine de MIRE. Marche a suivre : README, « Mise en ligne ».
+- [ ] Nom de domaine : a acheter, puis `VITE_SITE_URL` dans les variables de
+      build du Worker.
 - [ ] SIRET des l'immatriculation (`STUDIO.siret`).
-- [ ] Badge « Edit with Lovable » : il n'est ni dans le code ni dans le build
-      (verifie : aucune occurrence dans le HTML servi ni dans les fichiers
-      livres). L'hebergement Lovable l'ajoute a la volee sur `*.lovable.app`.
-      Le masquer dans les reglages du projet Lovable, ou heberger ailleurs :
-      le build cible deja Cloudflare (`wrangler.json` genere).
+- [x] Badge « Edit with Lovable » : il n'est ni dans le code ni dans le build ;
+      seul l'hebergement Lovable l'ajoute, sur `*.lovable.app`. Le site public
+      est servi par Cloudflare, sans badge : on ne publie pas depuis Lovable.
 - [ ] Video reelle sur au moins une page projet, testee en `gris` et `brut`.
 
 
