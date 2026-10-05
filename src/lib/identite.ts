@@ -43,7 +43,7 @@ export const STUDIO: Studio = {
   legalName: "Rémi Marty",
   role: "Graphiste indépendant",
   domaines: ["Identité visuelle", "Édition"],
-  email: "studio0mire@gmail.com",
+  email: "contact@mirestudio.fr",
   phone: "+33 7 49 82 95 94",
   street: "27 rue des Bouviers",
   postalCode: "33800",
