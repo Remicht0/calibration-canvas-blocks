@@ -710,7 +710,7 @@ export function HybridMedia({
               ligne garde deux cellules de haut, aucune ne colle au cadre */}
           <span className="flex min-h-cell2 min-w-0 flex-wrap items-center gap-x-[6px]">
             {label && (
-              <span id={labelId} className="min-w-0 truncate leading-[calc(var(--cell)*2)]">
+              <span id={labelId} className="min-w-0 break-words leading-[calc(var(--cell)*2)]">
                 {label}
               </span>
             )}

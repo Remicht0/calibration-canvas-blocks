@@ -26,8 +26,9 @@ export const Route = createFileRoute("/projet/$slug")({
     const d = loaderData ? loaderData.resume : `Projet de ${STUDIO.name}, ${metier}.`;
     // carte de partage 1-bit generee par `bun run og` (scripts/og.ts)
     const img = loaderData ? `${loaderData.origin}${ogPath(loaderData.slug)}` : null;
+    // la carte est en noir et blanc pur : son texte alternatif ne cite ni couleur ni detail fin
     const imgAlt = loaderData
-      ? `${loaderData.carte?.alt ?? loaderData.alt} Carte du projet ${loaderData.title}, rendue en blocs 1 bit.`
+      ? `Carte de partage en blocs noirs sur blanc : à gauche une planche du projet seuillée en 1 bit, à droite MIRE, ${loaderData.num} / ${loaderData.year}, ${loaderData.title}, ${loaderData.client}, ${loaderData.nature}.`
       : null;
     const video = loaderData?.video;
     return {
@@ -58,7 +59,6 @@ export const Route = createFileRoute("/projet/$slug")({
                   genre: loaderData!.nature,
                   url: `${loaderData!.origin}/projet/${loaderData!.slug}`,
                   creator: { "@type": "Organization", name: "MIRE" },
-                  sourceOrganization: { "@type": "Organization", name: loaderData!.client },
                   isPartOf: {
                     "@type": "WebSite",
                     name: STUDIO.name,
@@ -190,15 +190,17 @@ function ProjectPage() {
       <TopBar className="px-cell py-cell2" right={`${p.num} / ${p.year}`} />
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
-        <BlockType text={p.title} loop={false} drive="scan" />
+        <BlockType text={p.title} loop={false} drive="scan" maxHeight={0.4} />
       </section>
 
       {/* PLANCHE PRINCIPALE au premier ecran — media hybride, lecture au choix */}
       <section data-mire="PLANCHE 01" className="bg-white px-cell pb-cell4">
         <div className="u-mono mb-cell flex justify-between gap-cell">
           <h2>PLANCHE 01 — MATIERE</h2>
-          <span className="hidden md:inline">SURVOL = LOUPE / MATIERE BRUTE</span>
-          <span className="md:hidden">APPUI LONG = LOUPE</span>
+          <span className="hidden [@media(hover:hover)]:inline">
+            SURVOL = LOUPE / MATIERE BRUTE
+          </span>
+          <span className="[@media(hover:hover)]:hidden">APPUI LONG = LOUPE</span>
         </div>
         <HybridMedia
           key={p.slug}
@@ -288,7 +290,7 @@ function ProjectPage() {
           <h2>{fin > 2 ? `PLANCHES 02 — ${nn(fin)}` : "PLANCHE 02"}</h2>
           <span className="hidden md:inline">LE DEFILEMENT COMPOSE LES PLANCHES</span>
         </div>
-        <div className="grid items-start gap-cell lg:grid-cols-2">
+        <div className="grid items-start gap-cell lg:grid-cols-[repeat(2,round(down,calc((100%-var(--cell))/2),var(--cell)))]">
           {serie.map((d, k) => (
             <HybridMedia
               key={`${p.slug}-${k}`}

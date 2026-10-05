@@ -234,7 +234,7 @@ function Index() {
             }
           }}
         >
-          <div className="u-mono grid grid-cols-[4ch_1fr] gap-x-cell px-cell py-cell2">
+          <div className="u-mono grid grid-cols-[calc(4ch+16px)_1fr] gap-x-cell px-cell py-cell2">
             <span>IDX</span>
             <h2>PROJETS {periode}</h2>
           </div>
@@ -253,9 +253,9 @@ function Index() {
                     params={{ slug: p.slug }}
                     onMouseEnter={() => setHover(fondOf(p))}
                     onFocus={() => setHover(fondOf(p))}
-                    className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_6ch_22ch_12ch]"
+                    className="u-mono grid grid-cols-[calc(4ch+16px)_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[calc(4ch+16px)_minmax(0,1fr)_6ch_22ch_12ch]"
                   >
-                    <span>
+                    <span className="whitespace-nowrap">
                       {active === p.slug && (
                         <i
                           aria-hidden="true"
@@ -313,7 +313,7 @@ function Index() {
             <span className="hidden md:inline"> / LE DEFILEMENT COMPOSE</span>
           </span>
         </div>
-        <div className="grid gap-x-cell gap-y-cell3 lg:grid-cols-3">
+        <div className="grid gap-x-cell gap-y-cell3 lg:grid-cols-[repeat(3,round(down,calc((100%-var(--cell)*2)/3),var(--cell)))]">
           {BANC.map((d) => {
             const titre = mireText(d.projet.title);
             return (
@@ -413,7 +413,7 @@ function Index() {
 export function Colophon() {
   return (
     <footer className="border-t-[10px] border-black bg-white px-cell py-cell2 text-black">
-      <div className="u-mono grid gap-y-cell md:grid-cols-4 md:gap-x-cell [&>div]:min-w-0 [&>div]:break-words">
+      <div className="u-mono grid gap-y-cell md:grid-cols-2 md:gap-x-cell lg:grid-cols-4 [&>div]:min-w-0 [&>div]:break-words">
         <div>
           <h2>FICHE DE CALIBRATION</h2>
           <div>MIRE — {mireText(STUDIO.role)}</div>
