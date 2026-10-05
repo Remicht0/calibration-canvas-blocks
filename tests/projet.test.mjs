@@ -58,6 +58,14 @@ test("structure de la page projet sur 393 et 1440", async () => {
         const champs = [
           ...document.querySelectorAll('section[data-mire="MESURES"] .grid > div'),
         ].map((d) => Math.round(d.getBoundingClientRect().top));
+        // retrait de chaque planche de la serie depuis le bord de la grille, en cellules
+        const cellule = parseInt(
+          getComputedStyle(document.documentElement).getPropertyValue("--cell"),
+        );
+        const grille = serie?.querySelector(".grid")?.getBoundingClientRect();
+        const retraits = [...(serie?.querySelectorAll('figure > [role="img"] > canvas') ?? [])].map(
+          (c) => (grille ? (c.getBoundingClientRect().left - grille.left) / cellule : 0),
+        );
         const ld = [...document.querySelectorAll('script[type="application/ld+json"]')]
           .map((s) => JSON.parse(s.textContent || "{}"))
           .find((j) => j["@type"] === "CreativeWork");
@@ -71,6 +79,7 @@ test("structure de la page projet sur 393 et 1440", async () => {
           ),
           titre,
           champs,
+          retraits,
           ld,
           video: !!document.querySelector('section[data-mire="SIGNAL"] figure'),
           debord: document.documentElement.scrollWidth - window.innerWidth,
@@ -100,6 +109,14 @@ test("structure de la page projet sur 393 et 1440", async () => {
         `${nom} : chaque planche de la serie porte le titre du projet`,
         v.etiquettes.every((e) => e.startsWith(`${v.titre} — `)),
         v.etiquettes.join(" | "),
+      );
+      // une planche seule en fin de serie impaire : ses blocs tombent dans les
+      // colonnes de la planche de gauche, jamais a une demi-cellule
+      const derniere = v.retraits[n - 1] ?? 0;
+      verifie(
+        `${nom} : la derniere planche d'une serie impaire est calee sur le pas`,
+        n % 2 === 0 || Math.abs(derniere - Math.round(derniere)) < 0.01,
+        v.retraits.map((r) => r.toFixed(2)).join(" / "),
       );
       if (tactile)
         verifie(

@@ -157,7 +157,10 @@ function ProjectPage() {
   const serie = serieOf(p);
   const fin = serie.length + 1;
   // une planche seule en fin de serie : pleine largeur si elle est en paysage,
-  // sinon centree sur la grille a la largeur d'une colonne
+  // sinon a la largeur d'une colonne, au milieu, mais calee sur le pas : son
+  // retrait est arrondi a la cellule pour que ses blocs tombent dans les
+  // colonnes de la planche au-dessus (centree a la lettre, elle decalait d'une
+  // demi-cellule en 1440). Sans round(), elle reste dans la colonne de gauche.
   const seule = serie.length % 2 === 1 ? serie.length - 1 : -1;
 
   // fleches du clavier : precedent / suivant, comme on feuillette des planches ;
@@ -303,7 +306,7 @@ function ProjectPage() {
                   ? ""
                   : d.ratio < 0.8
                     ? "lg:col-span-2"
-                    : "lg:col-span-2 lg:w-[calc(50%_-_var(--cell)_/_2)] lg:justify-self-center"
+                    : "lg:col-span-2 lg:ml-[round(calc(25%_+_var(--cell)_/_4),var(--cell))] lg:w-[calc(50%_-_var(--cell)_/_2)] lg:justify-self-start"
               }
             />
           ))}
