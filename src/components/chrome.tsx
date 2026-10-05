@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import type { MouseEvent, ReactNode } from "react";
+import { accueillirIndex, arriveeIndex } from "@/lib/arrivee-index";
 
 /* ------------------------------------------------------------------ */
 /* Barre haute commune : MIRE + index de navigation, page courante     */
@@ -11,15 +12,19 @@ import type { MouseEvent, ReactNode } from "react";
 const SAUT = { block: "start", behavior: "instant" } as const;
 
 /**
- * Deja sur /#index, l'adresse ne change pas et le routeur ne relance aucun
- * defilement : apres un retour en haut de page, INDEX ne ferait plus rien.
- * Le saut est alors fait ici, sans nouvelle entree d'historique.
+ * Le lien note que l'arrivee est demandee (focus sur la section, voir
+ * arrivee-index.ts). Deja sur /#index, l'adresse ne change pas et le routeur
+ * ne relance aucun defilement : apres un retour en haut de page, INDEX ne
+ * ferait plus rien. Le saut est alors fait ici, sans nouvelle entree
+ * d'historique.
  */
-const sauterSiDejaLa = (e: MouseEvent) => {
+const versIndex = (e: MouseEvent) => {
   if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  arriveeIndex.demandee = true;
   if (window.location.pathname !== "/" || window.location.hash !== "#index") return;
   e.preventDefault();
   document.getElementById("index")?.scrollIntoView(SAUT);
+  accueillirIndex();
 };
 
 /**
@@ -31,7 +36,7 @@ export const VERS_INDEX = {
   to: "/",
   hash: "index",
   hashScrollIntoView: SAUT,
-  onClick: sauterSiDejaLa,
+  onClick: versIndex,
 } as const;
 
 const ITEMS = [

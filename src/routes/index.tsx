@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { BlockBackdrop, BlockType } from "@/components/mire";
 import { CalibrationBand, Ticker } from "@/components/bars";
@@ -11,6 +11,7 @@ import { mireText } from "@/lib/glyphs";
 import { fondOf, periode, planches, projects, type Project } from "@/lib/projects";
 import { domainesPhrase, presentation, signature, siteOrigin, STUDIO } from "@/lib/site";
 import { useTeteTactile } from "@/lib/tete";
+import { accueillirIndex, arriveeIndex } from "@/lib/arrivee-index";
 
 export const Route = createFileRoute("/")({
   // origine absolue : la liste des projets en donnees structurees l'exige
@@ -88,6 +89,14 @@ function Index() {
   const items = useRef<Array<HTMLLIElement | null>>([]);
   const index = useRef<HTMLElement>(null);
   const navigate = useNavigate();
+  const hash = useRouterState({ select: (s) => s.location.hash });
+
+  // Arrivee par un lien INDEX (barre haute, console, ligne de l'entree) : la
+  // section prend le focus, le Tab continue dans l'index au lieu de remonter
+  useEffect(() => {
+    if (hash === "index" && arriveeIndex.demandee) accueillirIndex();
+    arriveeIndex.demandee = false;
+  }, [hash]);
 
   // Tactile : pas de survol. La ligne rouge est la tete de lecture : le projet
   // qu'elle croise se compose en fond ; hors de la liste, le fond retombe au noir.

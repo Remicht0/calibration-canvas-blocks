@@ -1,8 +1,8 @@
 /**
  * L'accueil montre ses projets : l'index affleure au premier ecran sans passer
  * sous le chrome fixe, INDEX (barre haute, console, ligne de l'entree) y mene
- * d'un saut sec, le banc d'essai nomme chaque planche et renvoie a son projet,
- * et les donnees structurees listent les projets.
+ * d'un saut sec et lui donne le focus, le banc d'essai nomme chaque planche et
+ * renvoie a son projet, et les donnees structurees listent les projets.
  *
  * Aucun nom de projet n'est ecrit ici : les slugs sont lus dans la source,
  * la suite tient de 2 a 6 projets.
@@ -231,6 +231,78 @@ test("INDEX mene a la section INDEX, d'un saut sec", async () => {
     );
     await ctx.close();
   }
+  conclure();
+});
+
+test("clavier : INDEX donne le focus a l'index, le Tab y continue", async () => {
+  const { ctx, page } = await ouvrir(1440, 900);
+  const index = page.locator("header nav a", { hasText: "INDEX" }).first();
+  const focus = () =>
+    page.evaluate(() => {
+      const a = document.activeElement;
+      const ix = document.getElementById("index");
+      return {
+        section: a === ix,
+        dedans: !!ix && ix !== a && ix.contains(a),
+        haut: ix ? Math.round(ix.getBoundingClientRect().top) : null,
+      };
+    });
+
+  for (const depart of ["/", `/projet/${SLUGS[0]}`]) {
+    await page.goto(BASE + depart, { waitUntil: "networkidle" });
+    await page.waitForTimeout(2600);
+    await index.focus();
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(depart === "/" ? 600 : 2600);
+    let f = await focus();
+    verifie(`depuis ${depart} : la section INDEX a le focus`, f.section, JSON.stringify(f));
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(300);
+    f = await focus();
+    verifie(
+      `depuis ${depart} : le Tab suivant est dans l'index, la page ne remonte pas`,
+      f.dedans && Math.abs(f.haut) <= 1,
+      JSON.stringify(f),
+    );
+  }
+
+  // deja sur /#index, remonte en haut : la touche Entree y ramene le focus aussi
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(300);
+  await index.focus();
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(400);
+  let f = await focus();
+  verifie(
+    "un second INDEX rend le focus a la section",
+    f.section && Math.abs(f.haut) <= 1,
+    JSON.stringify(f),
+  );
+
+  // l'historique (navigation du routeur, sans rechargement) et le chargement
+  // direct ne deplacent pas le focus
+  await page.locator("#index li a").first().click();
+  await page.waitForTimeout(2600);
+  await page.goBack();
+  await page.waitForTimeout(2600);
+  f = await focus();
+  verifie(
+    "retour arriere sur /#index : le focus ne bouge pas",
+    (await page.evaluate(() => location.hash)) === "#index" && !f.section,
+    JSON.stringify(f),
+  );
+  verifie(
+    "la section n'est focalisable que le temps de l'arrivee",
+    (await page.evaluate(() => document.getElementById("index")?.hasAttribute("tabindex"))) ===
+      false,
+  );
+  await page.goto(BASE + "/atelier", { waitUntil: "networkidle" });
+  await page.goto(BASE + "/#index", { waitUntil: "networkidle" });
+  await page.waitForTimeout(1500);
+  f = await focus();
+  verifie("chargement direct de /#index : le focus ne bouge pas", !f.section, JSON.stringify(f));
+  verifie("console vide", page.erreurs.length === 0, page.erreurs.join(" | ").slice(0, 200));
+  await ctx.close();
   conclure();
 });
 
