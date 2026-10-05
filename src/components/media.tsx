@@ -61,6 +61,7 @@ type KeyLike = {
 
 export function HybridMedia({
   src = "",
+  webm,
   stream = null,
   alt,
   label,
@@ -84,6 +85,8 @@ export function HybridMedia({
 }: {
   /** URL d'une image ou d'une video de fichier. Vide quand la source est un flux. */
   src?: string | undefined;
+  /** La meme video en WebM (VP9), lue a la place du MP4 quand le navigateur la lit */
+  webm?: string | undefined;
   /** Source vivante (camera). La planche ne fait que la consommer : elle n'arrete jamais les pistes. */
   stream?: MediaStream | null | undefined;
   /** Description de l'image pour les lecteurs d'ecran : francais accentue, jamais en capitales. */
@@ -522,7 +525,8 @@ export function HybridMedia({
         if (reduced) v.onloadeddata = figerReduit;
         void v.play().catch(() => {});
       } else {
-        v.src = src;
+        // VP9 d'abord quand il est lu (Chromium sans H.264, Firefox), le MP4 sinon (Safari)
+        v.src = webm && v.canPlayType('video/webm; codecs="vp9"') ? webm : src;
         v.loop = true;
         v.crossOrigin = "anonymous";
         v.onloadeddata = pret;
@@ -739,7 +743,7 @@ export function HybridMedia({
       canvasCb.current?.(null);
       hovered.current = false;
     };
-  }, [src, stream, live, ratio, lensRadius, video, drive, viewport, setTune, net]);
+  }, [src, webm, stream, live, ratio, lensRadius, video, drive, viewport, setTune, net]);
 
   const labelId = useId();
   const named = controls && !!label;
@@ -890,6 +894,7 @@ export function HybridMedia({
       {full && (
         <PleinCadre
           src={src}
+          webm={webm}
           stream={stream}
           alt={alt}
           label={label}

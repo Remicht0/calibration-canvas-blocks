@@ -107,7 +107,13 @@ const PLANCHE_VIDEO: Reglage = { mode: "gris", threshold: 0.45, gamma: 0.85, rat
 
 const nn = (k: number) => String(k).padStart(2, "0");
 
-type PlancheVue = Reglage & { src: string; alt: string; label: string; loupe?: number };
+type PlancheVue = Reglage & {
+  src: string;
+  webm?: string | undefined;
+  alt: string;
+  label: string;
+  loupe?: number;
+};
 
 /**
  * Les planches 02, 03... dans l'ordre de la serie, chacune avec sa lecture.
@@ -118,6 +124,7 @@ function serieOf(p: Project): PlancheVue[] {
     return p.serie.map((d, k) => ({
       ...regler(d, PLANCHE_SERIE),
       src: d.src,
+      webm: d.webm,
       alt: d.alt,
       label: `${p.title} — ${d.label ? mireText(d.label) : `PLANCHE ${nn(k + 2)}`}`,
     }));
@@ -305,6 +312,7 @@ function ProjectPage() {
           <HybridMedia
             key={p.slug}
             src={signal.src}
+            webm={signal.webm}
             alt={signal.alt}
             label={`${p.title} — ${signal.label ? mireText(signal.label) : "VIDEO"}`}
             ratio={signal.ratio}
@@ -331,6 +339,7 @@ function ProjectPage() {
             <HybridMedia
               key={`${p.slug}-${k}`}
               src={d.src}
+              webm={d.webm}
               alt={d.alt}
               label={d.label}
               ratio={d.ratio}

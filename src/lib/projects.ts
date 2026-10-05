@@ -36,6 +36,12 @@ export type Lecture = {
 /** Une image ou une video de projet, son texte alternatif et son reglage de lecture. */
 export type Planche = Lecture & {
   src: string;
+  /**
+   * Video seulement : la meme video en WebM (VP9). `src` reste le MP4 (H.264,
+   * Safari, iPhone) ; un navigateur qui lit le VP9 prend le WebM (Chromium sans
+   * H.264, Firefox). Le choix se fait a la lecture, dans HybridMedia.
+   */
+  webm?: string;
   /** Hors mire : francais accentue, une phrase qui decrit vraiment l'image. */
   alt: string;
   /** Etiquette visible dans la mire : ce que montre la planche, capitales sans accents. */
