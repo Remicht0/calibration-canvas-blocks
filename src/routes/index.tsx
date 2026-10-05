@@ -7,7 +7,7 @@ import { HybridMedia } from "@/components/media";
 import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar, VERS_INDEX } from "@/components/chrome";
 import { mireText } from "@/lib/glyphs";
-import { fondOf, periode, planches, projects } from "@/lib/projects";
+import { fondOf, periode, planches, projects, type Project } from "@/lib/projects";
 import { domainesPhrase, presentation, signature, STUDIO } from "@/lib/site";
 import { useTeteTactile } from "@/lib/tete";
 
@@ -30,6 +30,9 @@ export const Route = createFileRoute("/")({
   }),
   component: Index,
 });
+
+/** Planches d'un projet : la planche 01, sa serie, sa video. */
+const nPlanches = (p: Project) => 1 + (p.serie?.length ?? 0) + (p.video ? 1 : 0);
 
 function Index() {
   const [hover, setHover] = useState<string | null>(null);
@@ -175,42 +178,48 @@ function Index() {
             <h2>PROJETS {periode}</h2>
           </div>
           <ul>
-            {projects.map((p, i) => (
-              <li
-                key={p.slug}
-                ref={(el) => {
-                  items.current[i] = el;
-                }}
-              >
-                <Link
-                  to="/projet/$slug"
-                  params={{ slug: p.slug }}
-                  onMouseEnter={() => setHover(fondOf(p))}
-                  onFocus={() => setHover(fondOf(p))}
-                  className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_8ch_24ch]"
+            {projects.map((p, i) => {
+              const n = nPlanches(p);
+              return (
+                <li
+                  key={p.slug}
+                  ref={(el) => {
+                    items.current[i] = el;
+                  }}
                 >
-                  <span>
-                    {active === p.slug && (
-                      <i
-                        aria-hidden="true"
-                        className="mr-[6px] inline-block size-[10px] bg-current align-middle"
-                      />
-                    )}
-                    {p.num}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="u-display block text-[13vw] leading-[0.9] tracking-[-0.02em] md:text-[3.2vw]">
-                      {p.title}
+                  <Link
+                    to="/projet/$slug"
+                    params={{ slug: p.slug }}
+                    onMouseEnter={() => setHover(fondOf(p))}
+                    onFocus={() => setHover(fondOf(p))}
+                    className="u-mono grid grid-cols-[4ch_minmax(0,1fr)] items-baseline gap-x-cell px-cell py-cell md:grid-cols-[4ch_minmax(0,1fr)_6ch_20ch_12ch]"
+                  >
+                    <span>
+                      {active === p.slug && (
+                        <i
+                          aria-hidden="true"
+                          className="mr-[6px] inline-block size-[10px] bg-current align-middle"
+                        />
+                      )}
+                      {p.num}
                     </span>
-                    <span className="mt-[3px] block md:hidden">
-                      {p.year} / {p.nature}
+                    <span className="min-w-0">
+                      <span className="u-display block text-[13vw] leading-[0.9] tracking-[-0.02em] md:text-[5.5vw]">
+                        {p.title}
+                      </span>
+                      <span className="mt-[3px] block md:hidden">
+                        {p.year} / {p.nature}
+                      </span>
                     </span>
-                  </span>
-                  <span className="hidden md:block">{p.year}</span>
-                  <span className="hidden md:block">{p.nature}</span>
-                </Link>
-              </li>
-            ))}
+                    <span className="hidden md:block">{p.year}</span>
+                    <span className="hidden md:block">{p.nature}</span>
+                    <span className="hidden text-right md:block">
+                      {String(n).padStart(2, "0")} {n > 1 ? "PLANCHES" : "PLANCHE"}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
           <div className="h-cell4" />
         </div>
