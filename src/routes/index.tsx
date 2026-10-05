@@ -9,11 +9,13 @@ import { TopBar, VERS_INDEX } from "@/components/chrome";
 import type { BitMode } from "@/lib/bitmap";
 import { mireText } from "@/lib/glyphs";
 import { fondOf, periode, planches, projects, type Project } from "@/lib/projects";
-import { domainesPhrase, presentation, signature, STUDIO } from "@/lib/site";
+import { domainesPhrase, presentation, signature, siteOrigin, STUDIO } from "@/lib/site";
 import { useTeteTactile } from "@/lib/tete";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
+  // origine absolue : la liste des projets en donnees structurees l'exige
+  loader: () => ({ origin: siteOrigin() }),
+  head: ({ loaderData }) => ({
     meta: [
       { title: signature },
       {
@@ -27,6 +29,28 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      // les projets de l'index, dans son ordre, chacun a son adresse absolue
+      ...(loaderData
+        ? [
+            {
+              "script:ld+json": {
+                "@context": "https://schema.org",
+                "@type": "ItemList",
+                name: "Projets",
+                numberOfItems: projects.length,
+                itemListElement: projects.map((p, i) => ({
+                  "@type": "ListItem",
+                  position: i + 1,
+                  item: {
+                    "@type": "CreativeWork",
+                    name: p.title,
+                    url: `${loaderData.origin}/projet/${p.slug}`,
+                  },
+                })),
+              },
+            },
+          ]
+        : []),
     ],
   }),
   component: Index,
