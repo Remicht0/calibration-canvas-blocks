@@ -544,6 +544,149 @@ export function BlockBackdrop({ src }: { src: string | null }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Vignette : l'image d'un projet en blocs, a cote de son titre        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Vignette d'index : l'image seuillee en 1 bit sur une petite grille fixe,
+ * encre blanche sur noir comme le fond en negatif. A partir de 1280 px :
+ * cols x rows cellules ; en dessous : une bande de toute la largeur
+ * disponible, rowsMobile rangees. La cellule ne rapetisse jamais : c'est le nombre de cellules qui
+ * change. Elle se compose par chute de blocs a son entree a l'ecran, une
+ * fois, puis ne bouge plus (aucune boucle). Decorative : le lien dit le projet.
+ */
+export function BlockVignette({
+  src,
+  threshold,
+  cols: colsBureau,
+  rows: rowsBureau,
+  rowsMobile,
+  className = "",
+}: {
+  src: string;
+  /** seuil regle de la planche ; absent, Otsu borne a 0,30-0,60 */
+  threshold?: number | undefined;
+  cols: number;
+  rows: number;
+  rowsMobile: number;
+  className?: string;
+}) {
+  const wrap = useRef<HTMLDivElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const el = wrap.current;
+    const cv = canvas.current;
+    if (!el || !cv) return;
+    let raf = 0;
+    let dead = false;
+    let img: HTMLImageElement | null = null;
+    let bits: Bits | null = null;
+    let order: Float32Array | null = null;
+    let progress = 0;
+    let cell = cellSizeFor(window.innerWidth);
+    let cols = 0;
+    let rows = 0;
+    let seen = false;
+
+    const paint = () => {
+      const ctx = cv.getContext("2d");
+      if (!ctx || !bits || !order) return;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      ctx.scale(dpr, dpr);
+      drawBits(ctx, bits, order, { cell, progress, negative: true });
+    };
+    // grille et trame : refaites quand le point de rupture ou la largeur change
+    const build = () => {
+      cell = cellSizeFor(window.innerWidth);
+      // en bande jusqu'a 1280 px : a cote du titre, elle l'ecraserait
+      const mobile = window.innerWidth < 1280;
+      const c = mobile ? Math.max(4, Math.floor(el.clientWidth / cell)) : colsBureau;
+      const r = mobile ? rowsMobile : rowsBureau;
+      if (c === cols && r === rows && bits) return false;
+      cols = c;
+      rows = r;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      cv.style.width = `${cols * cell}px`;
+      cv.style.height = `${rows * cell}px`;
+      cv.width = cols * cell * dpr;
+      cv.height = rows * cell * dpr;
+      if (!img) return true;
+      const trame = sample(img, cols, rows);
+      if (!trame) return true;
+      // le seuil regle de la planche, sinon celui du fond en negatif
+      const t = threshold ?? otsuThreshold(trame.lum, 0.3, 0.6);
+      bits = { cols, rows, data: Uint8Array.from(trame.lum, (l) => (l < t ? 1 : 0)) };
+      order = fallOrder(cols, rows, cols * 7 + rows);
+      return true;
+    };
+    const compose = () => {
+      cancelAnimationFrame(raf);
+      if (prefersReducedMotion()) {
+        progress = 1;
+        paint();
+        return;
+      }
+      const t0 = performance.now();
+      const step = (t: number) => {
+        if (dead) return;
+        progress = Math.min(1, (t - t0) / 700);
+        paint();
+        if (progress < 1) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    };
+
+    build();
+    const io = new IntersectionObserver((entries) => {
+      if (seen || !entries.some((e) => e.isIntersecting)) return;
+      seen = true;
+      io.disconnect();
+      if (bits) compose();
+    });
+    io.observe(el);
+
+    const im = new Image();
+    im.onload = () => {
+      if (dead) return;
+      img = im;
+      cols = 0;
+      build();
+      if (seen) compose();
+    };
+    im.src = src;
+
+    // impression : la vignette se pose entiere, sans chute
+    const onBeforePrint = () => {
+      if (!bits) return;
+      cancelAnimationFrame(raf);
+      progress = 1;
+      paint();
+    };
+    window.addEventListener("beforeprint", onBeforePrint);
+    const ro = new ResizeObserver(() => {
+      if (build()) paint();
+    });
+    ro.observe(el);
+
+    return () => {
+      dead = true;
+      cancelAnimationFrame(raf);
+      io.disconnect();
+      ro.disconnect();
+      window.removeEventListener("beforeprint", onBeforePrint);
+    };
+  }, [src, threshold, colsBureau, rowsBureau, rowsMobile]);
+
+  return (
+    <div ref={wrap} aria-hidden="true" className={className}>
+      <canvas ref={canvas} className="block bg-black" />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Ligne rouge : tete de lecture, unique element colore du site        */
 /* ------------------------------------------------------------------ */
 

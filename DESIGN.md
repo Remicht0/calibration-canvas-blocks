@@ -17,10 +17,10 @@ La force vient du contraste et du vide, jamais de l'accumulation.
 
 ### Couleurs (aucune autre n'est autorisée)
 
-| Rôle | Valeur |
-| --- | --- |
-| Encre | `#000000` |
-| Papier | `#FFFFFF` |
+| Rôle                       | Valeur    |
+| -------------------------- | --------- |
+| Encre                      | `#000000` |
+| Papier                     | `#FFFFFF` |
 | Repère de lecture (unique) | `#FF0000` |
 
 - Aucun gris CSS, aucun dégradé, aucune ombre, aucune opacité décorative.
@@ -103,6 +103,7 @@ sont pilotés au scroll ; la planche 01 et la vidéo (SIGNAL) se composent dans
 le temps.
 
 Les titres en blocs (`BlockType`) ont deux pilotages de plus :
+
 - `drive="scan"` : **la ligne rouge lit le titre**. Les rangées que la
   ScanLine a dépassées de plus de 6 cellules tombent ; celles encore sous la
   ligne tiennent ; dans la bande de 6 cellules, `fallOrder` décide bloc par
@@ -126,6 +127,7 @@ CARTE / POSTALE / ONIR / IQUE en 393 px, CARTE / POSTALE / ONIRIQUE en 820 px ;
 CHAMPITHEQUE donne CHAMPI / THEQUE en 393 et 820 px, une ligne en 1440 px. Sur
 une page projet, le titre ne dépasse pas 40 % de l'écran (`maxHeight`) : au-delà
 il se compose sur moins de colonnes, sans jamais ajouter de ligne.
+
 - `erodible` (défaut) : **le curseur use les blocs**. Sur un pointeur fin, les
   cellules d'un carré de 5 x 5 autour du curseur tombent une à une (usure par
   temps de présence, les plus basses d'abord) ; quand il quitte le titre, les
@@ -158,7 +160,7 @@ s'arrête toujours hors écran, sous `mire:modal` et en onglet caché.
 ### Chrome commun
 
 - `TopBar` (`chrome.tsx`) sur chaque page : `MIRE` puis `INDEX / ATELIER /
-  CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`, et un
+CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`, et un
   emplacement à droite propre à la page (rôle de MIRE, numéro / année,
   horloge, fiche). Sous 768 px, la console en bas d'écran porte la navigation.
 - INDEX (barre haute, console, ligne « N PROJETS / INDEX CI-DESSOUS » de
@@ -200,12 +202,18 @@ s'arrête toujours hors écran, sous `mire:modal` et en onglet caché.
   largeur d'une colonne, au milieu), puis SUITE.
 - SUITE : les autres projets, survol en négatif de l'index (image `fondOf`),
   `PRECEDENT` / `SUIVANT` étiquetés, flèches du clavier pour feuilleter.
+- Vignettes de l'index (choix de Rémi) : chaque ligne porte l'image de son
+  projet en blocs (`BlockVignette`), encre blanche sur noir, avec la lecture
+  réglée de sa planche de tête (`teteOf`). À partir de 1280 px : 12 x 8
+  cellules à droite, calées en haut ; en dessous : une bande de toute la
+  largeur, 6 rangées, sous le titre (à côté, elle écraserait le titre). Composée une fois par chute de blocs à son entrée, puis immobile.
 - Tactile (index et SUITE) : pas de survol, la ligne rouge sert de tête de
   lecture : la ligne de liste qu'elle croise devient active
-  (`useTeteTactile`, `lib/tete.ts`) et son image se compose en fond ; hors de
-  la liste, rien n'est actif.
+  (`useTeteTactile`, `lib/tete.ts`). Dans la SUITE, son image se compose en
+  fond ; dans l'index, la vignette suffit (le fond pleine section la
+  recouvrait). Hors de la liste, rien n'est actif.
 - Fond en négatif (`BlockBackdrop`) : seuillé par `otsuThreshold(lum, 0.30,
-  0.60)` sur la trame `sample()`, comme les cartes de partage. Il lit
+0.60)` sur la trame `sample()`, comme les cartes de partage. Il lit
   `fondOf(p)` (la `carte` du projet, sinon son image) : un logotype en
   bandeau recadré dans une bande n'est qu'une masse unie.
 - Un Bloc dont le libellé peut passer à la ligne grandit d'une cellule par
@@ -297,11 +305,11 @@ sortante qui tombent, et cette chute devient le masque : ce que je regardais
 s'effondre, l'effondrement remplit l'ecran, la page suivante se leve de la meme
 matiere. 1500 ms, trois temps, jamais de fondu :
 
-| Temps | Part | Duree | Rendu |
-| --- | --- | --- | --- |
-| Effondrement | 0 → 0,42 | 0 → 630 ms | le masque **reproduit la page sortante** (papier compris) ; ses cellules d'encre lachent de bas en haut selon `fallOrder` (graine 61) et s'empilent au bas de leur colonne ; une crue acheve de remplir l'ecran. `easeInOutCubic` |
-| Palier | 0,42 → 0,58 | 630 → 870 ms | ecran noir plein, un seul repere rouge balaye la surface |
-| Levee | 0,58 → 1 | 870 → 1500 ms | les blocs se vident du bas vers le haut, `easeInOutCubic`, 6 % de cellules resistent — et le titre d'arrivee resiste le plus longtemps |
+| Temps        | Part        | Duree         | Rendu                                                                                                                                                                                                                             |
+| ------------ | ----------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Effondrement | 0 → 0,42    | 0 → 630 ms    | le masque **reproduit la page sortante** (papier compris) ; ses cellules d'encre lachent de bas en haut selon `fallOrder` (graine 61) et s'empilent au bas de leur colonne ; une crue acheve de remplir l'ecran. `easeInOutCubic` |
+| Palier       | 0,42 → 0,58 | 630 → 870 ms  | ecran noir plein, un seul repere rouge balaye la surface                                                                                                                                                                          |
+| Levee        | 0,58 → 1    | 870 → 1500 ms | les blocs se vident du bas vers le haut, `easeInOutCubic`, 6 % de cellules resistent — et le titre d'arrivee resiste le plus longtemps                                                                                            |
 
 **La carte d'encre** (`lib/ink.ts`, `captureInk`) est relevee sur l'evenement
 `onBeforeNavigate` du routeur — donc avant que React ne compose la page
@@ -407,11 +415,11 @@ src/
   routes/
     __root.tsx         chrome global : ScanLine, GridCursor, NegativeSwitch,
                        BootSequence, RouteWipe, fontes, métadonnées de base
-    index.tsx          entrée (le premier écran laisse voir l'en-tête IDX et
-                       la première ligne de l'index ; à partir de lg, la copie
-                       à droite de MIRE) + index + bande et bandeau + banc
-                       d'essai + procédé + atelier (manifeste) + Colophon
-                       (exporté et réutilisé)
+    index.tsx          entrée (tout le premier écran : MIRE en pleine
+                       largeur, la copie dessous, la ligne « N PROJETS /
+                       INDEX CI-DESSOUS » en bas ; choix de Remi) + index
+                       + bande et bandeau + banc d'essai + procédé + atelier
+                       (manifeste) + Colophon (exporté et réutilisé)
     projet.$slug.tsx   page projet
     atelier.tsx        instruments manipulables
     contact.tsx        fiche de calibration (coordonnees, horaires, delai),
@@ -467,11 +475,11 @@ PNG : ils sont servis tels quels depuis `public/`.
 
 ### Modes de lecture d'un média (`BitMode`)
 
-| Mode | Rendu | Usage |
-| --- | --- | --- |
-| `bin` | seuil dur 1-bit | identité du site, planches de détail |
-| `gris` | N paliers quantifiés (défaut 5) | **photos perso** : contraste doux, intégration propre |
-| `brut` | mosaïque couleur, 1 bloc = 1 pixel | matière assumée, vidéo |
+| Mode   | Rendu                              | Usage                                                 |
+| ------ | ---------------------------------- | ----------------------------------------------------- |
+| `bin`  | seuil dur 1-bit                    | identité du site, planches de détail                  |
+| `gris` | N paliers quantifiés (défaut 5)    | **photos perso** : contraste doux, intégration propre |
+| `brut` | mosaïque couleur, 1 bloc = 1 pixel | matière assumée, vidéo                                |
 
 Loupe : au survol (souris, stylet) ou a l'appui long (tactile : 220 ms sans
 bouger de plus de 6 px, puis le carre suit le doigt et se pose au-dessus de
@@ -515,7 +523,7 @@ image.
    banc d'essai se génèrent depuis ce fichier. Le banc lit trois planches de
    projets différents quand il y en a assez (la tête de chaque projet
    d'abord), en BIN, GRIS et BRUT, chacune étiquetée `LECTURE <MODE> —
-   <TITRE>` et suivie de `VOIR <TITRE>`. Puis `bun run og`.
+<TITRE>` et suivie de `VOIR <TITRE>`. Puis `bun run og`.
 5. N'écrire que des faits prouvés par les fichiers de Rémi (titre de ses
    planches, compte rendu, métadonnées) ; jamais une image générée par IA,
    une référence trouvée ou le travail d'un camarade présenté comme le sien.
@@ -610,7 +618,8 @@ disparaît. Ne jamais remplir une valeur qu'on n'a pas.
 - Lignes mixtes (texte + widget) : `grid-cols-[minmax(0,1fr)_auto]` en mobile,
   `flex` a partir de `sm:`, `min-w-0` sur les conteneurs de texte,
   `shrink-0` sur les blocs de taille fixe.
-- Index des projets : annee et nature sont empilees sous le titre en mobile ;
+- Index des projets : annee et nature sont empilees sous le titre en mobile,
+  la vignette en bande dessous ;
   a partir de `md:`, grille `[4ch titre 6ch 22ch]`, titre 5,5vw ; a partir de
   `lg:`, colonne `NN PLANCHES` en plus (planche 01 + serie + video).
 - Banc d'essai : une colonne jusqu'a lg, trois a partir de lg.
@@ -621,6 +630,7 @@ disparaît. Ne jamais remplir une valeur qu'on n'a pas.
 ## 7. Etat d'avancement
 
 Fait :
+
 - [x] Noyau 1-bit (`mire.ts`) : seuillage, chute de blocs, texte en blocs.
 - [x] Noyau hybride (`bitmap.ts`) : modes BIN / GRIS / BRUT, loupe, video.
 - [x] Chrome global : boot, curseur bloc, inversion `N`, ligne rouge.
@@ -786,7 +796,7 @@ Regles propres a cet instrument, non negociables :
   second depot a deja pris la main.
 - **Aucun message brut du navigateur.** Un refus, une camera absente, occupee ou
   perdue s'ecrivent dans l'alphabet de la mire (`SIGNAL REFUSE`, `AUCUNE
-  CAMERA`, `CAMERA OCCUPEE`, `SIGNAL PERDU`), et le depot d'image reste
+CAMERA`, `CAMERA OCCUPEE`, `SIGNAL PERDU`), et le depot d'image reste
   toujours propose.
 - **Le creux reserve la place exacte** de la planche a venir, cartouche compris :
   ouvrir ou fermer une source ne fait jamais sauter la page.
@@ -839,6 +849,7 @@ Regles propres a cet instrument, non negociables :
   n'est pose.
 
 Reste a faire :
+
 - [x] Projets de demonstration remplaces par les vrais : MOIRE (identite de
       la marque de vetements) et CARTE POSTALE (edition, DNMADE 2). Les
       anciennes photos servent encore de mire aux tests (`tests/photos/`).
@@ -846,7 +857,8 @@ Reste a faire :
       sujet et conclusion repris des planches de Remi, credit archives Sud
       Ouest), CHAMPITHEQUE (livret en 7 volets) et GNAF (projet de groupe :
       seuls le logo et les recherches de lettrage, la part de Remi).
-- [x] Visibilite des projets : index au premier ecran, INDEX vers `/#index`,
+- [x] Visibilite des projets : MIRE garde tout le premier ecran (choix de
+      Remi), la ligne « N PROJETS » y mene a l'index, INDEX vers `/#index`,
       titres plus presents, nombre de planches, banc d'essai nomme, page
       projet avec planche 01 au premier ecran et serie de planches, titres en
       blocs sur plusieurs lignes, tete de lecture tactile, impression.
@@ -866,7 +878,6 @@ Reste a faire :
       seul l'hebergement Lovable l'ajoute, sur `*.lovable.app`. Le site public
       est servi par Cloudflare, sans badge : on ne publie pas depuis Lovable.
 - [ ] Video reelle sur au moins une page projet, testee en `gris` et `brut`.
-
 
 ## 8. Contrôles avant livraison
 
@@ -904,12 +915,12 @@ jouer contre un port muet.
 
 Quatre variables d'environnement, toutes facultatives :
 
-| variable        | defaut                   | effet                                       |
-| --------------- | ------------------------ | ------------------------------------------- |
-| `MIRE_PORT`     | `4288`                   | port du serveur monte pour la campagne      |
-| `MIRE_BASE`     | —                        | joue contre un serveur deja debout          |
-| `MIRE_SUITES`   | toutes                   | liste de suites, separees par des virgules  |
-| `MIRE_CHROMIUM` | `/opt/pw-browsers/chromium` | chemin du navigateur pilote              |
+| variable        | defaut                      | effet                                      |
+| --------------- | --------------------------- | ------------------------------------------ |
+| `MIRE_PORT`     | `4288`                      | port du serveur monte pour la campagne     |
+| `MIRE_BASE`     | —                           | joue contre un serveur deja debout         |
+| `MIRE_SUITES`   | toutes                      | liste de suites, separees par des virgules |
+| `MIRE_CHROMIUM` | `/opt/pw-browsers/chromium` | chemin du navigateur pilote                |
 
 Les pieces fabriquees (`tests/.fixtures/`) et les captures d'ecran laissees
 derriere (`tests/.captures/`) ne sont pas versionnees.
