@@ -213,10 +213,10 @@ export const projects: Project[] = [
     year: "2026",
     nature: "EDITION",
     client: "PROJET D'ECOLE",
-    image: champiDepliant,
-    alt: "Les sept volets du livret « Champithèque urbaine » côte à côte : titres noirs condensés, pictogrammes noirs et pastilles vert sapin sur papier crème.",
-    // sept volets en 65 colonnes : au seuil 0,70 la tour et les pictogrammes tiennent, en gris tout palit
-    lecture: { mode: "bin", threshold: 0.7, ratio: 0.4 },
+    image: champiTour,
+    alt: "Couverture du livret : une tour noire couverte de pleurotes, entourée de flèches vertes, au-dessus de « Fabriquer, observer, récolter ».",
+    // la tour de la couverture tient en blocs a toute largeur ; le depliant entier passe en serie
+    lecture: { mode: "bin", threshold: 0.6, ratio: 0.7 },
     lines: [
       "Champitheque urbaine : un mode d'emploi en sept volets pour construire une tour de culture de pleurotes et faire pousser le vivant en ville.",
       "Apres la couverture, six volets d'etapes : pourquoi une filiere, le materiel, construire la tour, percer et suspendre, preparer le substrat, puis inoculer, incuber et fructifier.",
@@ -225,6 +225,14 @@ export const projects: Project[] = [
     resume:
       "Champithèque urbaine : un livret en sept volets, mode d'emploi d'une tour de culture de pleurotes pour faire pousser le vivant en ville. Édition, projet d'école d'après la documentation du Low-tech Lab (Biosphère urbaine), 2026.",
     serie: [
+      {
+        src: champiDepliant,
+        alt: "Les sept volets du livret « Champithèque urbaine » côte à côte : titres noirs condensés, pictogrammes noirs et pastilles vert sapin sur papier crème.",
+        label: "DEPLIANT / 7 VOLETS",
+        mode: "bin",
+        threshold: 0.7,
+        ratio: 0.4,
+      },
       {
         src: champiVolets12,
         alt: "Volets 1 et 2 : la couverture « Champithèque urbaine » avec une tour couverte de pleurotes, puis le cycle de la filière, de la paille à la récolte.",

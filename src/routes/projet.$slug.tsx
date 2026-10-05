@@ -197,10 +197,10 @@ function ProjectPage() {
       <section data-mire="PLANCHE 01" className="bg-white px-cell pb-cell4">
         <div className="u-mono mb-cell flex justify-between gap-cell">
           <h2>PLANCHE 01 — MATIERE</h2>
-          <span className="hidden [@media(hover:hover)]:inline">
+          <span className="hidden md:[@media(hover:hover)]:inline">
             SURVOL = LOUPE / MATIERE BRUTE
           </span>
-          <span className="[@media(hover:hover)]:hidden">APPUI LONG = LOUPE</span>
+          <span className="md:[@media(hover:hover)]:hidden">APPUI LONG = LOUPE</span>
         </div>
         <HybridMedia
           key={p.slug}
