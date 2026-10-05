@@ -180,10 +180,14 @@ function Index() {
           retiree a l'ecran est la somme : filet 10 px, en-tete (4 cellules + une
           ligne mono), premiere ligne (2 cellules + 0,9 x le corps du titre, plus
           la ligne annee / nature en mobile), gouttiere basse (console : 6
-          cellules en mobile ; AIDE : 3 cellules + 1 d'air au bureau). */}
+          cellules en mobile ; AIDE : 3 cellules + 1 d'air au bureau). Sur un
+          bureau bas (1440 x 800, 1280 x 720), le contenu depasse ce minimum :
+          une cellule d'air au moins y separe la barre, MIRE et la ligne du bas,
+          qui sinon se touchaient, et la marge basse rend une cellule pour que
+          la premiere ligne de l'index reste au-dessus d'AIDE. */}
       <section
         data-mire="ENTREE"
-        className="flex min-h-[calc(100svh-var(--cell)*12-11.7vw-48px)] flex-col justify-between px-cell py-cell2 md:min-h-[calc(100svh-var(--cell)*10-4.95vw-29px)]"
+        className="flex min-h-[calc(100svh-var(--cell)*12-11.7vw-48px)] flex-col justify-between px-cell py-cell2 md:min-h-[calc(100svh-var(--cell)*10-4.95vw-29px)] md:gap-y-cell md:pb-cell"
       >
         <TopBar right={mireText(STUDIO.role)} />
 

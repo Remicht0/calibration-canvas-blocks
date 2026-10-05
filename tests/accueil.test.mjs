@@ -16,6 +16,9 @@ const LARGEURS = [
   [393, 852],
   [820, 1180],
   [1440, 900],
+  // bureaux bas : l'entree depasse sa hauteur minimale, l'index doit tout de meme affleurer
+  [1440, 800],
+  [1280, 720],
 ];
 
 let navigateur;
@@ -111,6 +114,9 @@ test("les projets au premier ecran, hors du chrome fixe", async () => {
         aide: boite(document.getElementById("aide")),
         console: boite(document.querySelector('nav[aria-label="Console de navigation"]')),
         debordes: blocs.map((b) => b.textContent.trim()),
+        // l'entree : barre haute, bloc MIRE + copie, ligne du bas
+        entree: [...(document.querySelector('[data-mire="ENTREE"]')?.children ?? [])].map(boite),
+        cell,
         horsPas,
         scrollWidth: document.documentElement.scrollWidth,
         innerWidth,
@@ -142,6 +148,16 @@ test("les projets au premier ecran, hors du chrome fixe", async () => {
       !!r.lien && r.lien.bottom <= bas && !croise(r.lien, r.aide) && !croise(r.lien, r.console),
       JSON.stringify(r.lien),
     );
+    const [barre, milieu, ligne] = r.entree;
+    verifie(
+      `${tag} : une cellule d'air au moins entre la barre, MIRE et la ligne du bas`,
+      !!barre &&
+        !!milieu &&
+        !!ligne &&
+        milieu.top - barre.bottom >= r.cell - 0.5 &&
+        ligne.top - milieu.bottom >= r.cell - 0.5,
+      JSON.stringify(r.entree.map((b) => b && [Math.round(b.top), Math.round(b.bottom)])),
+    );
     verifie(
       `${tag} : aucun bloc ne deborde de son cadre`,
       r.debordes.length === 0,
@@ -157,7 +173,7 @@ test("les projets au premier ecran, hors du chrome fixe", async () => {
       r.scrollWidth === r.innerWidth,
       `${r.scrollWidth} / ${r.innerWidth}`,
     );
-    await page.screenshot({ path: capture(`accueil-premier-ecran-${l}.png`) });
+    await page.screenshot({ path: capture(`accueil-premier-ecran-${tag}.png`) });
     verifie(
       `${tag} : console vide`,
       page.erreurs.length === 0,
