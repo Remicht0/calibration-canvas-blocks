@@ -3,10 +3,16 @@
 //   BIN  : seuil dur 1-bit (identite du site)
 //   GRIS : quantification en N paliers (integration douce des photos)
 //   BRUT : mosaique couleur, un bloc = un pixel (photo / video assumee)
+// et, sur les planches de projet, une quatrieme a la demande du visiteur :
+//   NET  : l'image d'origine, nette, dans ses couleurs, entiere dans le cadre
 
 import { coverCrop, luminance } from "@/lib/mire";
 
+/** Les trois lectures en blocs : les seules qu'une planche peut avoir par defaut. */
 export type BitMode = "bin" | "gris" | "brut";
+
+/** Lecture courante d'une planche : en blocs, ou NET (choisie par le visiteur, jamais par defaut). */
+export type ReadMode = BitMode | "net";
 
 export type Sampled = {
   cols: number;
@@ -178,6 +184,50 @@ export function histogram(s: Sampled, bins = 20): Float32Array {
   }
   for (let b = 0; b < bins; b++) h[b] = h[b]! / n;
   return h;
+}
+
+/**
+ * NET : l'image d'origine, nette et dans ses couleurs, entiere dans le cadre
+ * (contenue, centree : rien de l'oeuvre n'est coupe). Les marges et les
+ * cellules pas encore tombees restent transparentes : elles prennent le fond
+ * de ce qui porte la planche (papier de la section, noir du masque en plein
+ * cadre, papier inverse sous le negatif). Elle se pose cellule par cellule
+ * dans l'ordre de chute des blocs, la dissolution reste le seul mouvement.
+ * Le canvas est a la resolution de l'ecran (jusqu'a 3x) : aucune cellule n'y
+ * est visible une fois la planche posee.
+ */
+export function paintNet(
+  ctx: CanvasRenderingContext2D,
+  src: Source,
+  {
+    cols,
+    rows,
+    cell,
+    progress,
+    order,
+  }: { cols: number; rows: number; cell: number; progress: number; order: Float32Array },
+) {
+  const W = cols * cell;
+  const H = rows * cell;
+  ctx.clearRect(0, 0, W, H);
+  if (progress <= 0) return;
+  const { w, h } = srcSize(src);
+  if (!w || !h) return;
+  const k = Math.min(W / w, H / h);
+  const dw = w * k;
+  const dh = h * k;
+  ctx.save();
+  if (progress < 1) {
+    ctx.beginPath();
+    for (let y = 0; y < rows; y++)
+      for (let x = 0; x < cols; x++)
+        if (order[y * cols + x]! <= progress) ctx.rect(x * cell, y * cell, cell, cell);
+    ctx.clip();
+  }
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  ctx.restore();
 }
 
 export const isVideo = (src: string) => /\.(mp4|webm|mov|m4v)(\?|$)/i.test(src);

@@ -197,10 +197,14 @@ function ProjectPage() {
       <section data-mire="PLANCHE 01" className="bg-white px-cell pb-cell4">
         <div className="u-mono mb-cell flex justify-between gap-cell">
           <h2>PLANCHE 01 — MATIERE</h2>
+          {/* NET est nomme des la premiere planche : c'est la que l'on cherche a bien voir */}
           <span className="hidden md:[@media(hover:hover)]:inline">
-            SURVOL = LOUPE / MATIERE BRUTE
+            NET = IMAGE NETTE / SURVOL = LOUPE
           </span>
-          <span className="md:[@media(hover:hover)]:hidden">APPUI LONG = LOUPE</span>
+          <span className="flex flex-col items-end text-right md:[@media(hover:hover)]:hidden">
+            <span>NET = IMAGE NETTE</span>
+            <span>APPUI LONG = LOUPE</span>
+          </span>
         </div>
         <HybridMedia
           key={p.slug}
@@ -211,6 +215,7 @@ function ProjectPage() {
           mode={une.mode}
           threshold={une.threshold}
           gamma={une.gamma}
+          net
         />
       </section>
 
@@ -277,6 +282,7 @@ function ProjectPage() {
             mode={signal.mode}
             threshold={signal.threshold}
             gamma={signal.gamma}
+            net
           />
         </section>
       )}
@@ -303,6 +309,7 @@ function ProjectPage() {
               gamma={d.gamma}
               lensRadius={d.loupe}
               drive="scroll"
+              net
               className={
                 k !== seule
                   ? ""

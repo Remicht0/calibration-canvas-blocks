@@ -68,6 +68,9 @@ export function captureInk(cell: number, cols: number, rows: number): Uint8Array
 
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    // le signal inverse (touche N) porte sur `main` et le chrome : l'ecran montre
+    // le negatif de ce que les styles declarent, la carte le suit
+    const neg = document.documentElement.classList.contains("mire-negative") ? 1 : 0;
 
     /** Pose un filet : sous `SNAP` il garde son epaisseur, au-dela il prend la cellule entiere. */
     const filet = (x: number, y: number, w: number, h: number) => {
@@ -98,7 +101,13 @@ export function captureInk(cell: number, cols: number, rows: number): Uint8Array
 
       if (el instanceof HTMLCanvasElement) {
         if (!el.width || !el.height) continue;
+        // une planche NET est inversee une seconde fois sous le negatif
+        // (styles.css) : relevee inversee, l'inversion finale la rend telle
+        // qu'elle s'affiche
+        const flip = neg === 1 && el.matches('main canvas[data-lecture="net"]');
+        if (flip) ctx.filter = "invert(1)";
         ctx.drawImage(el, r.left, r.top, r.width, r.height);
+        if (flip) ctx.filter = "none";
         continue;
       }
 
@@ -125,9 +134,6 @@ export function captureInk(cell: number, cols: number, rows: number): Uint8Array
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     // meme seuil que partout ailleurs sur le site : `bitsFromRGBA`
     const { data } = bitsFromRGBA(ctx.getImageData(0, 0, cols, rows).data, cols, rows);
-    // le signal inverse (touche N) porte sur `main` et le chrome : l'ecran montre
-    // le negatif de ce que les styles declarent, la carte le suit
-    const neg = document.documentElement.classList.contains("mire-negative") ? 1 : 0;
     let inked = 0;
     for (let i = 0; i < data.length; i++) {
       const v = data[i]! ^ neg;

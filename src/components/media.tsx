@@ -5,8 +5,10 @@ import {
   isReady,
   isVideo,
   paintBlocks,
+  paintNet,
   sample,
   type BitMode,
+  type ReadMode,
   type Sampled,
   type Source,
 } from "@/lib/bitmap";
@@ -16,13 +18,18 @@ import { BitReadout } from "@/components/readout";
 import { MODAL_EVENT } from "@/lib/modal";
 
 /* Hors mire : ce que le lecteur d'ecran entend, en francais accentue. */
-const SPOKEN: Record<BitMode, string> = {
+const SPOKEN: Record<ReadMode, string> = {
   bin: "Lecture binaire, seuil dur 1 bit.",
   gris: "Lecture en gris, paliers quantifiés.",
   brut: "Lecture brute, mosaïque couleur, un bloc par pixel.",
+  net: "Lecture nette, l'image d'origine entière, dans ses couleurs.",
 };
 
-const CYCLE: BitMode[] = ["bin", "gris", "brut"];
+const BLOCS: BitMode[] = ["bin", "gris", "brut"];
+const AVEC_NET: ReadMode[] = [...BLOCS, "net"];
+
+/* NET ne se mesure pas en blocs : son encrage est celui de la matiere, comme BRUT */
+const inkMode = (m: ReadMode): BitMode => (m === "net" ? "brut" : m);
 
 export type Tune = { threshold: number; levels: number; gamma: number };
 
@@ -46,7 +53,8 @@ type KeyLike = {
 /* ------------------------------------------------------------------ */
 /* Media hybride : photo ou video reduite a la grille de blocs.         */
 /* Trois lectures (BIN / GRIS / BRUT), seuil et paliers reglables,      */
-/* loupe de matiere au survol (souris) ou a l'appui long (tactile),     */
+/* et NET sur une planche de projet : l'image d'origine, nette.         */
+/* Loupe de matiere au survol (souris) ou a l'appui long (tactile),     */
 /* plein cadre : la meme source re-echantillonnee a la taille de        */
 /* l'ecran (la cellule ne change pas, l'image gagne des colonnes).      */
 /* ------------------------------------------------------------------ */
@@ -66,6 +74,7 @@ export function HybridMedia({
   fit = "ratio",
   phase = "in",
   controls = true,
+  net = false,
   onSample,
   onDissolved,
   onFull,
@@ -81,7 +90,7 @@ export function HybridMedia({
   /** Etiquette visible sous la planche : capitales sans accents (regle de la mire). */
   label?: string | undefined;
   ratio?: number;
-  mode?: BitMode;
+  mode?: ReadMode;
   levels?: number;
   gamma?: number;
   threshold?: number;
@@ -93,6 +102,8 @@ export function HybridMedia({
   /** out : les blocs tombent (progress 1 -> 0 en 600 ms, meme ordre), puis onDissolved */
   phase?: "in" | "out";
   controls?: boolean;
+  /** Propose la lecture NET (l'image d'origine, nette) : planches de projet seulement */
+  net?: boolean;
   /** Trame echantillonnee, pour un instrument externe (video : au plus toutes les 600 ms) */
   onSample?: (s: Sampled) => void;
   onDissolved?: () => void;
@@ -104,8 +115,9 @@ export function HybridMedia({
 }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const modeRef = useRef<BitMode>(initial);
-  const [mode, setMode] = useState<BitMode>(initial);
+  const modeRef = useRef<ReadMode>(initial);
+  const [mode, setMode] = useState<ReadMode>(initial);
+  const cycle = net ? AVEC_NET : BLOCS;
   // une source vivante est une video, quelle que soit l'URL : isVideo reste le test du fichier
   const live = !!stream;
   const video = live || isVideo(src);
@@ -152,7 +164,7 @@ export function HybridMedia({
   // la region aria-live n'est ecrite que par une action du visiteur, jamais par une mesure
   const [announce, setAnnounce] = useState("");
   const say = useCallback(
-    (m: BitMode, t: Tune, inkNow: number | null) => {
+    (m: ReadMode, t: Tune, inkNow: number | null) => {
       const tuneText =
         m === "bin"
           ? `Seuil ${frNumber(t.threshold)}, `
@@ -166,7 +178,7 @@ export function HybridMedia({
   );
 
   const apply = useCallback(
-    (m: BitMode) => {
+    (m: ReadMode) => {
       modeRef.current = m;
       setMode(m);
       redraw.current();
@@ -222,7 +234,7 @@ export function HybridMedia({
       if (!viewport && document.documentElement.classList.contains("mire-modal")) return;
       const m = modeRef.current;
       if ((e.key === "f" || e.key === "F") && canFull) openFull();
-      else if (m === "brut") return;
+      else if (m === "brut" || m === "net") return;
       else if (e.key === "-") step(-1);
       else if (e.key === "+" || e.key === "=") step(1);
       else if ((e.key === "a" || e.key === "A") && m === "bin") auto.current();
@@ -295,7 +307,7 @@ export function HybridMedia({
 
     measure.current = () => {
       if (!data) return null;
-      const v = Math.round(inkRatio(data, modeRef.current, tune.current) * 100);
+      const v = Math.round(inkRatio(data, inkMode(modeRef.current), tune.current) * 100);
       if (v !== lastInk) {
         lastInk = v;
         setInk(v);
@@ -315,14 +327,25 @@ export function HybridMedia({
       setPlaying(false);
     }
 
+    // resolution du canvas : 2x suffit aux blocs ; une planche qui propose NET
+    // va jusqu'a 3x, sinon l'image nette serait agrandie (donc douce) sur un
+    // telephone. Une seule regle pour build() et draw(), qui doivent s'accorder.
+    const dprOf = () => Math.min(window.devicePixelRatio || 1, net ? 3 : 2);
+
     const draw = () => {
       const ctx = cv.getContext("2d");
       if (!ctx || !data) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = dprOf();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const m = modeRef.current;
+      // NET : la source elle-meme, a la resolution de l'ecran ; la loupe n'a plus rien a reveler
+      if (m === "net") {
+        if (media) paintNet(ctx, media, { cols, rows, cell, progress, order });
+        return;
+      }
       paintBlocks(ctx, data, {
         cell,
-        mode: modeRef.current,
+        mode: m,
         progress,
         order,
         ...tune.current,
@@ -343,7 +366,7 @@ export function HybridMedia({
       rows = viewport
         ? Math.max(4, Math.floor(el.clientHeight / cell))
         : Math.max(4, Math.round(cols * ratio));
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = dprOf();
       // le ResizeObserver se redeclenche sur la hauteur que build() vient d'ecrire : pas de second echantillonnage
       if (cols === lastCols && rows === lastRows && cell === lastCell && dpr === lastDpr) return;
       lastCols = cols;
@@ -586,7 +609,8 @@ export function HybridMedia({
       press = null;
     };
     const onDown = (ev: PointerEvent) => {
-      if (ev.pointerType !== "touch") return;
+      // en NET il n'y a pas de loupe : l'appui long laisse la page defiler
+      if (ev.pointerType !== "touch" || modeRef.current === "net") return;
       disarm();
       press = { id: ev.pointerId, x: ev.clientX, y: ev.clientY };
       pressTimer = window.setTimeout(() => {
@@ -678,7 +702,7 @@ export function HybridMedia({
       canvasCb.current?.(null);
       hovered.current = false;
     };
-  }, [src, stream, live, ratio, lensRadius, video, drive, viewport, setTune]);
+  }, [src, stream, live, ratio, lensRadius, video, drive, viewport, setTune, net]);
 
   const labelId = useId();
   const named = controls && !!label;
@@ -700,7 +724,9 @@ export function HybridMedia({
       >
         <canvas
           ref={canvas}
-          className="block max-w-full touch-pan-y select-none"
+          data-lecture={mode}
+          // en NET, le pincement agrandit l'image ; en blocs, pan-y garde l'appui long pour la loupe
+          className={`block max-w-full select-none ${mode === "net" ? "touch-manipulation" : "touch-pan-y"}`}
           style={{ WebkitTouchCallout: "none" }}
         />
       </div>
@@ -726,7 +752,7 @@ export function HybridMedia({
               </span>
             )}
           </span>
-          {mode !== "brut" && (
+          {(mode === "bin" || mode === "gris") && (
             <span
               role="group"
               aria-label="Réglage de la planche"
@@ -767,10 +793,16 @@ export function HybridMedia({
           <span
             role="group"
             aria-label="Mode de lecture"
-            className="ml-auto flex min-h-cell2 flex-1 flex-wrap items-center justify-end gap-[6px] min-w-0 sm:flex-initial"
+            className="ml-auto flex min-h-cell2 flex-auto flex-wrap items-center justify-end gap-[6px] min-w-0 sm:flex-initial"
           >
             <span className="hidden sm:inline">
-              {coarse ? "APPUI LONG = LOUPE" : live ? "DIRECT" : video ? "VIDEO" : "PHOTO"}
+              {coarse && mode !== "net"
+                ? "APPUI LONG = LOUPE"
+                : live
+                  ? "DIRECT"
+                  : video
+                    ? "VIDEO"
+                    : "PHOTO"}
             </span>
             {video && (
               <button
@@ -790,7 +822,7 @@ export function HybridMedia({
                 {playing ? (live ? "FIGER" : "PAUSE") : live ? "REPRENDRE" : "LECTURE"}
               </button>
             )}
-            {CYCLE.map((m) => (
+            {cycle.map((m) => (
               <button
                 key={m}
                 type="button"
@@ -826,6 +858,7 @@ export function HybridMedia({
           levels={shown.levels}
           gamma={shown.gamma}
           lensRadius={lensRadius}
+          net={net}
           onClose={() => setFull(false)}
         />
       )}

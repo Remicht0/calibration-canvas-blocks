@@ -10,7 +10,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { Bloc } from "@/components/bloc";
 import { HybridMedia } from "@/components/media";
 import { lockPage, unlockPage } from "@/lib/modal";
-import type { BitMode } from "@/lib/bitmap";
+import type { ReadMode } from "@/lib/bitmap";
 
 /* ------------------------------------------------------------------ */
 /* Plein cadre : la meme source re-echantillonnee a la taille de       */
@@ -32,6 +32,7 @@ export function PleinCadre({
   levels,
   gamma,
   lensRadius,
+  net = false,
   onClose,
 }: {
   src?: string | undefined;
@@ -39,11 +40,13 @@ export function PleinCadre({
   stream?: MediaStream | null | undefined;
   alt: string;
   label?: string | undefined;
-  mode: BitMode;
+  mode: ReadMode;
   threshold: number;
   levels: number;
   gamma: number;
   lensRadius?: number | undefined;
+  /** La planche d'origine propose NET : le plein cadre aussi */
+  net?: boolean;
   onClose: () => void;
 }) {
   const [phase, setPhase] = useState<"in" | "out">("in");
@@ -154,6 +157,7 @@ export function PleinCadre({
           levels={levels}
           gamma={gamma}
           lensRadius={lensRadius}
+          net={net}
           fit="viewport"
           drive="time"
           phase={phase}

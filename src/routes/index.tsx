@@ -329,6 +329,7 @@ function Index() {
                   threshold={d.threshold ?? 0.45}
                   gamma={d.gamma ?? 0.85}
                   drive="scroll"
+                  net
                 />
                 <div className="mt-auto pt-cell">
                   {/* Bloc polymorphe : il ne connait pas les routes, le chemin s'ecrit en clair */}
@@ -341,9 +342,10 @@ function Index() {
           })}
         </div>
         <p className="u-copy mt-cell2 max-w-[54ch]">
-          LES PHOTOS ET VIDEOS NE SONT PAS COLLEES SUR LA MIRE : ELLES SONT ECHANTILLONNEES DANS SA
-          GRILLE. UN BLOC = UN PIXEL. LE SURVOL, OU L&apos;APPUI LONG, OUVRE UNE LOUPE DE MATIERE
-          BRUTE.
+          PAR DEFAUT, LES PHOTOS ET VIDEOS NE SONT PAS COLLEES SUR LA MIRE : ELLES SONT
+          ECHANTILLONNEES DANS SA GRILLE. UN BLOC = UN PIXEL. EN BLOCS, LE SURVOL, OU L&apos;APPUI
+          LONG, OUVRE UNE LOUPE DE MATIERE BRUTE. NET = IMAGE NETTE : L&apos;OEUVRE ENTIERE, DANS
+          SES COULEURS.
         </p>
         <Bloc as={Link} to="/atelier" className={`mt-cell2 ${BLOC_SOUPLE}`}>
           CALIBREZ VOTRE IMAGE DANS L&apos;ATELIER

@@ -130,6 +130,13 @@
   filter: invert(1);
 }
 
+/* NET montre l'oeuvre telle qu'elle est : sous le negatif, sa planche est
+   inversee une seconde fois (les deux inversions s'annulent), les couleurs
+   restent les siennes */
+.mire-negative main canvas[data-lecture="net"] {
+  filter: invert(1);
+}
+
 @keyframes mire-slide {
   from {
     transform: translate3d(0, 0, 0);
@@ -252,7 +259,8 @@ body {
 
   /* le negatif est une lecture d'ecran : la feuille reste encre sur papier */
   main,
-  .mire-chrome {
+  .mire-chrome,
+  .mire-negative main canvas[data-lecture="net"] {
     filter: none !important;
   }
 
