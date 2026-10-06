@@ -61,9 +61,13 @@ La force vient du contraste et du vide, jamais de l'accumulation.
   commun, horloges). Aucun autre corps, aucune table dupliquee.
 - Deux fontes maximum, une seule graisse par fonte. Texte en **français, en
   capitales, sans accents** dans l'interface (contrainte de mire).
-- Les deux fontes sont **auto-hébergées** (`public/fonts/*.woff2`, sous-ensemble
-  latin, SIL OFL, licences dans `LICENCES.txt`) et préchargées : aucune requête
-  vers un tiers, aucun transfert d'adresse IP (RGPD), aucun saut de mise en page.
+- Les deux fontes sont **auto-hébergées** (`src/assets/fonts/*.woff2`,
+  sous-ensemble latin, SIL OFL, licences dans `public/fonts/LICENCES.txt`,
+  servi en `/fonts/LICENCES.txt`) et préchargées : aucune requête vers un
+  tiers, aucun transfert d'adresse IP (RGPD), aucun saut de mise en page. Elles
+  passent par le hachage de Vite (`/assets/anton-latin-HASH.woff2`) : cache
+  long, et le preload (`__root.tsx`, import `?url`) vise la même URL que le
+  `@font-face`.
 
 ### Accents et diacritiques (décision)
 
@@ -458,7 +462,8 @@ scripts/
                        nom et description du manifeste, depuis l'identite
 public/og/             cartes generees (mire.png + une par slug), versionnees
 public/icons/          icones PWA / iOS generees (M en 5 x 5 blocs, 1 bit)
-public/fonts/          Anton et JetBrains Mono auto-hebergees (woff2)
+public/fonts/          LICENCES.txt (SIL OFL) des deux fontes
+src/assets/fonts/      Anton et JetBrains Mono auto-hebergees (woff2, hachees)
 ```
 
 ### Visibilite (SEO, partage, installation)

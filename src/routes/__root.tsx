@@ -33,6 +33,9 @@ import {
 } from "@/lib/site";
 
 import appCss from "../styles.css?url";
+// les polices passent par le hachage de Vite : preload et @font-face visent la meme URL, en cache long
+import antonUrl from "@/assets/fonts/anton-latin.woff2?url";
+import monoUrl from "@/assets/fonts/jetbrains-mono-latin.woff2?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
@@ -187,14 +190,14 @@ export const Route = createRootRoute({
         { rel: "stylesheet", href: appCss },
         {
           rel: "preload",
-          href: "/fonts/anton-latin.woff2",
+          href: antonUrl,
           as: "font",
           type: "font/woff2",
           crossOrigin: "anonymous",
         },
         {
           rel: "preload",
-          href: "/fonts/jetbrains-mono-latin.woff2",
+          href: monoUrl,
           as: "font",
           type: "font/woff2",
           crossOrigin: "anonymous",

@@ -1,4 +1,5 @@
-Fontes auto-hebergees (sous-ensemble latin, WOFF2), toutes deux sous
+Fontes auto-hebergees (sous-ensemble latin, WOFF2, servies depuis /assets/
+apres hachage par Vite ; sources dans src/assets/fonts/), toutes deux sous
 SIL Open Font License 1.1 (https://openfontlicense.org).
 
 Anton            Vernon Adams        https://fonts.google.com/specimen/Anton
