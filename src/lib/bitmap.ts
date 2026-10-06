@@ -23,12 +23,99 @@ export type Sampled = {
   lum: Float32Array;
 };
 
-export type Source = HTMLImageElement | HTMLVideoElement;
+/** Image decodee (ImageBitmap, hors du fil principal), element image, ou video. */
+export type Source = HTMLImageElement | HTMLVideoElement | ImageBitmap;
 
 const srcSize = (src: Source) =>
   src instanceof HTMLVideoElement
     ? { w: src.videoWidth, h: src.videoHeight }
-    : { w: src.naturalWidth, h: src.naturalHeight };
+    : src instanceof HTMLImageElement
+      ? { w: src.naturalWidth, h: src.naturalHeight }
+      : { w: src.width, h: src.height };
+
+/*
+ * Chargement d'une image de projet : les octets ne partent qu'une fois (blob
+ * partage entre planche, vignette, fond et banc d'essai) ; chaque appelant
+ * recoit son propre ImageBitmap, decode hors du fil principal (un JPG de
+ * 1600 px bloquait 43 a 400 ms en new Image()), et le libere au demontage.
+ * Sans createImageBitmap (vieux navigateur), retour a l'element image.
+ */
+const octets = new Map<string, Promise<Blob>>();
+
+/** Lance le telechargement sans decoder (planche 01 demandee avant l'hydratation). */
+export function prechargerImage(src: string) {
+  if (!src || octets.has(src) || typeof fetch !== "function") return;
+  const p = fetch(src).then((r) => {
+    if (!r.ok) throw new Error(String(r.status));
+    return r.blob();
+  });
+  p.catch(() => octets.delete(src));
+  octets.set(src, p);
+}
+
+export function chargerImage(src: string): Promise<Source> {
+  if (typeof createImageBitmap !== "function")
+    return new Promise((ok, ko) => {
+      const img = new Image();
+      img.decoding = "async";
+      img.onload = () => ok(img);
+      img.onerror = ko;
+      img.src = src;
+    });
+  prechargerImage(src);
+  return octets.get(src)!.then((b) => createImageBitmap(b));
+}
+
+/*
+ * Ordre de chargement des planches : celles du premier ecran d'abord. Les
+ * autres attendent qu'elles soient arrivees (ou 4 s), puis partent ensemble :
+ * toutes se chargent quand meme, l'impression et TOUT EN NET les veulent
+ * toutes. En 4G, la planche 01 arrivait sinon 2,6 a 4,8 s plus tard, son JPG
+ * partageant le debit avec toute la serie. Rend de quoi annuler au demontage.
+ */
+let enTete = 0;
+let enAttente: (() => void)[] = [];
+export function enFile(proche: boolean, go: () => Promise<unknown>): () => void {
+  if (proche) {
+    enTete++;
+    let fini = false;
+    const fin = () => {
+      if (fini) return;
+      fini = true;
+      enTete = Math.max(0, enTete - 1);
+      if (enTete === 0) {
+        const l = enAttente;
+        enAttente = [];
+        l.forEach((f) => f());
+      }
+    };
+    void go().then(fin, fin);
+    return fin;
+  }
+  if (enTete === 0) {
+    void go();
+    return () => {};
+  }
+  let parti = false;
+  const f = () => {
+    if (parti) return;
+    parti = true;
+    clearTimeout(t);
+    void go();
+  };
+  const t = setTimeout(f, 4000);
+  enAttente.push(f);
+  return () => {
+    parti = true;
+    clearTimeout(t);
+    enAttente = enAttente.filter((x) => x !== f);
+  };
+}
+
+/** Libere une image decodee par chargerImage (sans effet sur un element image ou video). */
+export function libererImage(s: Source | null | undefined) {
+  if (s && "close" in s && typeof s.close === "function") s.close();
+}
 
 export const isReady = (src: Source) => {
   const { w, h } = srcSize(src);

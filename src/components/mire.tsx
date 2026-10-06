@@ -14,7 +14,7 @@ import {
   titleLines,
   type Bits,
 } from "@/lib/mire";
-import { sample } from "@/lib/bitmap";
+import { chargerImage, enFile, libererImage, sample, type Source } from "@/lib/bitmap";
 
 /* ------------------------------------------------------------------ */
 /* Image 1-bit qui se compose par chute de blocs a l'entree en ecran   */
@@ -156,8 +156,21 @@ export function BlockType({
   negative = false,
   maxHeight,
   label,
+  ancre,
+  reserve,
 }: {
   text: string;
+  /**
+   * Format (hauteur / largeur) reserve au canvas avant sa composition, pour un
+   * titre dont la forme est connue d'avance (MIRE, une ligne) : aucun saut de
+   * mise en page a l'hydratation.
+   */
+  reserve?: number | undefined;
+  /**
+   * id de l'enveloppe, focalisable par programme (tabIndex -1) : la cible du
+   * lien d'evitement et du focus apres un changement de page. Un seul par page.
+   */
+  ancre?: string | undefined;
   /** Titre lu hors mire (h1 pour les lecteurs d'ecran et Google), accents compris ; defaut : text */
   label?: string | undefined;
   className?: string;
@@ -429,9 +442,19 @@ export function BlockType({
   }, [text, loop, drive, erodible, negative, maxHeight]);
 
   return (
-    <div ref={wrap} className={className}>
+    <div
+      ref={wrap}
+      id={ancre}
+      tabIndex={ancre ? -1 : undefined}
+      className={`${ancre ? "scroll-mt-cell" : ""} ${className}`}
+    >
       <h1 className="sr-only">{label ?? text}</h1>
-      <canvas ref={canvas} className="block" aria-hidden="true" />
+      <canvas
+        ref={canvas}
+        className="block"
+        aria-hidden="true"
+        style={reserve ? { width: "100%", aspectRatio: `1 / ${reserve}` } : undefined}
+      />
     </div>
   );
 }
@@ -507,23 +530,28 @@ export function BlockBackdrop({ src }: { src: string | null }) {
     if (!src) {
       animate(0);
     } else {
-      const img = new Image();
-      img.onload = () => {
-        if (dead) return;
-        size();
-        const trame = sample(img, cols, rows);
-        if (!trame) return;
-        // seuil d'Otsu borne a 0,30-0,60 sur la trame echantillonnee, comme les
-        // cartes de partage (scripts/og.ts) : une photo sombre ou claire ne fait
-        // plus un aplat. Un recadrage qui n'est qu'une masse unie (le logotype de
-        // MOIRE dans la bande de la SUITE) le reste : aucun seuil n'y peut rien.
-        const t = otsuThreshold(trame.lum, 0.3, 0.6);
-        bits = { cols, rows, data: Uint8Array.from(trame.lum, (l) => (l < t ? 1 : 0)) };
-        order = fallOrder(cols, rows, cols + 3);
-        progress = 0;
-        animate(1);
-      };
-      img.src = src;
+      chargerImage(src).then(
+        (img) => {
+          if (dead) {
+            libererImage(img);
+            return;
+          }
+          size();
+          const trame = sample(img, cols, rows);
+          libererImage(img);
+          if (!trame) return;
+          // seuil d'Otsu borne a 0,30-0,60 sur la trame echantillonnee, comme les
+          // cartes de partage (scripts/og.ts) : une photo sombre ou claire ne fait
+          // plus un aplat. Un recadrage qui n'est qu'une masse unie (le logotype de
+          // MOIRE dans la bande de la SUITE) le reste : aucun seuil n'y peut rien.
+          const t = otsuThreshold(trame.lum, 0.3, 0.6);
+          bits = { cols, rows, data: Uint8Array.from(trame.lum, (l) => (l < t ? 1 : 0)) };
+          order = fallOrder(cols, rows, cols + 3);
+          progress = 0;
+          animate(1);
+        },
+        () => {},
+      );
     }
 
     const ro = new ResizeObserver(() => {
@@ -583,7 +611,7 @@ export function BlockVignette({
     if (!el || !cv) return;
     let raf = 0;
     let dead = false;
-    let img: HTMLImageElement | null = null;
+    let img: Source | null = null;
     let bits: Bits | null = null;
     let order: Float32Array | null = null;
     let progress = 0;
@@ -650,15 +678,22 @@ export function BlockVignette({
     });
     io.observe(el);
 
-    const im = new Image();
-    im.onload = () => {
-      if (dead) return;
-      img = im;
-      cols = 0;
-      build();
-      if (seen) compose();
-    };
-    im.src = src;
+    // apres les planches du premier ecran (enFile), decodee hors du fil principal
+    const annuler = enFile(false, () =>
+      chargerImage(src).then(
+        (im) => {
+          if (dead) {
+            libererImage(im);
+            return;
+          }
+          img = im;
+          cols = 0;
+          build();
+          if (seen) compose();
+        },
+        () => {},
+      ),
+    );
 
     // impression : la vignette se pose entiere, sans chute
     const onBeforePrint = () => {
@@ -675,6 +710,8 @@ export function BlockVignette({
 
     return () => {
       dead = true;
+      annuler();
+      libererImage(img);
       cancelAnimationFrame(raf);
       io.disconnect();
       ro.disconnect();

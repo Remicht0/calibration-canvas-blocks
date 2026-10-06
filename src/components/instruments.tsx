@@ -247,7 +247,7 @@ export function InstrumentSeuil() {
           >
             +
           </Bloc>
-          <Bloc onClick={otsu} pressed={auto} aria-label="Seuil automatique (Otsu)">
+          <Bloc onClick={otsu} pressed={auto} aria-label="Auto : seuil automatique (Otsu)">
             AUTO
           </Bloc>
         </div>

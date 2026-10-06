@@ -37,6 +37,18 @@ import appCss from "../styles.css?url";
 import antonUrl from "@/assets/fonts/anton-latin.woff2?url";
 import monoUrl from "@/assets/fonts/jetbrains-mono-latin.woff2?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { prechargerImage } from "@/lib/bitmap";
+import { bySlug } from "@/lib/projects";
+
+// Planche 01 d'une page projet : demandee des que le JS client est evalue,
+// avant l'hydratation (elle n'etait decouverte qu'apres), sans preload dans le
+// <head> qui disputerait la bande au JS. Les octets vont dans le cache de
+// chargerImage : la planche les reprend sans second telechargement.
+if (typeof window !== "undefined") {
+  const s = /^\/projet\/([^/?#]+)/.exec(window.location.pathname)?.[1];
+  const p = s ? bySlug(decodeURIComponent(s)) : undefined;
+  if (p) prechargerImage(p.image);
+}
 
 function NotFoundComponent() {
   return (
@@ -44,7 +56,7 @@ function NotFoundComponent() {
       <TopBar className="px-cell py-cell2" right="404" />
 
       <section data-mire="SIGNAL ABSENT" className="px-cell pb-cell4">
-        <BlockType text="PAS DE SIGNAL" loop />
+        <BlockType text="PAS DE SIGNAL" loop ancre="titre" />
       </section>
 
       <CalibrationBand height={5} still className="border-y-[10px] border-black" />
@@ -79,7 +91,13 @@ class TitleFallback extends Component<{ text: string; children: ReactNode }, { f
   override render() {
     if (this.state.failed)
       return (
-        <h1 className="u-display text-[22vw] leading-[0.82] md:text-[13vw]">{this.props.text}</h1>
+        <h1
+          id="titre"
+          tabIndex={-1}
+          className="u-display text-[22vw] leading-[0.82] md:text-[13vw]"
+        >
+          {this.props.text}
+        </h1>
       );
     return this.props.children;
   }
@@ -98,7 +116,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
       <section data-mire="DEFAUT DE LECTURE" className="px-cell pb-cell4">
         <TitleFallback text="SIGNAL CORROMPU">
-          <BlockType text="SIGNAL CORROMPU" loop={false} negative />
+          <BlockType text="SIGNAL CORROMPU" loop={false} negative ancre="titre" />
         </TitleFallback>
       </section>
 
@@ -130,14 +148,16 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 export const Route = createRootRoute({
   // origine absolue du site : les cartes de partage et le canonical l'exigent
   loader: () => ({ origin: siteOrigin() }),
-  head: ({ loaderData, matches }) => {
+  head: ({ loaderData, matches, match }) => {
     const origin = loaderData?.origin ?? "";
+    // une adresse sans page porte son propre titre (WCAG 2.4.2), pas celui de l'accueil
+    const perdu = !!match.globalNotFound || matches.some((m) => m.status === "notFound");
     const path = matches[matches.length - 1]?.pathname ?? "/";
     return {
       meta: [
         { charSet: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
-        { title: signature },
+        { title: perdu ? `Page introuvable — ${STUDIO.name}` : signature },
         {
           name: "description",
           content: `${presentation}. Un site construit comme une image de calibration.`,
@@ -236,13 +256,33 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   // un seul instrument de defilement a la fois : la reglette (bureau) ou la console (mobile)
   const mobile = useIsMobile();
+  const router = useRouter();
+
+  // Changement de page : le focus va au titre de la page d'arrivee (le lecteur
+  // d'ecran lit son h1, le Tab repart de la), jamais au parcours de
+  // l'historique ni vers une ancre (#index garde son propre accueil).
+  useEffect(() => {
+    let action = "PUSH";
+    const offH = router.history.subscribe(({ action: a }) => {
+      action = a.type;
+    });
+    const offR = router.subscribe("onRendered", (e) => {
+      if (!e.fromLocation || !e.pathChanged || e.toLocation.hash) return;
+      if (action === "BACK" || action === "FORWARD" || action === "GO") return;
+      document.getElementById("titre")?.focus({ preventScroll: true });
+    });
+    return () => {
+      offH();
+      offR();
+    };
+  }, [router]);
 
   return (
     <>
       {/* lien d'evitement : invisible jusqu'au focus clavier, puis un bloc noir */}
       <a
         id="evitement"
-        href="#contenu"
+        href="#titre"
         className="u-mono mire-chrome sr-only focus:not-sr-only focus:fixed focus:left-0 focus:top-0 focus:z-[300] focus:bg-black focus:px-cell focus:py-cell focus:text-white"
       >
         ALLER AU CONTENU

@@ -749,7 +749,14 @@ Fait :
       mire (metadonnees, `alt`, `sr-only`). Decision documentee en §2.
       Les paragraphes courants passent tous en `.u-copy`.
 - [x] Accessibilite : `alt` reel sur chaque planche (champ `alt` du projet,
-      distinct de l'etiquette visible), lien d'evitement « ALLER AU CONTENU »,
+      distinct de l'etiquette visible), lien d'evitement « ALLER AU CONTENU »
+      vers le titre de la page (`#titre`, prop `ancre` de `BlockType`), et
+      apres un changement de page (pas un retour d'historique, pas une
+      ancre) le focus va a ce titre, que le lecteur d'ecran lit ; une adresse
+      sans page s'intitule « Page introuvable — MIRE » ; le bloc AUTO se
+      nomme « Auto : seuil automatique (Otsu) » (le libelle visible dans le
+      nom, WCAG 2.5.3) ; a 320 px, rien ne deborde (bandes en
+      `contain: inline-size`),
       un `h1` et des `h2` par page, `aria-pressed` / `aria-current` sur les
       commandes, bouton lecture / pause sur les videos, bandeau lu une seule
       fois. `prefers-reduced-motion` couvre desormais aussi les planches,
@@ -889,6 +896,18 @@ CAMERA`, `CAMERA OCCUPEE`, `SIGNAL PERDU`), et le depot d'image reste
   `visibilitychange`, comme `HybridMedia`, `CalibrationBand`, `BlockType`.
 - Ce qui ne change qu'avec le defilement se redessine au defilement
   (`NoiseField`, `drive="scroll"`), jamais a chaque image.
+- Images de projet : `chargerImage` (`bitmap.ts`) telecharge chaque fichier
+  une fois (blob partage entre planche, vignette, fond, banc d'essai) et rend a
+  chaque appelant son `ImageBitmap`, decode hors du fil principal, libere au
+  demontage. Ordre (`enFile`) : les planches du premier ecran d'abord, les
+  autres partent ensemble des qu'elles sont arrivees (ou apres 4 s) — toutes
+  se chargent, l'impression et TOUT EN NET les veulent toutes. La planche 01
+  d'une page projet est demandee des l'evaluation du JS (`__root.tsx`), avant
+  l'hydratation.
+- Aucun saut de mise en page a l'arrivee : le format d'une planche est pose
+  en `aspect-ratio` des le rendu serveur, la hauteur d'une bande de
+  calibration aussi, et le titre MIRE de l'accueil reserve sa forme
+  (`reserve` de `BlockType`).
 - Un canvas de travail hors DOM est reutilise (`sample()`, `captureInk()`),
   jamais alloue par image ; un masque invisible libere son bitmap (`RouteWipe`).
 - Aucun traitement d'une source apportee par le visiteur ne tient le fil

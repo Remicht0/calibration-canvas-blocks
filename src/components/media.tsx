@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { cellSizeFor, fallOrder, otsuThreshold, prefersReducedMotion } from "@/lib/mire";
 import {
+  chargerImage,
+  enFile,
   inkRatio,
   isReady,
   isVideo,
+  libererImage,
   paintBlocks,
   paintNet,
   sample,
@@ -493,6 +496,9 @@ export function HybridMedia({
     };
 
     let element: HTMLVideoElement | null = null;
+    // image decodee, a liberer au demontage ; chargement a annuler s'il attend encore
+    let image: Source | null = null;
+    let annuler = () => {};
     if (video) {
       const v = document.createElement("video");
       element = v;
@@ -533,16 +539,24 @@ export function HybridMedia({
       }
       media = null;
     } else {
-      const img = new Image();
-      img.decoding = "async";
-      img.onload = () => {
-        if (dead) return;
-        media = img;
-        mediaRef.current = img;
-        build();
-        io.observe(el);
-      };
-      img.src = src;
+      // premier ecran d'abord (enFile), decodee hors du fil principal (chargerImage)
+      const proche = el.getBoundingClientRect().top < window.innerHeight;
+      annuler = enFile(proche, () =>
+        chargerImage(src).then(
+          (img) => {
+            if (dead) {
+              libererImage(img);
+              return;
+            }
+            image = img;
+            media = img;
+            mediaRef.current = img;
+            build();
+            io.observe(el);
+          },
+          () => {},
+        ),
+      );
     }
 
     const resume = () => {
@@ -739,6 +753,8 @@ export function HybridMedia({
         // le flux appartient a l'appelant : on detache le puits, on n'arrete jamais ses pistes
         element.srcObject = null;
       }
+      annuler();
+      libererImage(image);
       mediaRef.current = null;
       canvasCb.current?.(null);
       hovered.current = false;
@@ -766,9 +782,14 @@ export function HybridMedia({
         <canvas
           ref={canvas}
           data-lecture={mode}
+          // la place de la planche est reservee des le rendu serveur : son format
+          // est connu avant l'image (aucun saut de mise en page a l'arrivee)
           // en NET, le pincement agrandit l'image ; en blocs, pan-y garde l'appui long pour la loupe
           className={`block max-w-full select-none ${mode === "net" ? "touch-manipulation" : "touch-pan-y"}`}
-          style={{ WebkitTouchCallout: "none" }}
+          style={{
+            WebkitTouchCallout: "none",
+            ...(viewport ? {} : { width: "100%", aspectRatio: `1 / ${ratio}` }),
+          }}
         />
       </div>
       {controls && (
@@ -826,7 +847,7 @@ export function HybridMedia({
                 <button
                   type="button"
                   onClick={() => auto.current()}
-                  aria-label="Seuil automatique (Otsu)"
+                  aria-label="Auto : seuil automatique (Otsu)"
                   className="u-mono u-bloc"
                 >
                   AUTO

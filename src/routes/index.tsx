@@ -185,7 +185,7 @@ function Index() {
         <TopBar right={mireText(STUDIO.role)} />
 
         <div>
-          <BlockType text="MIRE" drive="scan" />
+          <BlockType ancre="titre" text="MIRE" drive="scan" reserve={0.46} />
           <p className="u-copy mt-cell2 max-w-[46ch]">
             IMAGE DE CALIBRATION — CHAQUE SURFACE EST REDUITE A DEUX VALEURS, NOIR PLEIN OU BLANC
             PLEIN, SUR UNE GRILLE DE BLOCS. LE SITE NE DECORE PAS. IL CALIBRE.
@@ -362,7 +362,7 @@ function Index() {
           <h2>PROCEDE</h2>
           <span>PLANCHES 01 — 03</span>
         </div>
-        <div className="grid gap-cell md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-cell md:grid-cols-3">
           {[
             { n: "01", t: "SEUIL", d: "DEUX VALEURS. RIEN ENTRE LES DEUX." },
             { n: "02", t: "PAS", d: "UN BLOC. AUCUN DEMI-BLOC." },

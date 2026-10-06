@@ -196,8 +196,15 @@ export function CalibrationBand({
   }, [height, seed, negative, still]);
 
   return (
-    <div ref={wrap} className={`overflow-hidden ${className}`} aria-hidden="true">
-      <canvas ref={canvas} className="block" />
+    // contain:inline-size : la largeur de l'enveloppe ne depend pas du canvas (a
+    // 320 px, une bande dans une grille auto debordait de la page) ; la hauteur
+    // est posee des le rendu serveur (aucun saut de mise en page a l'arrivee)
+    <div
+      ref={wrap}
+      className={`overflow-hidden [contain:inline-size] ${className}`}
+      aria-hidden="true"
+    >
+      <canvas ref={canvas} className="block" style={{ height: `calc(var(--cell) * ${height})` }} />
     </div>
   );
 }

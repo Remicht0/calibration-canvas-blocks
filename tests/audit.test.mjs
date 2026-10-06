@@ -62,7 +62,7 @@ test("checklist DESIGN.md section 8 sur 3 largeurs x 5 routes", async () => {
           cellule: parseInt(getComputedStyle(de).getPropertyValue("--cell")),
           h1: document.querySelectorAll("h1").length,
           contenu: !!document.getElementById("contenu"),
-          evitement: !!document.querySelector('a[href="#contenu"]'),
+          evitement: !!document.querySelector('a[href="#titre"]'),
           medias: document.querySelectorAll("img, video").length,
           roleImgSansNom: [...document.querySelectorAll('[role="img"]')].filter(
             (e) => !e.getAttribute("aria-label"),
@@ -279,7 +279,7 @@ test("navigation au clavier depuis le haut de page", async () => {
   const apres = await page.evaluate(
     () => document.activeElement.id || document.activeElement.tagName,
   );
-  verifie("il donne le focus a main#contenu", apres === "contenu", apres);
+  verifie("il donne le focus au titre de la page", apres === "titre", apres);
 
   for (let i = 0; i < 40; i++) {
     await page.keyboard.press("Tab");

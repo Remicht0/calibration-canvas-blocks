@@ -24,10 +24,10 @@ export const Route = createFileRoute("/projet/$slug")({
     return { ...project, origin: siteOrigin() };
   },
   head: ({ loaderData }) => {
+    // projet inconnu (notFound) : le titre de la racine, « Page introuvable », s'applique
+    if (!loaderData) return {};
     // hors mire : le nom avec ses accents (« Champithèque — MIRE, graphiste indépendant »)
-    const t = loaderData
-      ? `${loaderData.nom} — ${STUDIO.name}, ${metier}`
-      : `Projet — ${STUDIO.name}, ${metier}`;
+    const t = `${loaderData.nom} — ${STUDIO.name}, ${metier}`;
     const d = loaderData ? loaderData.resume : `Projet de ${STUDIO.name}, ${metier}.`;
     // carte de partage 1-bit generee par `bun run og` (scripts/og.ts)
     const img = loaderData ? `${loaderData.origin}${ogPath(loaderData.slug)}` : null;
@@ -214,7 +214,14 @@ function ProjectPage() {
       <TopBar className="px-cell py-cell2" right={`${p.num} / ${p.year}`} />
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
-        <BlockType text={p.title} label={p.nom} loop={false} drive="scan" maxHeight={0.4} />
+        <BlockType
+          text={p.title}
+          label={p.nom}
+          ancre="titre"
+          loop={false}
+          drive="scan"
+          maxHeight={0.4}
+        />
       </section>
 
       {/* PLANCHE PRINCIPALE au premier ecran — media hybride, lecture au choix */}
