@@ -61,9 +61,13 @@ La force vient du contraste et du vide, jamais de l'accumulation.
   commun, horloges). Aucun autre corps, aucune table dupliquee.
 - Deux fontes maximum, une seule graisse par fonte. Texte en **français, en
   capitales, sans accents** dans l'interface (contrainte de mire).
-- Les deux fontes sont **auto-hébergées** (`public/fonts/*.woff2`, sous-ensemble
-  latin, SIL OFL, licences dans `LICENCES.txt`) et préchargées : aucune requête
-  vers un tiers, aucun transfert d'adresse IP (RGPD), aucun saut de mise en page.
+- Les deux fontes sont **auto-hébergées** (`src/assets/fonts/*.woff2`,
+  sous-ensemble latin, SIL OFL, licences dans `public/fonts/LICENCES.txt`,
+  servi en `/fonts/LICENCES.txt`) et préchargées : aucune requête vers un
+  tiers, aucun transfert d'adresse IP (RGPD), aucun saut de mise en page. Elles
+  passent par le hachage de Vite (`/assets/anton-latin-HASH.woff2`) : cache
+  long, et le preload (`__root.tsx`, import `?url`) vise la même URL que le
+  `@font-face`.
 
 ### Accents et diacritiques (décision)
 
@@ -458,7 +462,8 @@ scripts/
                        nom et description du manifeste, depuis l'identite
 public/og/             cartes generees (mire.png + une par slug), versionnees
 public/icons/          icones PWA / iOS generees (M en 5 x 5 blocs, 1 bit)
-public/fonts/          Anton et JetBrains Mono auto-hebergees (woff2)
+public/fonts/          LICENCES.txt (SIL OFL) des deux fontes
+src/assets/fonts/      Anton et JetBrains Mono auto-hebergees (woff2, hachees)
 ```
 
 ### Visibilite (SEO, partage, installation)
@@ -474,7 +479,15 @@ public/fonts/          Anton et JetBrains Mono auto-hebergees (woff2)
   `isPartOf` = le site, et `video` = VideoObject seulement si le projet a une
   video) ; sur l'accueil, un `ItemList` des projets dans l'ordre de l'index.
 - `/sitemap.xml` et `/robots.txt` sont des routes serveur : l'origine vient de
-  la requete (ou de `VITE_SITE_URL`), rien n'est code en dur.
+  la requete (ou de `VITE_SITE_URL`), rien n'est code en dur. Le sitemap porte
+  aussi les images de chaque projet (`image:image`, `imagesOf`) : Google Images
+  ne voit pas ce qui est dessine en canvas.
+- Titres hors mire : l'accueil se nomme « MIRE — Graphiste indépendant à
+  Bordeaux » (`titreAccueil`), le contact « Contact — MIRE, graphiste
+  indépendant à Bordeaux ». Un projet porte un `nom` avec ses accents
+  (« Champithèque », « La poésie des formes »), memes mots que son titre en
+  capitales (`mireText(nom) === title`) : onglet, JSON-LD, ItemList et `h1`
+  lu (prop `label` de `BlockType`) ; le titre dessine reste en capitales.
 - Favicon : `favicon.svg` (rectangles pleins, `crispEdges`) et `favicon.ico`
   de secours (PNG 1 bit dans un conteneur ICO). Tout est produit par
   `bun run og`.
@@ -483,7 +496,8 @@ public/fonts/          Anton et JetBrains Mono auto-hebergees (woff2)
 
 `bun run og` genere `public/og/<slug>.png` pour chaque projet et
 `public/og/mire.png` pour MIRE (le nom en blocs sous une bande de calibration,
-le role en fonte 3x5 dessous) : des **PNG a 1 bit par pixel**, 1200 x 630,
+le M en 5 x 5 comme les icones — en 3 x 5 il se lit H —, le role en fonte 3x5
+dessous) : des **PNG a 1 bit par pixel**, 1200 x 630,
 moins de 1 Ko chacun. Aucun navigateur : le JPEG est decode en pur JS, reduit
 par moyenne de bloc avec le meme recadrage `cover` que le site (`coverCrop`)
 — sur `carte` si le projet en declare une, sinon sur l'image principale —,
@@ -601,7 +615,13 @@ disparaît. Ne jamais remplir une valeur qu'on n'a pas.
   `-` `+` `A` n'y font rien), `ENCRE` mesure la matiere comme en BRUT. Une
   planche ne s'ouvre jamais en NET : `Lecture.mode` est un `BitMode` (les
   trois lectures en blocs), seul le visiteur passe en NET, et le choix n'est
-  pas retenu. Sous le negatif, la planche NET est inversee une seconde fois
+  pas retenu. Version plus grande : une image de `src/assets/net/` du meme
+  nom que la source de la planche (`netOf`, `projects.ts` ; de 1 800 a
+  3 200 px, tirees des originaux de Remi, meme cadrage) n'est chargee qu'au
+  passage en NET, et seulement si l'ecran agrandirait la source de la page
+  (bureau 2x, plein cadre) ; elle est decodee a la taille dessinee
+  (`createImageBitmap` avec `resizeWidth`), jamais en entier. Un telephone
+  garde la source de la page. Sous le negatif, la planche NET est inversee une seconde fois
   (`styles.css`) : ses couleurs restent les siennes ; a l'impression, aucune
   inversion. Test : suite `net`.
 - `alt` décrit l'image pour les lecteurs d'écran (français accentué) ;
@@ -735,7 +755,14 @@ Fait :
       mire (metadonnees, `alt`, `sr-only`). Decision documentee en §2.
       Les paragraphes courants passent tous en `.u-copy`.
 - [x] Accessibilite : `alt` reel sur chaque planche (champ `alt` du projet,
-      distinct de l'etiquette visible), lien d'evitement « ALLER AU CONTENU »,
+      distinct de l'etiquette visible), lien d'evitement « ALLER AU CONTENU »
+      vers le titre de la page (`#titre`, prop `ancre` de `BlockType`), et
+      apres un changement de page (pas un retour d'historique, pas une
+      ancre) le focus va a ce titre, que le lecteur d'ecran lit ; une adresse
+      sans page s'intitule « Page introuvable — MIRE » ; le bloc AUTO se
+      nomme « Auto : seuil automatique (Otsu) » (le libelle visible dans le
+      nom, WCAG 2.5.3) ; a 320 px, rien ne deborde (bandes en
+      `contain: inline-size`),
       un `h1` et des `h2` par page, `aria-pressed` / `aria-current` sur les
       commandes, bouton lecture / pause sur les videos, bandeau lu une seule
       fois. `prefers-reduced-motion` couvre desormais aussi les planches,
@@ -875,6 +902,18 @@ CAMERA`, `CAMERA OCCUPEE`, `SIGNAL PERDU`), et le depot d'image reste
   `visibilitychange`, comme `HybridMedia`, `CalibrationBand`, `BlockType`.
 - Ce qui ne change qu'avec le defilement se redessine au defilement
   (`NoiseField`, `drive="scroll"`), jamais a chaque image.
+- Images de projet : `chargerImage` (`bitmap.ts`) telecharge chaque fichier
+  une fois (blob partage entre planche, vignette, fond, banc d'essai) et rend a
+  chaque appelant son `ImageBitmap`, decode hors du fil principal, libere au
+  demontage. Ordre (`enFile`) : les planches du premier ecran d'abord, les
+  autres partent ensemble des qu'elles sont arrivees (ou apres 4 s) — toutes
+  se chargent, l'impression et TOUT EN NET les veulent toutes. La planche 01
+  d'une page projet est demandee des l'evaluation du JS (`__root.tsx`), avant
+  l'hydratation.
+- Aucun saut de mise en page a l'arrivee : le format d'une planche est pose
+  en `aspect-ratio` des le rendu serveur, la hauteur d'une bande de
+  calibration aussi, et le titre MIRE de l'accueil reserve sa forme
+  (`reserve` de `BlockType`).
 - Un canvas de travail hors DOM est reutilise (`sample()`, `captureInk()`),
   jamais alloue par image ; un masque invisible libere son bitmap (`RouteWipe`).
 - Aucun traitement d'une source apportee par le visiteur ne tient le fil

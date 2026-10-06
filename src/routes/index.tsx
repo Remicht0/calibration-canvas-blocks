@@ -8,8 +8,8 @@ import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar, VERS_INDEX } from "@/components/chrome";
 import type { BitMode } from "@/lib/bitmap";
 import { mireText } from "@/lib/glyphs";
-import { fondOf, periode, planches, projects, teteOf, type Project } from "@/lib/projects";
-import { domainesPhrase, presentation, signature, siteOrigin, STUDIO } from "@/lib/site";
+import { fondOf, netOf, periode, planches, projects, teteOf, type Project } from "@/lib/projects";
+import { domainesPhrase, presentation, siteOrigin, STUDIO, titreAccueil } from "@/lib/site";
 import { useTeteTactile } from "@/lib/tete";
 import { accueillirIndex, arriveeIndex } from "@/lib/arrivee-index";
 
@@ -18,12 +18,12 @@ export const Route = createFileRoute("/")({
   loader: () => ({ origin: siteOrigin() }),
   head: ({ loaderData }) => ({
     meta: [
-      { title: signature },
+      { title: titreAccueil },
       {
         name: "description",
         content: `${presentation}. ${domainesPhrase}. Un site construit comme une image de calibration : 1-bit, grille de blocs, une seule ligne rouge.`,
       },
-      { property: "og:title", content: signature },
+      { property: "og:title", content: titreAccueil },
       {
         property: "og:description",
         content: `${domainesPhrase}. Rendu 1-bit par blocs, dissolution par chute de blocs.`,
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/")({
                   position: i + 1,
                   item: {
                     "@type": "CreativeWork",
-                    name: p.title,
+                    name: p.nom,
                     url: `${loaderData.origin}/projet/${p.slug}`,
                   },
                 })),
@@ -185,7 +185,7 @@ function Index() {
         <TopBar right={mireText(STUDIO.role)} />
 
         <div>
-          <BlockType text="MIRE" drive="scan" />
+          <BlockType ancre="titre" text="MIRE" drive="scan" reserve={0.46} />
           <p className="u-copy mt-cell2 max-w-[46ch]">
             IMAGE DE CALIBRATION — CHAQUE SURFACE EST REDUITE A DEUX VALEURS, NOIR PLEIN OU BLANC
             PLEIN, SUR UNE GRILLE DE BLOCS. LE SITE NE DECORE PAS. IL CALIBRE.
@@ -322,6 +322,7 @@ function Index() {
               <div key={d.mode} className="flex min-w-0 flex-col">
                 <HybridMedia
                   src={d.src}
+                  netSrc={netOf(d.src)}
                   alt={d.alt}
                   label={`LECTURE ${d.mode.toUpperCase()} — ${titre}`}
                   ratio={1}
@@ -362,7 +363,7 @@ function Index() {
           <h2>PROCEDE</h2>
           <span>PLANCHES 01 — 03</span>
         </div>
-        <div className="grid gap-cell md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-cell md:grid-cols-3">
           {[
             { n: "01", t: "SEUIL", d: "DEUX VALEURS. RIEN ENTRE LES DEUX." },
             { n: "02", t: "PAS", d: "UN BLOC. AUCUN DEMI-BLOC." },

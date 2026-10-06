@@ -19,12 +19,12 @@ import {
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: `Contact — ${STUDIO.name}, ${metier}` },
+      { title: `Contact — ${STUDIO.name}, ${metier} à ${STUDIO.city}` },
       {
         name: "description",
         content: `Contacter ${presentation} : courriel, téléphone, adresse. ${domainesPhrase}.`,
       },
-      { property: "og:title", content: `Contact — ${STUDIO.name}, ${metier}` },
+      { property: "og:title", content: `Contact — ${STUDIO.name}, ${metier} à ${STUDIO.city}` },
       {
         property: "og:description",
         content: `Fiche de calibration de ${STUDIO.name} : courriel, téléphone, adresse, horaires, mentions légales.`,
@@ -95,7 +95,7 @@ function Contact() {
       <TopBar className="px-cell py-cell2" right="FICHE 00" />
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
-        <BlockType text="CONTACT" loop={false} drive="scan" />
+        <BlockType ancre="titre" text="CONTACT" loop={false} drive="scan" />
         <p className="u-copy mt-cell2 max-w-[52ch]">
           UN PROJET SE MESURE AVANT DE SE DESSINER. ECRIRE AVEC : NATURE, CALENDRIER, BUDGET,
           SUPPORTS. REPONSE SOUS {mireText(STUDIO.delaiReponse)}.

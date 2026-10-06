@@ -53,8 +53,12 @@ test("structure de la page projet sur 393 et 1440", async () => {
         // en mobile, la console couvre le bas de l'ecran : le corps le reserve
         const bas = window.innerHeight - parseFloat(getComputedStyle(document.body).paddingBottom);
         const serie = document.querySelector('section[data-mire="PLANCHES"]');
-        // le titre d'onglet est « TITRE — MIRE »
-        const titre = document.title.replace(/ — MIRE$/, "");
+        // le titre lu (h1) porte les accents ; les etiquettes, les capitales de la mire
+        const h1 = document.querySelector('section[data-mire="EN-TETE"] h1')?.textContent ?? "";
+        const titre = h1
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toUpperCase();
         const champs = [
           ...document.querySelectorAll('section[data-mire="MESURES"] .grid > div'),
         ].map((d) => Math.round(d.getBoundingClientRect().top));
@@ -104,6 +108,11 @@ test("structure de la page projet sur 393 et 1440", async () => {
         `${nom} : l'en-tete de serie compte les planches`,
         n > 0 && v.entete === attendu,
         `${v.entete} / ${n} planche(s)`,
+      );
+      verifie(
+        `${nom} : le titre lu (accents compris) est le titre dessine`,
+        !!v.titre && v.etiquettes.length > 0,
+        v.titre,
       );
       verifie(
         `${nom} : chaque planche de la serie porte le titre du projet`,

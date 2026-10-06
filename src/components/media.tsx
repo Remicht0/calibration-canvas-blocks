@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { cellSizeFor, fallOrder, otsuThreshold, prefersReducedMotion } from "@/lib/mire";
 import {
+  chargerImage,
+  enFile,
   inkRatio,
   isReady,
   isVideo,
+  libererImage,
+  srcSize,
   paintBlocks,
   paintNet,
   sample,
@@ -62,6 +66,7 @@ type KeyLike = {
 export function HybridMedia({
   src = "",
   webm,
+  netSrc,
   stream = null,
   alt,
   label,
@@ -87,6 +92,12 @@ export function HybridMedia({
   src?: string | undefined;
   /** La meme video en WebM (VP9), lue a la place du MP4 quand le navigateur la lit */
   webm?: string | undefined;
+  /**
+   * La meme image en plus grand, pour NET seulement : chargee au passage en NET
+   * et seulement si l'ecran agrandirait la source de la page (pas sur un
+   * telephone), decodee a la taille dessinee.
+   */
+  netSrc?: string | undefined;
   /** Source vivante (camera). La planche ne fait que la consommer : elle n'arrete jamais les pistes. */
   stream?: MediaStream | null | undefined;
   /** Description de l'image pour les lecteurs d'ecran : francais accentue, jamais en capitales. */
@@ -139,6 +150,7 @@ export function HybridMedia({
   const restart = useRef<() => void>(() => {});
   const dissolve = useRef<() => void>(() => {});
   const redraw = useRef<() => void>(() => {});
+  const voirNet = useRef<() => void>(() => {});
   const auto = useRef<() => void>(() => {});
   const sampleRef = useRef<((s: Sampled) => void) | undefined>(onSample);
   sampleRef.current = onSample;
@@ -192,6 +204,7 @@ export function HybridMedia({
       modeRef.current = m;
       setMode(m);
       redraw.current();
+      if (m === "net") voirNet.current();
       const inkNow = measure.current();
       if (!silent) say(m, tune.current, inkNow);
     },
@@ -368,7 +381,8 @@ export function HybridMedia({
       const m = modeRef.current;
       // NET : la source elle-meme, a la resolution de l'ecran ; la loupe n'a plus rien a reveler
       if (m === "net") {
-        if (media) paintNet(ctx, media, { cols, rows, cell, progress, order });
+        const src = nette ?? media;
+        if (src) paintNet(ctx, src, { cols, rows, cell, progress, order });
         return;
       }
       paintBlocks(ctx, data, {
@@ -411,7 +425,40 @@ export function HybridMedia({
       else if (scrolled) progress = scrollProgress();
       draw();
       measure.current();
+      if (modeRef.current === "net") chargerNette();
     };
+
+    // NET en grand : la version plus grande de l'image, si l'ecran le demande
+    let nette: Source | null = null;
+    let netteEnCours = false;
+    const chargerNette = () => {
+      if (!netSrc || !media || video || netteEnCours) return;
+      const { w, h } = srcSize(media);
+      if (!w || !h) return;
+      const k = Math.min(cv.width / w, cv.height / h);
+      // la source de la page suffit tant qu'elle n'est pas agrandie
+      if (k <= 1.05) return;
+      const largeur = Math.round(w * k);
+      const hauteur = Math.round(h * k);
+      if (nette && srcSize(nette).w >= largeur * 0.95) return;
+      netteEnCours = true;
+      chargerImage(netSrc, { largeur, hauteur }).then(
+        (b) => {
+          netteEnCours = false;
+          if (dead) {
+            libererImage(b);
+            return;
+          }
+          libererImage(nette);
+          nette = b;
+          if (modeRef.current === "net") draw();
+        },
+        () => {
+          netteEnCours = false;
+        },
+      );
+    };
+    voirNet.current = chargerNette;
 
     // chute liee au defilement : 0 quand le haut de la planche entre par le bas,
     // 1 quand il atteint 45 % de la hauteur d'ecran ; a rebours en remontant
@@ -493,6 +540,9 @@ export function HybridMedia({
     };
 
     let element: HTMLVideoElement | null = null;
+    // image decodee, a liberer au demontage ; chargement a annuler s'il attend encore
+    let image: Source | null = null;
+    let annuler = () => {};
     if (video) {
       const v = document.createElement("video");
       element = v;
@@ -533,16 +583,24 @@ export function HybridMedia({
       }
       media = null;
     } else {
-      const img = new Image();
-      img.decoding = "async";
-      img.onload = () => {
-        if (dead) return;
-        media = img;
-        mediaRef.current = img;
-        build();
-        io.observe(el);
-      };
-      img.src = src;
+      // premier ecran d'abord (enFile), decodee hors du fil principal (chargerImage)
+      const proche = el.getBoundingClientRect().top < window.innerHeight;
+      annuler = enFile(proche, () =>
+        chargerImage(src).then(
+          (img) => {
+            if (dead) {
+              libererImage(img);
+              return;
+            }
+            image = img;
+            media = img;
+            mediaRef.current = img;
+            build();
+            io.observe(el);
+          },
+          () => {},
+        ),
+      );
     }
 
     const resume = () => {
@@ -739,11 +797,14 @@ export function HybridMedia({
         // le flux appartient a l'appelant : on detache le puits, on n'arrete jamais ses pistes
         element.srcObject = null;
       }
+      annuler();
+      libererImage(image);
+      libererImage(nette);
       mediaRef.current = null;
       canvasCb.current?.(null);
       hovered.current = false;
     };
-  }, [src, webm, stream, live, ratio, lensRadius, video, drive, viewport, setTune, net]);
+  }, [src, webm, netSrc, stream, live, ratio, lensRadius, video, drive, viewport, setTune, net]);
 
   const labelId = useId();
   const named = controls && !!label;
@@ -766,9 +827,14 @@ export function HybridMedia({
         <canvas
           ref={canvas}
           data-lecture={mode}
+          // la place de la planche est reservee des le rendu serveur : son format
+          // est connu avant l'image (aucun saut de mise en page a l'arrivee)
           // en NET, le pincement agrandit l'image ; en blocs, pan-y garde l'appui long pour la loupe
           className={`block max-w-full select-none ${mode === "net" ? "touch-manipulation" : "touch-pan-y"}`}
-          style={{ WebkitTouchCallout: "none" }}
+          style={{
+            WebkitTouchCallout: "none",
+            ...(viewport ? {} : { width: "100%", aspectRatio: `1 / ${ratio}` }),
+          }}
         />
       </div>
       {controls && (
@@ -826,7 +892,7 @@ export function HybridMedia({
                 <button
                   type="button"
                   onClick={() => auto.current()}
-                  aria-label="Seuil automatique (Otsu)"
+                  aria-label="Auto : seuil automatique (Otsu)"
                   className="u-mono u-bloc"
                 >
                   AUTO
@@ -895,6 +961,7 @@ export function HybridMedia({
         <PleinCadre
           src={src}
           webm={webm}
+          netSrc={netSrc}
           stream={stream}
           alt={alt}
           label={label}
