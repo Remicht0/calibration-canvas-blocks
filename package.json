@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "test": "node tests/run.mjs",
     "format": "prettier --write .",
-    "og": "bun scripts/og.ts"
+    "og": "bun scripts/og.ts",
+    "petit": "bun scripts/petit.ts"
   },
   "overrides": {
     "rolldown": "1.2.1"

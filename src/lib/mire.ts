@@ -15,7 +15,10 @@ export const bitUnit = (cell: number) => Math.round(cell / 5);
 
 /** Mouvement reduit demande par le systeme : tout se pose d'un coup, aucune chute. */
 export const prefersReducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  typeof window !== "undefined" &&
+  // FIGER (lib/reglages.ts) vaut « reduire les animations » pour tout le site
+  (document.documentElement.classList.contains("mire-fige") ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
 /** Luminance relative 0..1 d'un pixel (Rec. 709), la seule mesure du seuil. */
 export const luminance = (r: number, g: number, b: number) =>

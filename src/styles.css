@@ -156,6 +156,11 @@
   }
 }
 
+/* FIGER : le bandeau s'arrete la ou il est, et reprend de la au retour */
+.mire-fige .mire-ticker {
+  animation-play-state: paused;
+}
+
 /* ---- Console mobile : reserver la hauteur en bas de page ---- */
 body {
   padding-bottom: calc(var(--cell) * 3 + 48px);

@@ -654,34 +654,49 @@ test("TOUT EN NET au telephone : visible, au doigt, sans debordement", async () 
   conclure();
 });
 
-test("NET en grand : la version plus grande ne part que si l'ecran l'agrandirait", async () => {
-  // bureau 2x : la planche 01 fait ~2 600 px d'ecran, la source de la page 1 600
+test("trois tailles : petite pour les blocs, page ou grande pour NET selon l'ecran", async () => {
+  // les sources de page (1 600 px) sont celles que declare le sitemap d'images
+  const sitemap = await (await fetch(`${BASE}/sitemap.xml`)).text();
+  const pages = new Set([...sitemap.matchAll(/<image:loc>([^<]+)<\/image:loc>/g)].map((m) => m[1]));
+  const suivre = (page) => {
+    const jpg = [];
+    page.on("request", (r) => {
+      if (/\/assets\/[^/]+\.jpe?g(\?|$)/.test(r.url())) jpg.push(r.url());
+    });
+    return jpg;
+  };
+
+  // bureau 2x : la planche 01 fait ~2 600 px d'ecran
   const grand = await navigateur.newContext({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 2,
   });
   const page = await nouvellePage(grand);
-  const jpg = [];
-  page.on("request", (r) => {
-    if (/\/assets\/[^/]+\.jpe?g(\?|$)/.test(r.url())) jpg.push(r.url());
-  });
+  const jpg = suivre(page);
   await page.goto(`${BASE}/projet/${SLUGS[0]}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
+  verifie(
+    "a l'arrivee, aucune source de page : les blocs lisent les petites versions",
+    jpg.length > 0 && jpg.every((u) => !pages.has(u)),
+    jpg.filter((u) => pages.has(u)).join(" "),
+  );
   const avant = new Set(jpg);
-  const fig = page.locator('section[data-mire="PLANCHE 01"] figure');
-  await fig.locator("button", { hasText: /^NET$/ }).click();
+  await page
+    .locator('section[data-mire="PLANCHE 01"] figure')
+    .locator("button", { hasText: /^NET$/ })
+    .click();
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(600);
   const nouvelles = [...new Set(jpg)].filter((u) => !avant.has(u));
   verifie(
-    "bureau 2x : NET demande la version plus grande de la planche 01",
-    nouvelles.length === 1,
+    "bureau 2x : NET demande la version plus grande (pas la source de page)",
+    nouvelles.length === 1 && !pages.has(nouvelles[0]),
     nouvelles.join(" "),
   );
   verifie("console vide", page.erreurs.length === 0, page.erreurs.join(" | ").slice(0, 200));
   await grand.close();
 
-  // telephone : la planche fait ~1 100 px d'ecran, la source de la page suffit
+  // telephone : ~1 100 px d'ecran, la source de page suffit
   const petit = await navigateur.newContext({
     viewport: { width: 393, height: 852 },
     deviceScaleFactor: 3,
@@ -689,10 +704,7 @@ test("NET en grand : la version plus grande ne part que si l'ecran l'agrandirait
     hasTouch: true,
   });
   const p2 = await nouvellePage(petit);
-  const jpg2 = [];
-  p2.on("request", (r) => {
-    if (/\/assets\/[^/]+\.jpe?g(\?|$)/.test(r.url())) jpg2.push(r.url());
-  });
+  const jpg2 = suivre(p2);
   await p2.goto(`${BASE}/projet/${SLUGS[0]}`, { waitUntil: "networkidle" });
   await p2.waitForTimeout(800);
   const avant2 = new Set(jpg2);
@@ -704,8 +716,8 @@ test("NET en grand : la version plus grande ne part que si l'ecran l'agrandirait
   await p2.waitForTimeout(600);
   const nouvelles2 = [...new Set(jpg2)].filter((u) => !avant2.has(u));
   verifie(
-    "telephone : NET garde la source de la page, aucun telechargement de plus",
-    nouvelles2.length === 0,
+    "telephone : NET demande la source de page, jamais la grande version",
+    nouvelles2.length === 1 && pages.has(nouvelles2[0]),
     nouvelles2.join(" "),
   );
   await petit.close();

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { bitUnit, cellSizeFor } from "@/lib/mire";
 import { BitReadout } from "@/components/readout";
 import { VERS_INDEX } from "@/components/chrome";
+import { FIGE, useReglage } from "@/lib/reglages";
 
 /* ------------------------------------------------------------------ */
 /* Avancement de lecture : 0 -> 1, cale sur la frame                    */
@@ -201,6 +202,7 @@ export function MireConsole() {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const p = useScrollProgress();
   const neg = useNegative();
+  const [fige, setFige] = useReglage(FIGE);
   const { tracks, index, current } = useTracks();
   const u = bitUnit(useCell());
   const steps = 20;
@@ -237,7 +239,7 @@ export function MireConsole() {
         ))}
       </div>
 
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         {TABS.map(({ label, ...lien }) => {
           const active = lien.to === "/" ? path === "/" : path.startsWith(lien.to);
           return (
@@ -267,6 +269,19 @@ export function MireConsole() {
           }}
         >
           {neg ? "POSITIF" : "NEGATIF"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setFige(!fige)}
+          aria-pressed={fige}
+          aria-label="Figer le mouvement : bandeau, bandes et vidéos"
+          className="u-mono border-l-[3px] border-black py-[10px] text-center"
+          style={{
+            background: fige ? "#000000" : "#FFFFFF",
+            color: fige ? "#FFFFFF" : "#000000",
+          }}
+        >
+          FIGER
         </button>
       </div>
     </nav>

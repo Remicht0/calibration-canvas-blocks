@@ -5,6 +5,7 @@ import { projects } from "@/lib/projects";
 import { HybridMedia } from "@/components/media";
 import { BitReadout } from "@/components/readout";
 import { Bloc } from "@/components/bloc";
+import { raccourcisCoupes } from "@/lib/reglages";
 
 /* Crans du seuil : 0,05 entre 0,20 et 0,70, les memes que sous chaque planche. */
 const MIN = 0.2;
@@ -176,7 +177,7 @@ export function InstrumentSeuil() {
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.altKey || e.ctrlKey || e.metaKey) return;
-      if (document.documentElement.classList.contains("mire-modal")) return;
+      if (document.documentElement.classList.contains("mire-modal") || raccourcisCoupes()) return;
       const el = region.current;
       if (!el) return;
       if (!hovered.current && !el.contains(e.target as Node)) return;
