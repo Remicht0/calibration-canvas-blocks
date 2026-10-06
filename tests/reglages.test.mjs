@@ -18,10 +18,12 @@ after(async () => {
 /** Empreinte du premier canvas de bande de calibration a l'ecran. */
 const empreinteBande = (page) =>
   page.evaluate(() => {
-    const cv = [...document.querySelectorAll("div.overflow-hidden > canvas")].find((c) => {
-      const r = c.getBoundingClientRect();
-      return r.top >= 0 && r.bottom <= innerHeight && r.width > 100;
-    });
+    const cv = [...document.querySelectorAll('div[class*="contain:inline-size"] > canvas')].find(
+      (c) => {
+        const r = c.getBoundingClientRect();
+        return r.top >= 0 && r.bottom <= innerHeight && r.width > 100;
+      },
+    );
     if (!cv) return "";
     const d = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
     let h = 0;
@@ -46,7 +48,9 @@ test("FIGER arrete le bandeau et les bandes, et s'en souvient", async () => {
   );
   // une bande vivante d'abord : elle respire
   await page.evaluate(() =>
-    document.querySelector("div.overflow-hidden > canvas")?.scrollIntoView({ block: "center" }),
+    document
+      .querySelector('div[class*="contain:inline-size"] > canvas')
+      ?.scrollIntoView({ block: "center" }),
   );
   await page.waitForTimeout(400);
   const a = await empreinteBande(page);
