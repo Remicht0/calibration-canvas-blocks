@@ -29,6 +29,7 @@ export {
   presentation,
   signature,
   STUDIO,
+  titreAccueil,
   telHref,
   type Studio,
 } from "./identite";

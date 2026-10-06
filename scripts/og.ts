@@ -179,6 +179,10 @@ function projectCard(p: Project): { raster: Raster; threshold: number } {
   return { raster: r, threshold };
 }
 
+/* A 3 colonnes le M de la fonte se lit comme un H une fois agrandi : l'icone
+   et la carte de MIRE ont leur propre M, a 5 colonnes, dessine bloc par bloc. */
+const ICON_M = ["10001", "11011", "10101", "10001", "10001"];
+
 /* ---- carte de MIRE : bande de calibration + MIRE en blocs + role ---- */
 function studioCard(): Raster {
   const r = new Raster();
@@ -197,8 +201,17 @@ function studioCard(): Raster {
   }
   const unit = CELL * 2; // 60 : un glyphe = 3 x 5 cellules de 2 x 2
   const word = mireText(STUDIO.name);
-  const x = Math.round((W - textCols(word) * unit) / 2 / CELL) * CELL;
-  drawText(asCtx(r), word, unit, x, CELL * 8);
+  // en 3 x 5, le M ne differe du H que d'une cellule (« HIRE ») : un M initial
+  // prend le M a 5 colonnes des icones, le reste du nom garde la fonte
+  const m = word.startsWith("M");
+  const rest = m ? word.slice(1) : word;
+  const wcols = m ? 5 + 1 + textCols(rest) : textCols(word);
+  const x = Math.round((W - wcols * unit) / 2 / CELL) * CELL;
+  if (m)
+    for (let y = 0; y < 5; y++)
+      for (let c = 0; c < 5; c++)
+        if (ICON_M[y]![c] === "1") r.fillRect(x + c * unit, CELL * 8 + y * unit, unit, unit);
+  drawText(asCtx(r), rest, unit, m ? x + 6 * unit : x, CELL * 8);
   drawText(asCtx(r), mireText(STUDIO.role), U_LABEL, x, H - CELL * 2 - U_LABEL);
   return r;
 }
@@ -262,10 +275,6 @@ function ico(png: Buffer, size: number): Buffer {
 }
 
 /* ---- icone : un M en 5 x 5 blocs, blanc sur noir, centre sur une grille de 8 ---- */
-// A 3 colonnes le M de la fonte se lit comme un H une fois agrandi ; l'icone
-// a son propre M, a 5 colonnes, dessine bloc par bloc comme le reste.
-const ICON_M = ["10001", "11011", "10101", "10001", "10001"];
-
 function icon(size: number): Raster {
   const r = new Raster(size, size);
   r.fillStyle = "#000000";

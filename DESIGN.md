@@ -474,7 +474,15 @@ public/fonts/          Anton et JetBrains Mono auto-hebergees (woff2)
   `isPartOf` = le site, et `video` = VideoObject seulement si le projet a une
   video) ; sur l'accueil, un `ItemList` des projets dans l'ordre de l'index.
 - `/sitemap.xml` et `/robots.txt` sont des routes serveur : l'origine vient de
-  la requete (ou de `VITE_SITE_URL`), rien n'est code en dur.
+  la requete (ou de `VITE_SITE_URL`), rien n'est code en dur. Le sitemap porte
+  aussi les images de chaque projet (`image:image`, `imagesOf`) : Google Images
+  ne voit pas ce qui est dessine en canvas.
+- Titres hors mire : l'accueil se nomme « MIRE — Graphiste indépendant à
+  Bordeaux » (`titreAccueil`), le contact « Contact — MIRE, graphiste
+  indépendant à Bordeaux ». Un projet porte un `nom` avec ses accents
+  (« Champithèque », « La poésie des formes »), memes mots que son titre en
+  capitales (`mireText(nom) === title`) : onglet, JSON-LD, ItemList et `h1`
+  lu (prop `label` de `BlockType`) ; le titre dessine reste en capitales.
 - Favicon : `favicon.svg` (rectangles pleins, `crispEdges`) et `favicon.ico`
   de secours (PNG 1 bit dans un conteneur ICO). Tout est produit par
   `bun run og`.
@@ -483,7 +491,8 @@ public/fonts/          Anton et JetBrains Mono auto-hebergees (woff2)
 
 `bun run og` genere `public/og/<slug>.png` pour chaque projet et
 `public/og/mire.png` pour MIRE (le nom en blocs sous une bande de calibration,
-le role en fonte 3x5 dessous) : des **PNG a 1 bit par pixel**, 1200 x 630,
+le M en 5 x 5 comme les icones — en 3 x 5 il se lit H —, le role en fonte 3x5
+dessous) : des **PNG a 1 bit par pixel**, 1200 x 630,
 moins de 1 Ko chacun. Aucun navigateur : le JPEG est decode en pur JS, reduit
 par moyenne de bloc avec le meme recadrage `cover` que le site (`coverCrop`)
 — sur `carte` si le projet en declare une, sinon sur l'image principale —,

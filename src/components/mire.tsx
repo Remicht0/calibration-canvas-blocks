@@ -155,8 +155,11 @@ export function BlockType({
   erodible = true,
   negative = false,
   maxHeight,
+  label,
 }: {
   text: string;
+  /** Titre lu hors mire (h1 pour les lecteurs d'ecran et Google), accents compris ; defaut : text */
+  label?: string | undefined;
   className?: string;
   loop?: boolean;
   /** time : sequence temporelle ; scan : la ligne rouge efface ce qu'elle lit, recompose ce qu'elle relit */
@@ -427,7 +430,7 @@ export function BlockType({
 
   return (
     <div ref={wrap} className={className}>
-      <h1 className="sr-only">{text}</h1>
+      <h1 className="sr-only">{label ?? text}</h1>
       <canvas ref={canvas} className="block" aria-hidden="true" />
     </div>
   );

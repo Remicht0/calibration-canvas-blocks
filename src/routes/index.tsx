@@ -9,7 +9,7 @@ import { TopBar, VERS_INDEX } from "@/components/chrome";
 import type { BitMode } from "@/lib/bitmap";
 import { mireText } from "@/lib/glyphs";
 import { fondOf, periode, planches, projects, teteOf, type Project } from "@/lib/projects";
-import { domainesPhrase, presentation, signature, siteOrigin, STUDIO } from "@/lib/site";
+import { domainesPhrase, presentation, siteOrigin, STUDIO, titreAccueil } from "@/lib/site";
 import { useTeteTactile } from "@/lib/tete";
 import { accueillirIndex, arriveeIndex } from "@/lib/arrivee-index";
 
@@ -18,12 +18,12 @@ export const Route = createFileRoute("/")({
   loader: () => ({ origin: siteOrigin() }),
   head: ({ loaderData }) => ({
     meta: [
-      { title: signature },
+      { title: titreAccueil },
       {
         name: "description",
         content: `${presentation}. ${domainesPhrase}. Un site construit comme une image de calibration : 1-bit, grille de blocs, une seule ligne rouge.`,
       },
-      { property: "og:title", content: signature },
+      { property: "og:title", content: titreAccueil },
       {
         property: "og:description",
         content: `${domainesPhrase}. Rendu 1-bit par blocs, dissolution par chute de blocs.`,
@@ -44,7 +44,7 @@ export const Route = createFileRoute("/")({
                   position: i + 1,
                   item: {
                     "@type": "CreativeWork",
-                    name: p.title,
+                    name: p.nom,
                     url: `${loaderData.origin}/projet/${p.slug}`,
                   },
                 })),

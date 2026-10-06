@@ -19,12 +19,12 @@ import {
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: `Contact — ${STUDIO.name}, ${metier}` },
+      { title: `Contact — ${STUDIO.name}, ${metier} à ${STUDIO.city}` },
       {
         name: "description",
         content: `Contacter ${presentation} : courriel, téléphone, adresse. ${domainesPhrase}.`,
       },
-      { property: "og:title", content: `Contact — ${STUDIO.name}, ${metier}` },
+      { property: "og:title", content: `Contact — ${STUDIO.name}, ${metier} à ${STUDIO.city}` },
       {
         property: "og:description",
         content: `Fiche de calibration de ${STUDIO.name} : courriel, téléphone, adresse, horaires, mentions légales.`,

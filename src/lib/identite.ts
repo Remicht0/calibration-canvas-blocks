@@ -68,6 +68,9 @@ export const metier = minuscule(STUDIO.role);
 /** Ligne d'identite hors mire : « MIRE — Graphiste indépendant ». */
 export const signature = `${STUDIO.name} — ${STUDIO.role}`;
 
+/** Titre de l'accueil hors mire : « MIRE — Graphiste indépendant à Bordeaux ». */
+export const titreAccueil = `${signature} à ${STUDIO.city}`;
+
 /** Debut des descriptions : « MIRE, graphiste indépendant à Bordeaux ». */
 export const presentation = `${STUDIO.name}, ${metier} à ${STUDIO.city}`;
 

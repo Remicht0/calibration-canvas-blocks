@@ -168,8 +168,8 @@ test("la fiche de contact, les mentions et l'heure de la ville", async () => {
   });
 
   verifie(
-    "titre : le role, pas un studio",
-    vue.titre === `Contact — ${ID.name}, ${metier}`,
+    "titre : le role et la ville, pas un studio",
+    vue.titre === `Contact — ${ID.name}, ${metier} à ${ID.city}`,
     vue.titre,
   );
 
@@ -293,7 +293,11 @@ test("l'accueil se presente juste et mene aux mentions", async () => {
     colophon: document.querySelector("footer")?.textContent ?? "",
     texte: document.body.innerText,
   }));
-  verifie("titre : la signature", vue.titre === `${ID.name} — ${ID.role}`, vue.titre);
+  verifie(
+    "titre : la signature et la ville",
+    vue.titre === `${ID.name} — ${ID.role} à ${ID.city}`,
+    vue.titre,
+  );
   verifie("en-tete : le role", vue.entete.includes(mire(ID.role)), vue.entete.trim());
   verifie("entree : la ville de la source", vue.entree.includes(mire(ID.city)), mire(ID.city));
   verifie(

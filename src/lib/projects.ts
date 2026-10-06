@@ -73,6 +73,11 @@ export type Project = {
   slug: string;
   num: string;
   title: string;
+  /**
+   * Le nom hors mire, avec ses accents : onglet, Google, lecteurs d'ecran.
+   * Memes mots que le titre (mireText(nom) === title, verifie par la suite projet).
+   */
+  nom: string;
   year: string;
   nature: string;
   client: string;
@@ -108,6 +113,7 @@ export const projects: Project[] = [
     slug: "moire",
     num: "01",
     title: "MOIRE",
+    nom: "Moiré",
     year: "2026",
     nature: "IDENTITE VISUELLE",
     client: "MARQUE PERSONNELLE",
@@ -187,6 +193,7 @@ export const projects: Project[] = [
     slug: "carte-postale",
     num: "02",
     title: "CARTE POSTALE ONIRIQUE",
+    nom: "Carte postale onirique",
     year: "2026",
     nature: "RECHERCHE GRAPHIQUE",
     client: "PROJET D'ECOLE / DNMADE 2",
@@ -237,6 +244,7 @@ export const projects: Project[] = [
     slug: "champitheque",
     num: "03",
     title: "CHAMPITHEQUE",
+    nom: "Champithèque",
     year: "2026",
     nature: "EDITION",
     client: "PROJET D'ECOLE",
@@ -295,6 +303,7 @@ export const projects: Project[] = [
     slug: "gnaf",
     num: "04",
     title: "GNAF",
+    nom: "GNAF",
     year: "2026",
     nature: "LOGOTYPE",
     client: "PROJET DE GROUPE / MARQUE DE VETEMENTS",
@@ -327,6 +336,7 @@ export const projects: Project[] = [
     slug: "dalton",
     num: "05",
     title: "DALTON",
+    nom: "Dalton",
     year: "2026",
     nature: "GENERIQUE ANIME",
     client: "PROJET D'ECOLE / DNMADE 1",
@@ -378,6 +388,7 @@ export const projects: Project[] = [
     slug: "microunivers-3d",
     num: "06",
     title: "MICROUNIVERS 3D",
+    nom: "Microunivers 3D",
     year: "2025",
     nature: "MOTION DESIGN 3D",
     client: "PROJET D'ECOLE / DNMADE 1",
@@ -431,6 +442,7 @@ export const projects: Project[] = [
     slug: "poesie-des-formes",
     num: "07",
     title: "LA POESIE DES FORMES",
+    nom: "La poésie des formes",
     year: "2025",
     nature: "MOTION DESIGN",
     client: "PROJET D'ECOLE / DNMADE 1",
@@ -482,6 +494,18 @@ export const projects: Project[] = [
 ];
 
 export const bySlug = (slug: string) => projects.find((p) => p.slug === slug);
+
+/**
+ * Images d'un projet pour le sitemap (Google Images ne voit pas les canvas) :
+ * principale, serie, carte, sans doublon et sans les videos.
+ */
+export const imagesOf = (p: Project): string[] => [
+  ...new Set(
+    [p.image, ...(p.serie ?? []).map((d) => d.src), p.carte?.src].filter(
+      (s): s is string => !!s && /\.(jpe?g|png|webp)(\?|$)/i.test(s),
+    ),
+  ),
+];
 
 /** Image du fond de l'index et de la SUITE : celle qui tient un cadrage serre. */
 export const fondOf = (p: Project) => p.carte?.src ?? p.image;
