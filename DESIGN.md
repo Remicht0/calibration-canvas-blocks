@@ -615,7 +615,13 @@ disparaît. Ne jamais remplir une valeur qu'on n'a pas.
   `-` `+` `A` n'y font rien), `ENCRE` mesure la matiere comme en BRUT. Une
   planche ne s'ouvre jamais en NET : `Lecture.mode` est un `BitMode` (les
   trois lectures en blocs), seul le visiteur passe en NET, et le choix n'est
-  pas retenu. Sous le negatif, la planche NET est inversee une seconde fois
+  pas retenu. Version plus grande : une image de `src/assets/net/` du meme
+  nom que la source de la planche (`netOf`, `projects.ts` ; de 1 800 a
+  3 200 px, tirees des originaux de Remi, meme cadrage) n'est chargee qu'au
+  passage en NET, et seulement si l'ecran agrandirait la source de la page
+  (bureau 2x, plein cadre) ; elle est decodee a la taille dessinee
+  (`createImageBitmap` avec `resizeWidth`), jamais en entier. Un telephone
+  garde la source de la page. Sous le negatif, la planche NET est inversee une seconde fois
   (`styles.css`) : ses couleurs restent les siennes ; a l'impression, aucune
   inversion. Test : suite `net`.
 - `alt` décrit l'image pour les lecteurs d'écran (français accentué) ;

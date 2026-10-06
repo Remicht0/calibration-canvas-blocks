@@ -495,6 +495,31 @@ export const projects: Project[] = [
 
 export const bySlug = (slug: string) => projects.find((p) => p.slug === slug);
 
+/*
+ * Versions plus grandes pour la lecture NET : src/assets/net/<meme nom>. Elles
+ * ne sont chargees qu'au passage en NET, et seulement si l'ecran agrandirait
+ * l'image de la page (HybridMedia). Le glob ne met dans le JS que leurs URL.
+ */
+const sources = import.meta.glob<string>("../assets/*.{jpg,jpeg,png}", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+const nettes = import.meta.glob<string>("../assets/net/*.{jpg,jpeg,png}", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+const nom = (chemin: string) => chemin.slice(chemin.lastIndexOf("/") + 1);
+const netParNom = new Map(Object.entries(nettes).map(([k, u]) => [nom(k), u]));
+const nomParUrl = new Map(Object.entries(sources).map(([k, u]) => [u, nom(k)]));
+
+/** La version plus grande d'une image de projet pour NET, si elle existe. */
+export const netOf = (src: string): string | undefined => {
+  const n = nomParUrl.get(src);
+  return n ? netParNom.get(n) : undefined;
+};
+
 /**
  * Images d'un projet pour le sitemap (Google Images ne voit pas les canvas) :
  * principale, serie, carte, sans doublon et sans les videos.

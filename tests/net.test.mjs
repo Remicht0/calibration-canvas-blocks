@@ -653,3 +653,61 @@ test("TOUT EN NET au telephone : visible, au doigt, sans debordement", async () 
   }
   conclure();
 });
+
+test("NET en grand : la version plus grande ne part que si l'ecran l'agrandirait", async () => {
+  // bureau 2x : la planche 01 fait ~2 600 px d'ecran, la source de la page 1 600
+  const grand = await navigateur.newContext({
+    viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: 2,
+  });
+  const page = await nouvellePage(grand);
+  const jpg = [];
+  page.on("request", (r) => {
+    if (/\/assets\/[^/]+\.jpe?g(\?|$)/.test(r.url())) jpg.push(r.url());
+  });
+  await page.goto(`${BASE}/projet/${SLUGS[0]}`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  const avant = new Set(jpg);
+  const fig = page.locator('section[data-mire="PLANCHE 01"] figure');
+  await fig.locator("button", { hasText: /^NET$/ }).click();
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(600);
+  const nouvelles = [...new Set(jpg)].filter((u) => !avant.has(u));
+  verifie(
+    "bureau 2x : NET demande la version plus grande de la planche 01",
+    nouvelles.length === 1,
+    nouvelles.join(" "),
+  );
+  verifie("console vide", page.erreurs.length === 0, page.erreurs.join(" | ").slice(0, 200));
+  await grand.close();
+
+  // telephone : la planche fait ~1 100 px d'ecran, la source de la page suffit
+  const petit = await navigateur.newContext({
+    viewport: { width: 393, height: 852 },
+    deviceScaleFactor: 3,
+    isMobile: true,
+    hasTouch: true,
+  });
+  const p2 = await nouvellePage(petit);
+  const jpg2 = [];
+  p2.on("request", (r) => {
+    if (/\/assets\/[^/]+\.jpe?g(\?|$)/.test(r.url())) jpg2.push(r.url());
+  });
+  await p2.goto(`${BASE}/projet/${SLUGS[0]}`, { waitUntil: "networkidle" });
+  await p2.waitForTimeout(800);
+  const avant2 = new Set(jpg2);
+  await p2
+    .locator('section[data-mire="PLANCHE 01"] figure')
+    .locator("button", { hasText: /^NET$/ })
+    .tap();
+  await p2.waitForLoadState("networkidle");
+  await p2.waitForTimeout(600);
+  const nouvelles2 = [...new Set(jpg2)].filter((u) => !avant2.has(u));
+  verifie(
+    "telephone : NET garde la source de la page, aucun telechargement de plus",
+    nouvelles2.length === 0,
+    nouvelles2.join(" "),
+  );
+  await petit.close();
+  conclure();
+});

@@ -7,7 +7,7 @@ import { HybridMedia } from "@/components/media";
 import { CalibrationBand } from "@/components/bars";
 import type { BitMode } from "@/lib/bitmap";
 import { mireText } from "@/lib/glyphs";
-import { bySlug, fondOf, projects, type Lecture, type Project } from "@/lib/projects";
+import { bySlug, fondOf, netOf, projects, type Lecture, type Project } from "@/lib/projects";
 import { metier, ogPath, siteOrigin, STUDIO } from "@/lib/site";
 import { useTeteTactile } from "@/lib/tete";
 import { useToutNet } from "@/lib/tout-net";
@@ -254,6 +254,7 @@ function ProjectPage() {
         <HybridMedia
           key={p.slug}
           src={p.image}
+          netSrc={netOf(p.image)}
           alt={p.alt}
           label={p.title}
           ratio={une.ratio}
@@ -350,6 +351,7 @@ function ProjectPage() {
               key={`${p.slug}-${k}`}
               src={d.src}
               webm={d.webm}
+              netSrc={netOf(d.src)}
               alt={d.alt}
               label={d.label}
               ratio={d.ratio}

@@ -26,7 +26,7 @@ export type Sampled = {
 /** Image decodee (ImageBitmap, hors du fil principal), element image, ou video. */
 export type Source = HTMLImageElement | HTMLVideoElement | ImageBitmap;
 
-const srcSize = (src: Source) =>
+export const srcSize = (src: Source) =>
   src instanceof HTMLVideoElement
     ? { w: src.videoWidth, h: src.videoHeight }
     : src instanceof HTMLImageElement
@@ -53,7 +53,14 @@ export function prechargerImage(src: string) {
   octets.set(src, p);
 }
 
-export function chargerImage(src: string): Promise<Source> {
+/**
+ * taille : decoder directement a cette taille (pixels d'ecran) : une source de
+ * 3 200 px pour une planche de 2 600 px ne garde que ce qui sera dessine.
+ */
+export function chargerImage(
+  src: string,
+  taille?: { largeur: number; hauteur: number },
+): Promise<Source> {
   if (typeof createImageBitmap !== "function")
     return new Promise((ok, ko) => {
       const img = new Image();
@@ -63,7 +70,15 @@ export function chargerImage(src: string): Promise<Source> {
       img.src = src;
     });
   prechargerImage(src);
-  return octets.get(src)!.then((b) => createImageBitmap(b));
+  return octets.get(src)!.then((b) =>
+    taille
+      ? createImageBitmap(b, {
+          resizeWidth: taille.largeur,
+          resizeHeight: taille.hauteur,
+          resizeQuality: "high",
+        })
+      : createImageBitmap(b),
+  );
 }
 
 /*

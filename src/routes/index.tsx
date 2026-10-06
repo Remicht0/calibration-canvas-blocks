@@ -8,7 +8,7 @@ import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar, VERS_INDEX } from "@/components/chrome";
 import type { BitMode } from "@/lib/bitmap";
 import { mireText } from "@/lib/glyphs";
-import { fondOf, periode, planches, projects, teteOf, type Project } from "@/lib/projects";
+import { fondOf, netOf, periode, planches, projects, teteOf, type Project } from "@/lib/projects";
 import { domainesPhrase, presentation, siteOrigin, STUDIO, titreAccueil } from "@/lib/site";
 import { useTeteTactile } from "@/lib/tete";
 import { accueillirIndex, arriveeIndex } from "@/lib/arrivee-index";
@@ -322,6 +322,7 @@ function Index() {
               <div key={d.mode} className="flex min-w-0 flex-col">
                 <HybridMedia
                   src={d.src}
+                  netSrc={netOf(d.src)}
                   alt={d.alt}
                   label={`LECTURE ${d.mode.toUpperCase()} — ${titre}`}
                   ratio={1}
