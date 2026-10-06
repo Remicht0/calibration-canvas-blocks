@@ -8,7 +8,9 @@ import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar, VERS_INDEX } from "@/components/chrome";
 import type { BitMode } from "@/lib/bitmap";
 import { mireText } from "@/lib/glyphs";
-import { fondOf, netOf, periode, planches, projects, teteOf, type Project } from "@/lib/projects";
+import { fondOf, periode, planches, projects, teteOf, type Project } from "@/lib/projects";
+import { netOf, petitOf } from "@/lib/sources";
+import { raccourcisCoupes } from "@/lib/reglages";
 import { domainesPhrase, presentation, siteOrigin, STUDIO, titreAccueil } from "@/lib/site";
 import { useTeteTactile } from "@/lib/tete";
 import { accueillirIndex, arriveeIndex } from "@/lib/arrivee-index";
@@ -120,7 +122,7 @@ function Index() {
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
 
-      if (/^[1-9]$/.test(e.key)) {
+      if (/^[1-9]$/.test(e.key) && !raccourcisCoupes()) {
         const p = projects[Number(e.key) - 1];
         if (p) void navigate({ to: "/projet/$slug", params: { slug: p.slug } });
         return;
@@ -208,7 +210,7 @@ function Index() {
         data-mire="INDEX"
         className="on-black relative border-t-[10px] border-black"
       >
-        <BlockBackdrop src={hover} />
+        <BlockBackdrop src={hover ? petitOf(hover) : hover} />
         <div
           className="relative"
           style={{ mixBlendMode: "difference", color: "#FFFFFF" }}
@@ -271,7 +273,7 @@ function Index() {
                         mobile, colonne a droite au bureau, calee en haut pour ne pas
                         deplacer les titres */}
                     <BlockVignette
-                      src={teteOf(p).src}
+                      src={petitOf(teteOf(p).src)}
                       threshold={teteOf(p).threshold}
                       cols={12}
                       rows={8}
@@ -322,6 +324,7 @@ function Index() {
               <div key={d.mode} className="flex min-w-0 flex-col">
                 <HybridMedia
                   src={d.src}
+                  blocSrc={petitOf(d.src)}
                   netSrc={netOf(d.src)}
                   alt={d.alt}
                   label={`LECTURE ${d.mode.toUpperCase()} — ${titre}`}

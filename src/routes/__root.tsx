@@ -38,7 +38,9 @@ import antonUrl from "@/assets/fonts/anton-latin.woff2?url";
 import monoUrl from "@/assets/fonts/jetbrains-mono-latin.woff2?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { prechargerImage } from "@/lib/bitmap";
+import { REGLAGES_BOOT_SCRIPT } from "@/lib/reglages";
 import { bySlug } from "@/lib/projects";
+import { petitOf } from "@/lib/sources";
 
 // Planche 01 d'une page projet : demandee des que le JS client est evalue,
 // avant l'hydratation (elle n'etait decouverte qu'apres), sans preload dans le
@@ -47,7 +49,7 @@ import { bySlug } from "@/lib/projects";
 if (typeof window !== "undefined") {
   const s = /^\/projet\/([^/?#]+)/.exec(window.location.pathname)?.[1];
   const p = s ? bySlug(decodeURIComponent(s)) : undefined;
-  if (p) prechargerImage(p.image);
+  if (p) prechargerImage(petitOf(p.image));
 }
 
 function NotFoundComponent() {
@@ -244,6 +246,7 @@ function RootShell({ children }: { children: ReactNode }) {
         {/* inversion memorisee posee avant la premiere peinture : jamais d'eclat
             blanc au chargement pour qui lit en negatif */}
         <script dangerouslySetInnerHTML={{ __html: NEGATIVE_BOOT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: REGLAGES_BOOT_SCRIPT }} />
       </head>
       <body>
         {children}

@@ -4,6 +4,7 @@ import { CalibrationBand } from "@/components/bars";
 import { Bloc } from "@/components/bloc";
 import { projects } from "@/lib/projects";
 import { lockPage, unlockPage } from "@/lib/modal";
+import { FIGE, SANS_RACCOURCIS, raccourcisCoupes, useReglage } from "@/lib/reglages";
 
 /** Raccourcis de la mire. Etiquettes en capitales sans accents (DESIGN.md §2). */
 const KEYS: Array<[string, string]> = [
@@ -34,13 +35,16 @@ export function KeyHelp() {
   const [open, setOpen] = useState(false);
   const openBtn = useRef<HTMLButtonElement>(null);
   const closeBtn = useRef<HTMLButtonElement>(null);
+  const coupeBtn = useRef<HTMLButtonElement>(null);
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const [fige, setFige] = useReglage(FIGE);
+  const [coupes, setCoupes] = useReglage(SANS_RACCOURCIS);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
+      if (!raccourcisCoupes() && (e.key === "?" || (e.key === "/" && e.shiftKey))) {
         e.preventDefault();
         // un autre masque est ouvert : la fiche ne passe pas dessous
         setOpen((v) => (!v && document.documentElement.classList.contains("mire-modal") ? v : !v));
@@ -76,18 +80,31 @@ export function KeyHelp() {
 
   return (
     <>
-      <Bloc
-        ref={openBtn}
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="dialog"
-        aria-keyshortcuts="?"
-        id="aide"
-        // vertical dans la gouttiere droite, comme l'inverseur : il ne passe jamais sur le contenu
-        className="mire-chrome mire-noprint fixed bottom-cell right-0 z-[180] hidden h-auto w-cell2 px-cell py-0 md:inline-flex"
-        style={{ writingMode: "vertical-rl" }}
-      >
-        AIDE [?]
-      </Bloc>
+      {/* gouttiere droite, en bas : FIGER puis AIDE, verticaux comme l'inverseur ;
+          ils ne passent jamais sur le contenu */}
+      <div className="mire-chrome mire-noprint fixed bottom-cell right-0 z-[180] hidden flex-col gap-cell md:flex">
+        <Bloc
+          onClick={() => setFige(!fige)}
+          pressed={fige}
+          id="figer"
+          aria-label="Figer le mouvement : bandeau, bandes et vidéos"
+          className="h-auto w-cell2 px-cell py-0"
+          style={{ writingMode: "vertical-rl" }}
+        >
+          FIGER
+        </Bloc>
+        <Bloc
+          ref={openBtn}
+          onClick={() => setOpen((v) => !v)}
+          aria-haspopup="dialog"
+          aria-keyshortcuts={coupes ? undefined : "?"}
+          id="aide"
+          className="h-auto w-cell2 px-cell py-0"
+          style={{ writingMode: "vertical-rl" }}
+        >
+          {coupes ? "AIDE" : "AIDE [?]"}
+        </Bloc>
+      </div>
 
       {open && (
         <div
@@ -95,10 +112,11 @@ export function KeyHelp() {
           aria-modal="true"
           aria-label="Raccourcis clavier de la mire"
           onKeyDown={(e) => {
-            // FERMER est le seul element focalisable : le cycle Tab se referme sur lui
+            // deux arrets, FERMER et RACCOURCIS : le cycle Tab se referme sur eux
             if (e.key === "Tab") {
               e.preventDefault();
-              closeBtn.current?.focus();
+              const surFermer = document.activeElement === closeBtn.current;
+              (surFermer ? coupeBtn : closeBtn).current?.focus();
             }
           }}
           className="mire-noprint on-black fixed inset-0 z-[240] flex flex-col justify-between overflow-y-auto bg-black px-cell py-cell2 text-white"
@@ -113,6 +131,20 @@ export function KeyHelp() {
           <div>
             <h2 className="u-display text-[18vw] leading-[0.82] md:text-[9vw]">COMMANDES</h2>
             <ul className="mt-cell2 max-w-[62ch] border-t-[3px] border-white md:grid md:max-w-none md:grid-cols-2 md:gap-x-cell2">
+              <li className="u-mono grid grid-cols-[11ch_minmax(0,1fr)] items-center gap-x-cell border-b-[3px] border-white py-cell md:col-span-2">
+                <span>RACCOURCIS</span>
+                <span className="flex min-w-0 flex-wrap items-center gap-x-cell gap-y-[6px]">
+                  <Bloc
+                    ref={coupeBtn}
+                    onClick={() => setCoupes(!coupes)}
+                    pressed={coupes}
+                    aria-label="Couper les raccourcis à une touche (N, chiffres, - + A F, ?)"
+                  >
+                    {coupes ? "COUPES" : "ACTIFS"}
+                  </Bloc>
+                  <span>LES TOUCHES A UN CARACTERE ; FLECHES, ECHAP ET TAB RESTENT</span>
+                </span>
+              </li>
               {KEYS.map(([k, d]) => (
                 <li
                   key={k}

@@ -7,7 +7,9 @@ import { HybridMedia } from "@/components/media";
 import { CalibrationBand } from "@/components/bars";
 import type { BitMode } from "@/lib/bitmap";
 import { mireText } from "@/lib/glyphs";
-import { bySlug, fondOf, netOf, projects, type Lecture, type Project } from "@/lib/projects";
+import { bySlug, fondOf, projects, type Lecture, type Project } from "@/lib/projects";
+import { netOf, petitOf } from "@/lib/sources";
+import { raccourcisCoupes } from "@/lib/reglages";
 import { metier, ogPath, siteOrigin, STUDIO } from "@/lib/site";
 import { useTeteTactile } from "@/lib/tete";
 import { useToutNet } from "@/lib/tout-net";
@@ -200,7 +202,7 @@ function ProjectPage() {
         void navigate({ to: "/projet/$slug", params: { slug: prev.slug } });
       if (!e.shiftKey && e.key === "ArrowRight")
         void navigate({ to: "/projet/$slug", params: { slug: next.slug } });
-      if (/^[1-9]$/.test(e.key)) {
+      if (/^[1-9]$/.test(e.key) && !raccourcisCoupes()) {
         const target = projects[Number(e.key) - 1];
         if (target) void navigate({ to: "/projet/$slug", params: { slug: target.slug } });
       }
@@ -254,6 +256,7 @@ function ProjectPage() {
         <HybridMedia
           key={p.slug}
           src={p.image}
+          blocSrc={petitOf(p.image)}
           netSrc={netOf(p.image)}
           alt={p.alt}
           label={p.title}
@@ -351,6 +354,7 @@ function ProjectPage() {
               key={`${p.slug}-${k}`}
               src={d.src}
               webm={d.webm}
+              blocSrc={petitOf(d.src)}
               netSrc={netOf(d.src)}
               alt={d.alt}
               label={d.label}
@@ -396,7 +400,7 @@ function Suite({ others, tag }: { others: Project[]; tag: (o: Project) => string
 
   return (
     <section data-mire="SUITE" className="on-black relative border-t-[10px] border-black">
-      <BlockBackdrop src={hover} />
+      <BlockBackdrop src={hover ? petitOf(hover) : hover} />
       <div
         className="relative px-cell py-cell2"
         style={{ mixBlendMode: "difference", color: "#FFFFFF" }}

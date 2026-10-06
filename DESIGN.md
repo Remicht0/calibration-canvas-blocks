@@ -542,7 +542,12 @@ defiler la page.
 
 ### Un projet
 
-1. Poser l'image dans `src/assets/` (JPG, ≥ 1600 px de large, contraste franc).
+1. Poser l'image dans `src/assets/` (JPG, ≥ 1600 px de large, contraste franc),
+   puis lancer `bun run petit` : sa petite version (640 px de côté long,
+   `src/assets/petit/`, même nom) sert aux lectures en blocs. Si l'original
+   est plus grand, en poser une version de 2 600 à 3 200 px dans
+   `src/assets/net/` (même nom) : NET la prend sur grand écran. Le nom du
+   fichier relie les trois tailles (`src/lib/sources.ts`).
 2. Ajouter l'entrée dans `src/lib/projects.ts` (`num` incrémenté, `slug` en
    kebab-case, textes en capitales sans accents pour les métadonnées).
    Deux champs **hors mire** sont obligatoires, en français accentué :
@@ -767,9 +772,13 @@ Fait :
       commandes, bouton lecture / pause sur les videos, bandeau lu une seule
       fois. `prefers-reduced-motion` couvre desormais aussi les planches,
       les bandes de calibration et le fond de l'index (pose immediate).
-      Reste : la touche `N` est un raccourci a une seule lettre (WCAG 2.1.4),
-      tolere car le site n'a aucun champ de saisie ; les alt des vraies
-      planches restent a ecrire avec les vrais projets.
+      Reglages du visiteur (`lib/reglages.ts`, memorises comme le
+      negatif, poses avant la premiere peinture) : FIGER (gouttiere droite
+      au-dessus d'AIDE, onglet de la console) arrete le bandeau, les bandes
+      et les videos, et vaut « reduire les animations » pour tout le site
+      (WCAG 2.2.2) ; RACCOURCIS, dans la fiche AIDE, coupe les touches a un
+      caractere (N, chiffres, - + A F, ?) — fleches, Echap et Tab restent, et
+      le bouton NEGATIF de la console marche toujours (WCAG 2.1.4).
 - [x] `og:image` par projet : PNG 1 bit genere depuis la planche par
       `bun run og` (`scripts/og.ts`), fonte 3x5 etendue aux capitales,
       metadonnees `og:image` / `twitter:image` en URL absolue.
@@ -902,6 +911,11 @@ CAMERA`, `CAMERA OCCUPEE`, `SIGNAL PERDU`), et le depot d'image reste
   `visibilitychange`, comme `HybridMedia`, `CalibrationBand`, `BlockType`.
 - Ce qui ne change qu'avec le defilement se redessine au defilement
   (`NoiseField`, `drive="scroll"`), jamais a chaque image.
+- Trois tailles par image (`sources.ts`) : la petite (640 px) pour les blocs
+  — planches, vignettes, fonds —, la source de page (1 600 px) pour NET quand
+  l'ecran la demande, la version `net/` (jusqu'a 3 200 px) au-dela de 1 680
+  px dessines. Une page projet ne telecharge plus que des petites versions
+  a l'arrivee.
 - Images de projet : `chargerImage` (`bitmap.ts`) telecharge chaque fichier
   une fois (blob partage entre planche, vignette, fond, banc d'essai) et rend a
   chaque appelant son `ImageBitmap`, decode hors du fil principal, libere au

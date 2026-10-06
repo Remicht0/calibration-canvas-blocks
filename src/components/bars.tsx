@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { cellSizeFor, prefersReducedMotion } from "@/lib/mire";
+import { FIGE, useReglage } from "@/lib/reglages";
 
 /* ------------------------------------------------------------------ */
 /* Bande de calibration : barres 1-bit qui respirent par blocs          */
@@ -33,6 +34,8 @@ export function CalibrationBand({
   still?: boolean;
   className?: string;
 }) {
+  // FIGER : l'effet se refait et la bande se pose, immobile
+  const [fige] = useReglage(FIGE);
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
 
@@ -193,7 +196,7 @@ export function CalibrationBand({
       cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [height, seed, negative, still]);
+  }, [height, seed, negative, still, fige]);
 
   return (
     // contain:inline-size : la largeur de l'enveloppe ne depend pas du canvas (a

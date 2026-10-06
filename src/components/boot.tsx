@@ -1,3 +1,4 @@
+import { raccourcisCoupes } from "@/lib/reglages";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { drawText, mireText, textCols } from "@/lib/glyphs";
@@ -255,6 +256,9 @@ export function NegativeSwitch() {
       if (document.documentElement.classList.contains("mire-modal")) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      // la console (mobile) bascule par un evenement synthetique : il passe
+      // toujours ; seule la vraie touche N obeit a RACCOURCIS COUPES
+      if (e.isTrusted && raccourcisCoupes()) return;
       if (e.key === "n" || e.key === "N") toggle();
     };
     // retour arriere ou restauration bfcache : la page revient telle qu'elle etait,

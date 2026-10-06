@@ -20,6 +20,7 @@ import { Bloc } from "@/components/bloc";
 import { PleinCadre } from "@/components/plein";
 import { BitReadout } from "@/components/readout";
 import { MODAL_EVENT } from "@/lib/modal";
+import { FIGE, raccourcisCoupes } from "@/lib/reglages";
 
 /* Hors mire : ce que le lecteur d'ecran entend, en francais accentue. */
 const SPOKEN: Record<ReadMode, string> = {
@@ -66,6 +67,7 @@ type KeyLike = {
 export function HybridMedia({
   src = "",
   webm,
+  blocSrc,
   netSrc,
   stream = null,
   alt,
@@ -92,6 +94,12 @@ export function HybridMedia({
   src?: string | undefined;
   /** La meme video en WebM (VP9), lue a la place du MP4 quand le navigateur la lit */
   webm?: string | undefined;
+  /**
+   * La meme image en petit (640 px), pour les lectures en blocs : la source de
+   * la page (src) n'est alors chargee qu'en NET, et seulement si l'ecran la
+   * demande.
+   */
+  blocSrc?: string | undefined;
   /**
    * La meme image en plus grand, pour NET seulement : chargee au passage en NET
    * et seulement si l'ecran agrandirait la source de la page (pas sur un
@@ -265,6 +273,7 @@ export function HybridMedia({
   const shortcut = useCallback(
     (e: KeyLike) => {
       if (e.altKey || e.ctrlKey || e.metaKey) return;
+      if (raccourcisCoupes()) return;
       // sous un masque, seule la planche du plein cadre garde ses raccourcis
       if (!viewport && document.documentElement.classList.contains("mire-modal")) return;
       const m = modeRef.current;
@@ -309,6 +318,15 @@ export function HybridMedia({
   useEffect(() => {
     if (phase === "out") dissolve.current();
   }, [phase]);
+
+  // FIGER : une video qui joue se met en pause ; le visiteur peut la relancer
+  useEffect(() => {
+    const sur = (e: Event) => {
+      if ((e as CustomEvent<boolean>).detail && video && playingRef.current) togglePlay();
+    };
+    window.addEventListener(FIGE.evenement, sur);
+    return () => window.removeEventListener(FIGE.evenement, sur);
+  }, [video, togglePlay]);
 
   useEffect(() => {
     const el = wrap.current;
@@ -428,21 +446,28 @@ export function HybridMedia({
       if (modeRef.current === "net") chargerNette();
     };
 
+    // les blocs lisent la petite version quand elle existe
+    const petit = blocSrc && blocSrc !== src ? blocSrc : null;
+
     // NET en grand : la version plus grande de l'image, si l'ecran le demande
     let nette: Source | null = null;
     let netteEnCours = false;
     const chargerNette = () => {
-      if (!netSrc || !media || video || netteEnCours) return;
+      if (!media || video || netteEnCours) return;
       const { w, h } = srcSize(media);
       if (!w || !h) return;
       const k = Math.min(cv.width / w, cv.height / h);
-      // la source de la page suffit tant qu'elle n'est pas agrandie
+      // l'image chargee suffit tant qu'elle n'est pas agrandie
       if (k <= 1.05) return;
       const largeur = Math.round(w * k);
       const hauteur = Math.round(h * k);
       if (nette && srcSize(nette).w >= largeur * 0.95) return;
+      // la source de la page (1 600 px) jusqu'a 1 680 px dessines, la version
+      // NET au-dela ; rien a gagner si l'on dessine deja la source de la page
+      const cible = Math.max(largeur, hauteur) > 1680 && netSrc ? netSrc : petit ? src : null;
+      if (!cible) return;
       netteEnCours = true;
-      chargerImage(netSrc, { largeur, hauteur }).then(
+      chargerImage(cible, { largeur, hauteur }).then(
         (b) => {
           netteEnCours = false;
           if (dead) {
@@ -586,7 +611,7 @@ export function HybridMedia({
       // premier ecran d'abord (enFile), decodee hors du fil principal (chargerImage)
       const proche = el.getBoundingClientRect().top < window.innerHeight;
       annuler = enFile(proche, () =>
-        chargerImage(src).then(
+        chargerImage(petit ?? src).then(
           (img) => {
             if (dead) {
               libererImage(img);
@@ -804,7 +829,21 @@ export function HybridMedia({
       canvasCb.current?.(null);
       hovered.current = false;
     };
-  }, [src, webm, netSrc, stream, live, ratio, lensRadius, video, drive, viewport, setTune, net]);
+  }, [
+    src,
+    webm,
+    blocSrc,
+    netSrc,
+    stream,
+    live,
+    ratio,
+    lensRadius,
+    video,
+    drive,
+    viewport,
+    setTune,
+    net,
+  ]);
 
   const labelId = useId();
   const named = controls && !!label;
@@ -961,6 +1000,7 @@ export function HybridMedia({
         <PleinCadre
           src={src}
           webm={webm}
+          blocSrc={blocSrc}
           netSrc={netSrc}
           stream={stream}
           alt={alt}
