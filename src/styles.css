@@ -163,13 +163,13 @@
 
 /* ---- Console mobile : reserver la hauteur en bas de page ---- */
 body {
-  padding-bottom: calc(var(--cell) * 3 + 48px);
+  padding-bottom: max(calc(var(--cell) * 3 + 48px), var(--console-h, 0px));
 }
 
 /* et dans le defilement : un element focalise au clavier s'arrete au-dessus
    de la console, jamais dessous (WCAG 2.4.11) */
 html {
-  scroll-padding-bottom: calc(var(--cell) * 3 + 48px);
+  scroll-padding-bottom: max(calc(var(--cell) * 3 + 48px), var(--console-h, 0px));
 }
 
 @media (min-width: 768px) {

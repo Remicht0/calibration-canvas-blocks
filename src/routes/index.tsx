@@ -445,6 +445,7 @@ export function Colophon() {
         <span>2026</span>
         <BitmapClock label="HEURE LOCALE" />
         <Link to="/atelier">ATELIER / BANC</Link>
+        <Link to="/a-propos">A PROPOS</Link>
         <Link to="/contact">CONTACT</Link>
         <Link to="/contact" hash="mentions">
           MENTIONS LEGALES

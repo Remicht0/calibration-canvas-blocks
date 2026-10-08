@@ -1,13 +1,13 @@
 /**
  * Audit global : la checklist de DESIGN.md section 8, l'accessibilite, la
  * navigation au clavier, les cartes de partage en navigation client et le
- * mouvement reduit — sur 3 largeurs et 5 routes.
+ * mouvement reduit — sur 3 largeurs et 6 routes.
  */
 import { after, before, test } from "node:test";
 import { chromium } from "playwright-core";
 import { BASE, CAMERA_MIRE, CHROMIUM, SLUGS, capture, conclure, verifie } from "./outils.mjs";
 
-const ROUTES = ["/", `/projet/${SLUGS[0]}`, "/atelier", "/contact", "/inconnue"];
+const ROUTES = ["/", `/projet/${SLUGS[0]}`, "/atelier", "/a-propos", "/contact", "/inconnue"];
 const LARGEURS = [
   [393, 852],
   [820, 1180],
@@ -22,7 +22,7 @@ after(async () => {
   await navigateur?.close();
 });
 
-test("checklist DESIGN.md section 8 sur 3 largeurs x 5 routes", async () => {
+test("checklist DESIGN.md section 8 sur 3 largeurs x 6 routes", async () => {
   for (const [l, h] of LARGEURS) {
     for (const route of ROUTES) {
       const ctx = await navigateur.newContext({ viewport: { width: l, height: h } });

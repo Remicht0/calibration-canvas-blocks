@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { bitUnit, cellSizeFor } from "@/lib/mire";
 import { BitReadout } from "@/components/readout";
 import { VERS_INDEX } from "@/components/chrome";
@@ -195,6 +195,7 @@ export function ScrollRail() {
 const TABS = [
   { ...VERS_INDEX, label: "INDEX" },
   { to: "/atelier", label: "ATELIER" },
+  { to: "/a-propos", label: "A PROPOS" },
   { to: "/contact", label: "CONTACT" },
 ] as const;
 
@@ -207,9 +208,28 @@ export function MireConsole() {
   const u = bitUnit(useCell());
   const steps = 20;
   const filled = Math.round(p * steps);
+  const nav = useRef<HTMLElement>(null);
+
+  // la page reserve sous elle la hauteur de la console (styles.css) : la reserve
+  // fixe d'ordinaire, davantage si les onglets passent sur une rangee de plus
+  // (texte agrandi, ecran tres etroit)
+  useEffect(() => {
+    const el = nav.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const racine = document.documentElement;
+    const ro = new ResizeObserver(() =>
+      racine.style.setProperty("--console-h", `${Math.ceil(el.getBoundingClientRect().height)}px`),
+    );
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      racine.style.removeProperty("--console-h");
+    };
+  }, []);
 
   return (
     <nav
+      ref={nav}
       aria-label="Console de navigation"
       className="mire-noprint mire-chrome fixed inset-x-0 bottom-0 z-[140] border-t-[6px] border-black bg-white md:hidden"
     >
@@ -239,7 +259,11 @@ export function MireConsole() {
         ))}
       </div>
 
-      <div className="grid grid-cols-5">
+      {/* six onglets : chacun prend la largeur de son libelle, le reste se partage
+          a parts egales ; les filets de 3 px sont le fond noir entre eux. Tout
+          tient sur une ligne jusqu'a 320 px (sans tracking sous 360 px) ; au-dela
+          (texte agrandi), les onglets passent a la ligne, jamais hors de l'ecran */}
+      <div className="flex flex-wrap gap-[3px] bg-black">
         {TABS.map(({ label, ...lien }) => {
           const active = lien.to === "/" ? path === "/" : path.startsWith(lien.to);
           return (
@@ -247,7 +271,7 @@ export function MireConsole() {
               key={label}
               {...lien}
               aria-current={active ? "page" : undefined}
-              className="u-mono border-r-[3px] border-black py-[10px] text-center"
+              className="u-mono grow py-[10px] text-center max-[359px]:tracking-normal"
               style={{
                 background: active ? "#000000" : "#FFFFFF",
                 color: active ? "#FFFFFF" : "#000000",
@@ -262,7 +286,7 @@ export function MireConsole() {
           onClick={toggleNegative}
           aria-pressed={neg}
           aria-label={neg ? "Revenir au positif" : "Passer en négatif"}
-          className="u-mono py-[10px] text-center"
+          className="u-mono grow py-[10px] text-center max-[359px]:tracking-normal"
           style={{
             background: neg ? "#000000" : "#FFFFFF",
             color: neg ? "#FFFFFF" : "#000000",
@@ -275,7 +299,7 @@ export function MireConsole() {
           onClick={() => setFige(!fige)}
           aria-pressed={fige}
           aria-label="Figer le mouvement : bandeau, bandes et vidéos"
-          className="u-mono border-l-[3px] border-black py-[10px] text-center"
+          className="u-mono grow py-[10px] text-center max-[359px]:tracking-normal"
           style={{
             background: fige ? "#000000" : "#FFFFFF",
             color: fige ? "#FFFFFF" : "#000000",

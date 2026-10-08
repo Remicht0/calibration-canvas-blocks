@@ -12,7 +12,7 @@ export const Route = createFileRoute("/sitemap.xml")({
         const xml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
         const abs = (s: string) => (/^https?:\/\//.test(s) ? s : `${o}${s}`);
         const urls: { u: string; imgs: string[] }[] = [
-          ...["/", "/atelier", "/contact"].map((u) => ({ u, imgs: [] })),
+          ...["/", "/atelier", "/a-propos", "/contact"].map((u) => ({ u, imgs: [] })),
           ...projects.map((p) => ({ u: `/projet/${p.slug}`, imgs: imagesOf(p) })),
         ];
         const body = [

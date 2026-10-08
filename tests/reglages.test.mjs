@@ -170,7 +170,7 @@ test("RACCOURCIS COUPES : N, ?, chiffres muets ; fleches et console intactes", a
   const fige = await p2.evaluate(() => document.documentElement.classList.contains("mire-fige"));
   verifie("console : FIGER fige le site", fige, String(fige));
   const debord = await p2.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-  verifie("console a cinq onglets, aucun debordement", debord === 0, String(debord));
+  verifie("console a six onglets, aucun debordement", debord === 0, String(debord));
   await tel.close();
   conclure();
 });
