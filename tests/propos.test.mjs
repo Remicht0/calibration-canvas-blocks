@@ -110,14 +110,29 @@ test("on y va de partout : barre haute, colophon, plan du site", async () => {
     liens.haut && liens.pied,
     JSON.stringify(liens),
   );
+  // le titre que la transition compose est celui de la page visee
+  await page.evaluate(() => {
+    window.__titres = [];
+    addEventListener("mire:wipe", (e) => {
+      if (!e.detail) return;
+      const masque = document.querySelector("[data-mire-nocapture][data-titre]");
+      window.__titres.push(masque?.dataset.titre);
+    });
+  });
   await page.locator('header nav a[href="/a-propos"]').click();
   await page.waitForURL("**/a-propos", { timeout: 6000 }).catch(() => {});
   await page.waitForTimeout(1500);
   const arrivee = await page.evaluate(() => ({
+    titres: window.__titres,
     url: location.pathname,
     focus: document.activeElement?.id,
     titre: document.title,
   }));
+  verifie(
+    "la transition compose A PROPOS, pas MIRE",
+    arrivee.titres.length > 0 && arrivee.titres.every((t) => t === "A PROPOS"),
+    JSON.stringify(arrivee.titres),
+  );
   verifie(
     "navigation client : titre et focus sur le h1",
     arrivee.url === "/a-propos" && arrivee.focus === "titre" && /^À propos/.test(arrivee.titre),
@@ -143,11 +158,19 @@ test("console mobile : six onglets sur une ligne, de 320 a 767 px", async () => 
       const nav = document.querySelector('nav[aria-label="Console de navigation"]');
       const cases = [...(nav?.querySelectorAll(":scope > div:last-child > *") ?? [])];
       const hauteurs = cases.map((e) => Math.round(e.getBoundingClientRect().height));
+      const hauts = cases.map((e) => Math.round(e.getBoundingClientRect().top));
+      // air entre chaque libelle et le filet de sa case
+      const air = cases.map((e) => {
+        const r = document.createRange();
+        r.selectNodeContents(e);
+        return (e.getBoundingClientRect().width - r.getBoundingClientRect().width) / 2;
+      });
       return {
         n: cases.length,
         libelles: cases.map((e) => e.textContent?.trim()),
         coupe: cases.filter((e) => e.scrollWidth > e.clientWidth).map((e) => e.textContent),
-        uneLigne: new Set(hauteurs).size === 1 && hauteurs[0] < 50,
+        uneLigne: new Set(hauts).size === 1 && new Set(hauteurs).size === 1 && hauteurs[0] < 50,
+        airMin: Math.min(...air),
         hauteurs,
         courant: nav?.querySelector('a[aria-current="page"]')?.textContent?.trim(),
         debord: document.documentElement.scrollWidth - innerWidth,
@@ -163,7 +186,91 @@ test("console mobile : six onglets sur une ligne, de 320 a 767 px", async () => 
       c.coupe.length === 0 && c.uneLigne && c.debord === 0,
       JSON.stringify({ coupe: c.coupe, hauteurs: c.hauteurs, debord: c.debord }),
     );
+    verifie(
+      `${largeur} px : au moins 2 px d'air entre chaque libelle et son filet`,
+      c.airMin >= 2,
+      c.airMin.toFixed(2),
+    );
     await ctx.close();
   }
+  conclure();
+});
+
+test("texte agrandi : les onglets passent a la ligne, la page reserve leur hauteur", async () => {
+  for (const largeur of [320, 393]) {
+    const ctx = await navigateur.newContext({
+      viewport: { width: largeur, height: 800 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    const page = await nouvellePage(ctx);
+    await page.goto(`${BASE}/a-propos`, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    // zoom texte 200 % (WCAG 1.4.4) sur les etiquettes
+    await page.addStyleTag({ content: ".u-mono{font-size:24px !important}" });
+    await page.waitForTimeout(400);
+    const c = await page.evaluate(() => {
+      const nav = document.querySelector('nav[aria-label="Console de navigation"]');
+      const cases = [...(nav?.querySelectorAll(":scope > div:last-child > *") ?? [])];
+      return {
+        dehors: cases
+          .filter((e) => {
+            const r = e.getBoundingClientRect();
+            return r.left < -0.5 || r.right > innerWidth + 0.5;
+          })
+          .map((e) => e.textContent),
+        rangees: new Set(cases.map((e) => Math.round(e.getBoundingClientRect().top))).size,
+        console: Math.ceil(nav?.getBoundingClientRect().height ?? 0),
+        reserve: parseFloat(getComputedStyle(document.body).paddingBottom),
+        debord: document.documentElement.scrollWidth - innerWidth,
+      };
+    });
+    verifie(
+      `${largeur} px, texte x2 : aucun onglet hors de l'ecran`,
+      c.dehors.length === 0 && c.debord === 0 && c.rangees > 1,
+      JSON.stringify(c),
+    );
+    verifie(
+      `${largeur} px, texte x2 : le bas de page reste au-dessus de la console`,
+      c.reserve >= c.console,
+      `${c.reserve} / ${c.console}`,
+    );
+    await ctx.close();
+  }
+  conclure();
+});
+
+test("barre haute : une seule rangee de 768 a 1022 px, meme sur l'atelier", async () => {
+  const ctx = await navigateur.newContext({
+    viewport: { width: 768, height: 900 },
+    reducedMotion: "reduce",
+  });
+  const page = await nouvellePage(ctx);
+  for (const route of ["/atelier", "/", "/a-propos", "/projet/moire"]) {
+    await page.goto(`${BASE}${route}`, { waitUntil: "networkidle" });
+    const fautes = [];
+    for (let l = 768; l <= 1022; l += 6) {
+      await page.setViewportSize({ width: l, height: 900 });
+      await page.waitForTimeout(40);
+      const r = await page.evaluate(() => {
+        const nav = document.querySelector('header nav[aria-label="Navigation principale"]');
+        const liens = [...(nav?.querySelectorAll("a") ?? [])].filter((a) => a.offsetWidth > 0);
+        const droite = nav?.parentElement?.lastElementChild;
+        const fin = Math.max(...liens.map((a) => a.getBoundingClientRect().right));
+        const debut = droite && droite !== nav ? droite.getBoundingClientRect().left : Infinity;
+        return {
+          rangees: new Set(liens.map((a) => Math.round(a.getBoundingClientRect().top))).size,
+          ecart: debut - fin,
+        };
+      });
+      if (r.rangees !== 1 || r.ecart < 16) fautes.push(`${l}:${JSON.stringify(r)}`);
+    }
+    verifie(
+      `${route} : cinq liens sur une rangee, ecart garde a droite`,
+      fautes.length === 0,
+      fautes.slice(0, 3).join(" "),
+    );
+  }
+  await ctx.close();
   conclure();
 });

@@ -50,9 +50,14 @@ export function TopBar({ right, className = "" }: { right?: ReactNode; className
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
     <header
-      className={`u-mono grid grid-cols-[minmax(0,1fr)_auto] items-center gap-cell ${className}`}
+      className={`u-mono grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-cell2 ${className}`}
     >
-      <nav aria-label="Navigation principale" className="flex min-w-0 flex-wrap gap-x-cell2">
+      {/* cinq liens : une cellule de pas sous 1024 px (la barre tient sur une
+          rangee des 768 px, horloge de l'atelier comprise), deux au-dela */}
+      <nav
+        aria-label="Navigation principale"
+        className="flex min-w-0 flex-wrap gap-x-cell lg:gap-x-cell2"
+      >
         <Link to="/" className="shrink-0">
           MIRE
         </Link>

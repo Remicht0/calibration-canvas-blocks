@@ -310,6 +310,7 @@ const HOLD = 0.58; // fin du palier de calibration
 function titleFor(path: string): string {
   if (path === "/") return "MIRE";
   if (path.startsWith("/atelier")) return "ATELIER";
+  if (path.startsWith("/a-propos")) return "A PROPOS";
   if (path.startsWith("/contact")) return "CONTACT";
   const m = /^\/projet\/([^/]+)/.exec(path);
   return (m && bySlug(m[1]!)?.title) || "MIRE";
@@ -643,6 +644,8 @@ export function RouteWipe() {
       cv.height = f.rows * f.cell * dpr;
       cv.style.width = `${f.cols * f.cell}px`;
       cv.style.height = `${f.rows * f.cell}px`;
+      // le titre compose, lisible hors du canvas (tests) : celui de la page visee
+      box.dataset["titre"] = mireText(titleFor(to));
       show(true);
       publierLeCoutDuClic(f.t0);
 
