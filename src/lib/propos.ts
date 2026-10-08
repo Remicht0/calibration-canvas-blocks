@@ -22,7 +22,7 @@ const TEXTE = {
   paragraphes: [
     "De mon obsession pour l'image et les couleurs vient ma passion pour le graphisme et pour le numérique. Je suis encore en études. Mon parcours tient en trois villes.",
     "Montauban, d'abord. Condom, ensuite, dans le Gers : j'y ai obtenu un bac STD2A (sciences et technologies du design et des arts appliqués). Puis Bordeaux, pour suivre un DN MADe (diplôme national des métiers d'art et du design). Changer de ville pour cette formation prouve ma détermination à exercer cette passion.",
-    "Je signe MIRE. Le site entier est une mire de calibration : noir pur, blanc pur, une seule ligne rouge. Chaque image y est lue en blocs. Sur chaque planche de projet, le bouton NET rend l'image d'origine, nette et dans ses couleurs.",
+    "Je signe MIRE : MI-RÉ, c'est RÉ-MI à l'envers. Une mire, c'est aussi une image de calibration, et le site entier en est une : noir pur, blanc pur, une seule ligne rouge. Chaque image y est lue en blocs. Sur chaque planche de projet, le bouton NET rend l'image d'origine, nette et dans ses couleurs.",
     "Que dire de plus ? J'adore l'esthétique bitmap. Ce portfolio en témoigne, tout comme ma passion pour le numérique.",
   ],
   /** Grand titre de la signature : 12 caracteres au plus par ligne. */
@@ -34,7 +34,7 @@ const TEXTE = {
     { k: "Bac", v: "STD2A, Condom (Gers)" },
     { k: "Formation", v: "DN MADe, Bordeaux (en cours)" },
     { k: "Esthétique", v: "Bitmap" },
-    { k: "Signature", v: "MIRE" },
+    { k: "Signature", v: "MIRE (RÉ-MI à l'envers)" },
   ],
   description:
     "Originaire de Montauban, en DN MADe à Bordeaux, {NOM} signe MIRE, avec la passion de l'image, des couleurs, du graphisme, du numérique et du bitmap.",
