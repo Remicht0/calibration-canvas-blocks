@@ -4,6 +4,7 @@ import { BlockType } from "@/components/mire";
 import { BitmapClock } from "@/components/bitmap-extras";
 import { TopBar } from "@/components/chrome";
 import { Bloc } from "@/components/bloc";
+import { Releve, type Ligne } from "@/components/releve";
 import { Colophon } from "./index";
 import { mireText } from "@/lib/glyphs";
 import {
@@ -36,8 +37,6 @@ export const Route = createFileRoute("/contact")({
   component: Contact,
 });
 
-type Ligne = { k: string; v: string };
-
 const FICHE: Ligne[] = [
   { k: "COURRIEL", v: mireText(STUDIO.email) },
   { k: "TELEPHONE", v: mireText(STUDIO.phone) },
@@ -66,28 +65,6 @@ const MENTIONS: Ligne[] = [
       ]
     : []),
 ];
-
-/** Releve en deux colonnes ; un nombre impair de lignes etend la derniere, sans laisser de trou. */
-function Releve({ lignes, filet }: { lignes: Ligne[]; filet: "blanc" | "noir" }) {
-  const bord = filet === "blanc" ? "border-white" : "border-black";
-  return (
-    <dl className="u-mono grid gap-y-cell2 md:grid-cols-2 md:gap-x-cell">
-      {lignes.map((f, i) => (
-        <div
-          key={f.k}
-          className={
-            lignes.length % 2 && i === lignes.length - 1
-              ? `border-t-[3px] ${bord} pt-cell md:col-span-2`
-              : `border-t-[3px] ${bord} pt-cell`
-          }
-        >
-          <dt>{f.k}</dt>
-          <dd className="mt-[3px] text-pretty">{f.v}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
 
 function Contact() {
   return (
