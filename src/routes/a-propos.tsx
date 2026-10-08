@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CalibrationBand, Ticker } from "@/components/bars";
+import type { ReactNode } from "react";
+import { CalibrationBand } from "@/components/bars";
 import { BlockType } from "@/components/mire";
 import { TopBar, VERS_INDEX } from "@/components/chrome";
 import { Bloc } from "@/components/bloc";
@@ -54,7 +55,7 @@ function APropos() {
 
       <section data-mire="EN-TETE" className="px-cell pb-cell4">
         <BlockType ancre="titre" text="A PROPOS" label="À propos" loop={false} drive="scan" />
-        <p className="u-copy mt-cell2 max-w-[46ch]">{mireText(PROPOS.intro)}</p>
+        <p className="u-copy mt-cell2 max-w-[46ch]">{soude(mireText(PROPOS.intro))}</p>
       </section>
 
       <CalibrationBand height={5} seed={23} className="border-y-[10px] border-black" />
@@ -72,7 +73,7 @@ function APropos() {
         <Paragraphes textes={PROPOS.paragraphes.slice(0, 2)} />
       </section>
 
-      <Ticker items={PROPOS.releve.map((l) => mireText(l.v))} />
+      <CalibrationBand height={5} seed={29} className="border-y-[10px] border-black" />
 
       <section data-mire="SIGNATURE" className="px-cell py-cell4">
         <h2 className="u-display text-[13vw] leading-[0.95] md:text-[7vw]">
@@ -107,9 +108,24 @@ function Paragraphes({ textes }: { textes: string[] }) {
     <div className="grid gap-y-cell2 md:grid-cols-2 md:gap-x-cell">
       {textes.map((p) => (
         <p key={p} className="u-copy max-w-[46ch]">
-          {mireText(p)}
+          {soude(mireText(p))}
         </p>
       ))}
     </div>
+  );
+}
+
+/** Suites qu'une fin de ligne ne doit pas couper : un sigle, un nom compose. */
+const SOUDURES = /(DN MADE|TARN-ET-GARONNE)/;
+
+function soude(texte: string): ReactNode[] {
+  return texte.split(SOUDURES).map((m, i) =>
+    i % 2 ? (
+      <span key={i} className="whitespace-nowrap">
+        {m}
+      </span>
+    ) : (
+      m
+    ),
   );
 }

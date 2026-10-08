@@ -1,6 +1,7 @@
 /**
  * Texte de la page A propos : les mots de Remi, developpes sans rien y
- * ajouter (DESIGN.md section 4, « Le texte A propos »). Ecrit hors mire, en
+ * ajouter, et des faits du site verifiables (signature, mire, NET) : DESIGN.md
+ * section 4, « Le texte A propos ». Ecrit hors mire, en
  * francais accentue : la page le passe par mireText() pour l'afficher dans la
  * grille, la description sert telle quelle aux moteurs et aux cartes de partage.
  *
@@ -20,7 +21,7 @@ const TEXTE = {
     "Je m'appelle {NOM}. Je suis originaire de Montauban, dans le Tarn-et-Garonne. Tout part d'une obsession de toujours : l'image et les couleurs.",
   /** Le parcours (deux paragraphes), puis la signature et le bitmap (deux autres). */
   paragraphes: [
-    "De mon obsession pour l'image et les couleurs vient ma passion pour le graphisme et pour le numérique. Je suis encore en études. Mon parcours tient en trois villes.",
+    "De cette obsession vient ma passion pour le graphisme et pour le numérique. Je suis encore en études. Mon parcours tient en trois villes.",
     "Montauban, d'abord. Condom, ensuite, dans le Gers : j'y ai obtenu un bac STD2A (sciences et technologies du design et des arts appliqués). Puis Bordeaux, pour suivre un DN MADe (diplôme national des métiers d'art et du design). Changer de ville pour cette formation prouve ma détermination à exercer cette passion.",
     "Je signe MIRE : MI-RÉ, c'est RÉ-MI à l'envers. Une mire, c'est aussi une image de calibration, et le site entier en est une : noir pur, blanc pur, une seule ligne rouge. Chaque image y est lue en blocs. Sur chaque planche de projet, le bouton NET rend l'image d'origine, nette et dans ses couleurs.",
     "Que dire de plus ? J'adore l'esthétique bitmap. Ce portfolio en témoigne, tout comme ma passion pour le numérique.",
