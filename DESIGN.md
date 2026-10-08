@@ -120,7 +120,7 @@ Les titres en blocs (`BlockType`) ont deux pilotages de plus :
   ainsi une vraie tête de lecture : ce qu'elle a lu disparaît. `drawBits`
   accepte pour cela un `progress` par rangée ; `scanLineTop()` (`mire.ts`) est
   la position de la ligne, partagée avec `ScanLine`. Titres des pages projet,
-  atelier, contact et index (après sa séquence d'entrée).
+  atelier, à propos, contact et index (après sa séquence d'entrée).
 
 Composition d'un titre en blocs (`titleLines`, `mire.ts`) : pleine largeur sur
 une ligne tant que chaque caractère garde au moins 4 colonnes
@@ -175,11 +175,18 @@ s'arrête toujours hors écran, sous `mire:modal` et en onglet caché.
 - `TopBar` (`chrome.tsx`) sur chaque page : `MIRE` puis `INDEX / ATELIER /
 A PROPOS / CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`,
   et un emplacement à droite propre à la page (rôle de MIRE, numéro / année,
-  horloge, fiche). Sous 768 px, la console en bas d'écran porte la navigation :
-  six onglets (`INDEX`, `ATELIER`, `A PROPOS`, `CONTACT`, `NEGATIF`,
-  `FIGER`), chacun de la largeur de son libellé, le reste de la ligne
-  partagé à parts égales (`grid-cols-[repeat(6,auto)]`) : aucun libellé ne
-  passe à la ligne jusqu'à 320 px.
+  horloge, fiche). Les liens sont espacés d'une cellule sous 1024 px, de deux
+  au-delà, et l'emplacement de droite de deux : la barre tient sur une rangée
+  dès 768 px, horloge de l'atelier comprise. Sous 768 px, la console en bas
+  d'écran porte la navigation : six onglets (`INDEX`, `ATELIER`, `A PROPOS`,
+  `CONTACT`, `NEGATIF`, `FIGER`), chacun de la largeur de son libellé, le
+  reste de la ligne partagé à parts égales (`flex flex-wrap` + `grow`) ; les
+  filets de 3 px sont le fond noir visible entre eux (`gap-[3px]`). Tout
+  tient sur une ligne jusqu'à 320 px, avec au moins 2 px d'air de chaque côté
+  d'un libellé (sans le tracking de `.u-mono` sous 360 px). Texte agrandi :
+  les onglets passent sur une rangée de plus au lieu de sortir de l'écran, et
+  la page réserve sous elle la hauteur réelle de la console (`--console-h`,
+  écrite par la console, plancher `cell x 3 + 48 px`).
 - INDEX (barre haute, console, ligne « N PROJETS / INDEX CI-DESSOUS » de
   l'entrée) mène à la section INDEX de l'accueil (`/#index`, `VERS_INDEX`
   dans `chrome.tsx`) d'un saut sec (`hashScrollIntoView` instant) ; depuis
@@ -373,8 +380,9 @@ Tout est dessine dans le canvas du masque, jamais en HTML : le compteur
 `MIRE / RECALIBRAGE` (une cellule de haut, en haut a gauche) sont peints en
 XOR par cellule — blanc sur une cellule noire, noir sur une cellule vide, rien
 sur la rangee rouge — et restent lisibles pendant les trois temps. **Le titre
-de la page de destination traverse la transition** (MIRE, ATELIER, CONTACT ou
-le titre du projet, lu sur le chemin vise) : compose en blocs Anton pleine
+de la page de destination traverse la transition** (MIRE, ATELIER, A PROPOS,
+CONTACT ou le titre du projet, lu sur le chemin vise par `titleFor`, et
+recopie dans `data-titre` du masque pour les tests) : compose en blocs Anton pleine
 largeur, centre, sur plusieurs lignes selon la meme regle que les titres de
 page, avec son propre `fallOrder` (graine 13), il se compose avec
 l'effondrement, tient au palier, puis resiste a la levee (`+0,30` sur l'ordre
@@ -614,10 +622,15 @@ disparaît. Ne jamais remplir une valeur qu'on n'a pas.
    `releve`, `accroche` (2 ou 3 lignes de 12 caractères au plus : elles
    tiennent en display à 360 px), `description` (155 caractères au plus).
    Français accentué, hors mire : la page le passe par `mireText()`.
-2. Uniquement les mots de Rémi, développés : son origine, son bac, sa
-   formation, sa passion, le bitmap. Aucun établissement, aucune année
-   d'études, aucun logiciel, aucun client, aucune ambition absente de son
-   texte.
+2. Uniquement les mots de Rémi, développés (son origine, son bac, sa
+   formation, sa passion, le bitmap, la signature MIRE et son anecdote :
+   MI-RÉ, c'est RÉ-MI à l'envers), et des faits du site vérifiables dans le
+   code : la mire de calibration (noir pur, blanc pur, une seule ligne rouge,
+   §1), la lecture en blocs et le bouton NET (§2). Aucun établissement,
+   aucune année d'études, aucun logiciel, aucun client, aucune ambition
+   absente de son texte. Pas de bandeau qui répète le relevé : entre le
+   parcours et l'accroche, une bande de calibration. Les sigles et noms
+   composés (`DN MADE`, `TARN-ET-GARONNE`) ne se coupent pas en fin de ligne.
 3. Le nom légal s'écrit `{NOM}` : il vient de `identite.ts`. Aucun accord ne
    se rapporte à Rémi (son texte disait « née », « étudiant », « déplacé ») :
    « originaire de », « en études », « j'ai quitté » plutôt que « né »,
@@ -1054,7 +1067,9 @@ l'instrument 05 : cycle de vie de la camera, vie privee, clavier et focus,
 creux et cartouche, etiquette, photo demesuree, non-regressions du reste du
 site ; l'identite : source unique, fiche, mentions, colophon, donnees
 structurees, heure de la ville ; et la page A propos : nom lu a la source,
-aucun accord genre, chemins d'acces, console a six onglets de 320 a 767 px.
+aucun accord genre, chemins d'acces, titre de la transition, console a six
+onglets de 320 a 767 px et en texte agrandi, barre haute sur une rangee de
+768 a 1022 px.
 
 Avec `run` : `bun test` appellerait le coureur de bun, qui ne monte ni les
 pieces ni le serveur. Elle demande Node 22 ou plus a cote de bun, le lanceur
