@@ -173,9 +173,13 @@ s'arrête toujours hors écran, sous `mire:modal` et en onglet caché.
 ### Chrome commun
 
 - `TopBar` (`chrome.tsx`) sur chaque page : `MIRE` puis `INDEX / ATELIER /
-CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`, et un
-  emplacement à droite propre à la page (rôle de MIRE, numéro / année,
-  horloge, fiche). Sous 768 px, la console en bas d'écran porte la navigation.
+A PROPOS / CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`,
+  et un emplacement à droite propre à la page (rôle de MIRE, numéro / année,
+  horloge, fiche). Sous 768 px, la console en bas d'écran porte la navigation :
+  six onglets (`INDEX`, `ATELIER`, `A PROPOS`, `CONTACT`, `NEGATIF`,
+  `FIGER`), chacun de la largeur de son libellé, le reste de la ligne
+  partagé à parts égales (`grid-cols-[repeat(6,auto)]`) : aucun libellé ne
+  passe à la ligne jusqu'à 320 px.
 - INDEX (barre haute, console, ligne « N PROJETS / INDEX CI-DESSOUS » de
   l'entrée) mène à la section INDEX de l'accueil (`/#index`, `VERS_INDEX`
   dans `chrome.tsx`) d'un saut sec (`hashScrollIntoView` instant) ; depuis
@@ -186,15 +190,16 @@ CONTACT` à partir de 768 px, page courante marquée d'un bloc `■`, et un
   à `/`.
 - Colophon (`index.tsx`, exporté et repris par chaque page) : signature
   `MIRE — GRAPHISTE INDEPENDANT`, courriel et téléphone, procédé, encres ; en
-  bas, l'année, `HEURE LOCALE`, et les liens `ATELIER / BANC`, `CONTACT`,
-  `MENTIONS LEGALES` (`/contact#mentions`).
+  bas, l'année, `HEURE LOCALE`, et les liens `ATELIER / BANC`, `A PROPOS`,
+  `CONTACT`, `MENTIONS LEGALES` (`/contact#mentions`).
 - Horloges : sans fuseau, une horloge donne l'heure du visiteur et le dit
   (`HEURE LOCALE` au colophon, `HEURE ATELIER` sur l'établi). La fiche de
   contact est la seule à donner l'heure de la ville (`STUDIO.timeZone`),
   étiquetée `HEURE BORDEAUX` : elle se lit à côté des horaires. Deux horloges
   sur une même page portent toujours deux étiquettes qui disent laquelle est
   laquelle.
-- Relevés (fiche de contact, mentions légales, composant `Releve`) : deux
+- Relevés (fiche de contact, mentions légales, page À propos ; composant
+  `Releve`, `releve.tsx`) : deux
   colonnes à partir de 768 px ; un nombre impair de lignes étend la dernière
   sur toute la largeur au lieu de laisser un trou. Une ligne facultative
   (SIRET, hébergeur) n'apparaît que renseignée : jamais de valeur inventée.
@@ -413,6 +418,8 @@ src/
                        mireText() : capitales sans accents
     ink.ts             captureInk() : carte d'encre de l'ecran, une valeur par
                        cellule, relevee sur les canvas et les surfaces du DOM
+    propos.ts          texte de la page A propos (mots de Remi developpes,
+                       hors mire ; le nom vient de identite.ts par {NOM})
     identite.ts        identite de MIRE (STUDIO) : Remi Marty, graphiste
                        independant ; seule source des coordonnees, du role,
                        des domaines, du delai de reponse et des mentions.
@@ -433,6 +440,7 @@ src/
                        reduction d'une photo deposee, hors fil principal
                        (importe en `?worker&inline` : aucun telechargement)
     bloc.tsx           Bloc — bouton / lien cadre 1 bit (.u-bloc)
+    releve.tsx         Releve — lignes etiquette / valeur (contact, A propos)
     chrome.tsx         TopBar — barre haute commune
     help.tsx           KeyHelp — fiche de commande (raccourcis)
     bars.tsx           CalibrationBand, Ticker
@@ -453,6 +461,8 @@ src/
                        (manifeste) + Colophon (exporté et réutilisé)
     projet.$slug.tsx   page projet
     atelier.tsx        instruments manipulables
+    a-propos.tsx       qui signe MIRE : texte de Remi, releve, parcours,
+                       accroche ; JSON-LD ProfilePage
     contact.tsx        fiche de calibration (coordonnees, horaires, delai),
                        mentions legales (#mentions)
     sitemap[.]xml.tsx  route serveur : plan du site en URL absolues
@@ -477,13 +487,16 @@ src/assets/fonts/      Anton et JetBrains Mono auto-hebergees (woff2, hachees)
   domaines, adresse postale) et
   `CreativeWork` par projet (titre, annee, nature, client, carte 1 bit,
   `isPartOf` = le site, et `video` = VideoObject seulement si le projet a une
-  video) ; sur l'accueil, un `ItemList` des projets dans l'ordre de l'index.
+  video) ; sur l'accueil, un `ItemList` des projets dans l'ordre de l'index ;
+  sur `/a-propos`, un `ProfilePage` dont l'entité est la `Person` (nom légal,
+  `alternateName` MIRE, métier, ville).
 - `/sitemap.xml` et `/robots.txt` sont des routes serveur : l'origine vient de
   la requete (ou de `VITE_SITE_URL`), rien n'est code en dur. Le sitemap porte
   aussi les images de chaque projet (`image:image`, `imagesOf`) : Google Images
   ne voit pas ce qui est dessine en canvas.
 - Titres hors mire : l'accueil se nomme « MIRE — Graphiste indépendant à
   Bordeaux » (`titreAccueil`), le contact « Contact — MIRE, graphiste
+  indépendant à Bordeaux », la page de Rémi « À propos — MIRE, graphiste
   indépendant à Bordeaux ». Un projet porte un `nom` avec ses accents
   (« Champithèque », « La poésie des formes »), memes mots que son titre en
   capitales (`mireText(nom) === title`) : onglet, JSON-LD, ItemList et `h1`
@@ -594,6 +607,21 @@ defiler la page.
 
 `postalCode`, `siret` et `hebergeur` sont facultatifs : absents, leur ligne
 disparaît. Ne jamais remplir une valeur qu'on n'a pas.
+
+### Le texte À propos
+
+1. Modifier `src/lib/propos.ts`, et lui seul : `intro`, `paragraphes`,
+   `releve`, `accroche` (2 ou 3 lignes de 12 caractères au plus : elles
+   tiennent en display à 360 px), `description` (155 caractères au plus).
+   Français accentué, hors mire : la page le passe par `mireText()`.
+2. Uniquement les mots de Rémi, développés : son origine, son bac, sa
+   formation, sa passion, le bitmap. Aucun établissement, aucune année
+   d'études, aucun logiciel, aucun client, aucune ambition absente de son
+   texte.
+3. Le nom légal s'écrit `{NOM}` : il vient de `identite.ts`. Aucun accord ne
+   se rapporte à Rémi (son texte disait « née », « étudiant », « déplacé ») :
+   « originaire de », « en études », « j'ai quitté » plutôt que « né »,
+   « étudiant », « je suis parti ». La suite `propos` le vérifie.
 
 ### Une photo ou une vidéo personnelle
 
@@ -726,6 +754,10 @@ Fait :
 - [x] `/atelier` : automate 23/3, planche de bruit, horloge en blocs,
       histogramme et seuil (instrument 04), miroir (instrument 05).
 - [x] `/contact` : fiche de calibration + `head()` dedie.
+- [x] `/a-propos` : le texte de Remi (origine, bac STD2A, DN MADe a
+      Bordeaux, l'image et le bitmap), releve, parcours, accroche ; dans la
+      barre haute, la console (six onglets), le colophon et le plan du site ;
+      suite de tests `propos`.
 - [x] Identite reelle : Remi Marty, graphiste independant a Bordeaux, qui
       signe MIRE. Source unique `identite.ts` ; coordonnees, role, domaines
       (identite visuelle, edition), delai de reponse et mentions en
@@ -1017,11 +1049,12 @@ Une seule commande, depuis un clone propre : elle fabrique les pieces lourdes
 serveur, la sert, joue les suites de `tests/` dans un Chromium pilote, puis
 arrete tout — meme en cas d'echec. Elle sort en 0 ou en 1.
 
-Les suites couvrent la checklist ci-dessus sur 3 largeurs et 5 routes, puis
+Les suites couvrent la checklist ci-dessus sur 3 largeurs et 6 routes, puis
 l'instrument 05 : cycle de vie de la camera, vie privee, clavier et focus,
 creux et cartouche, etiquette, photo demesuree, non-regressions du reste du
-site ; et l'identite : source unique, fiche, mentions, colophon, donnees
-structurees, heure de la ville.
+site ; l'identite : source unique, fiche, mentions, colophon, donnees
+structurees, heure de la ville ; et la page A propos : nom lu a la source,
+aucun accord genre, chemins d'acces, console a six onglets de 320 a 767 px.
 
 Avec `run` : `bun test` appellerait le coureur de bun, qui ne monte ni les
 pieces ni le serveur. Elle demande Node 22 ou plus a cote de bun, le lanceur
