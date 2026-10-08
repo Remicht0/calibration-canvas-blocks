@@ -195,6 +195,7 @@ export function ScrollRail() {
 const TABS = [
   { ...VERS_INDEX, label: "INDEX" },
   { to: "/atelier", label: "ATELIER" },
+  { to: "/a-propos", label: "A PROPOS" },
   { to: "/contact", label: "CONTACT" },
 ] as const;
 
@@ -239,7 +240,9 @@ export function MireConsole() {
         ))}
       </div>
 
-      <div className="grid grid-cols-5">
+      {/* six onglets : chacun prend la largeur de son libelle, le reste se partage
+          a parts egales ; A PROPOS tient sur une ligne jusqu'a 320 px */}
+      <div className="grid grid-cols-[repeat(6,auto)]">
         {TABS.map(({ label, ...lien }) => {
           const active = lien.to === "/" ? path === "/" : path.startsWith(lien.to);
           return (

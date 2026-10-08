@@ -42,6 +42,7 @@ export const VERS_INDEX = {
 const ITEMS = [
   { ...VERS_INDEX, label: "INDEX" },
   { to: "/atelier", label: "ATELIER" },
+  { to: "/a-propos", label: "A PROPOS" },
   { to: "/contact", label: "CONTACT" },
 ] as const;
 
